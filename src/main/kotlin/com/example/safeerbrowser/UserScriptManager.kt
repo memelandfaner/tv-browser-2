@@ -546,12 +546,60 @@ object UserScriptManager {
         })();
     """
 
+    private const val TV_REMOTE_NAV_JS = """
+        /* 📺 Safeer TV Remote D-Pad Navigation Engine */
+        (function() {
+            if (window._safeer_tv_remote_installed) return;
+            window._safeer_tv_remote_installed = true;
+
+            try {
+                var style = document.createElement('style');
+                style.id = 'tv-remote-focus-style';
+                style.textContent = `
+                    :focus, .tv-remote-focused {
+                        outline: 3.5px solid #00e5ff !important;
+                        outline-offset: 2px !important;
+                        box-shadow: 0 0 15px rgba(0, 229, 255, 0.8) !important;
+                        border-radius: 4px !important;
+                        transition: outline 0.1s ease-in-out !important;
+                    }
+                `;
+                (document.head || document.documentElement).appendChild(style);
+            } catch(e) {}
+
+            function makeElementsFocusable() {
+                try {
+                    var focusables = document.querySelectorAll('a, button, input, select, textarea, [onclick], [role="button"], [tabindex], .card, .media-card');
+                    for (var i = 0; i < focusables.length; i++) {
+                        var el = focusables[i];
+                        if (!el.hasAttribute('tabindex')) {
+                            el.setAttribute('tabindex', '0');
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            document.addEventListener('DOMContentLoaded', makeElementsFocusable);
+            setInterval(makeElementsFocusable, 1000);
+
+            window.addEventListener('keydown', function(e) {
+                if (e.keyCode === 13 || e.keyCode === 32) { // OK / Enter
+                    var active = document.activeElement;
+                    if (active && active !== document.body) {
+                        try { active.click(); } catch(_) {}
+                    }
+                }
+            }, true);
+        })();
+    """
+
     fun injectEarlyScript(webView: WebView) {
         val cosmeticCss = CosmeticFilterEngine.buildCosmeticCss()
         injectCss(webView, cosmeticCss, "safeer-cosmetic-filter")
         webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
+        webView.evaluateJavascript(TV_REMOTE_NAV_JS, null)
     }
 
     fun injectOnPageFinished(webView: WebView, isDarkMode: Boolean) {
@@ -560,6 +608,7 @@ object UserScriptManager {
         webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
+        webView.evaluateJavascript(TV_REMOTE_NAV_JS, null)
 
         if (isDarkMode) {
             injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")

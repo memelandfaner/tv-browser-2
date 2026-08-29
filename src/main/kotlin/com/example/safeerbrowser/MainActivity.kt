@@ -752,6 +752,54 @@ class MainActivity : android.app.Activity() {
         imm?.hideSoftInputFromWindow(editUrl.windowToken, 0)
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        val activeWv = tabManager.getActiveTab()?.webView
+
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                if (activeWv != null && activeWv.hasFocus() && activeWv.scrollY == 0) {
+                    editUrl.requestFocus()
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (editUrl.hasFocus() || btnHome.hasFocus() || btnAddTab.hasFocus() || btnMenu.hasFocus() || btnTabCount.hasFocus()) {
+                    activeWv?.requestFocus()
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_MENU -> {
+                showMobileMenu()
+                return true
+            }
+            KeyEvent.KEYCODE_SEARCH, KeyEvent.KEYCODE_PROG_RED -> {
+                editUrl.requestFocus()
+                showKeyboard()
+                return true
+            }
+            KeyEvent.KEYCODE_BOOKMARK, KeyEvent.KEYCODE_PROG_YELLOW -> {
+                showBookmarksDialog()
+                return true
+            }
+            KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_CHANNEL_UP -> {
+                activeWv?.pageUp(false)
+                return true
+            }
+            KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                activeWv?.pageDown(false)
+                return true
+            }
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                activeWv?.evaluateJavascript(
+                    "var v = document.querySelector('video'); if (v) { v.paused ? v.play() : v.pause(); }",
+                    null
+                )
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     override fun onBackPressed() {
         if (customVideoView != null) {
             tabManager.getActiveTab()?.webView?.exitFullscreenVideo()

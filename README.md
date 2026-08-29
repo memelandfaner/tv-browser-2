@@ -1,64 +1,39 @@
-# 🛡️ Safeer Browser (Mobile Security Edition)
+# 📺 TV Browser 2 (Android TV Remote Control Edition)
 
-**Safeer Browser** je napreden, visoko-varen mobilni spletni brskalnik za Android, posebej optimiziran za **Samsung Galaxy S25 (120Hz Dynamic AMOLED 2X, Android One UI 8.5)** s pravo **kibernetsko zaščito pred Botnet C2 strežniki, zlonamerno programsko opremo (Malware), spletnim ribarjenjem (Phishing) ter agresivnimi oglasnimi mrežami**.
-
----
-
-## 🛑 Ključne Varnostne Značilnosti
-
-### 1. 🛡️ Namenski Threat Block Shield (abuse.ch Feodo, URLhaus & ThreatFox)
-- **Viri groženj**:
-  - **abuse.ch Feodo Tracker**: Blokada C2 (Command & Control) botnet strežnikov (Dridex, Emotet, TrickBot, QakBot).
-  - **abuse.ch URLhaus**: Blokada domen in povezav za razširjanje zlonamerne kode (Malware distribution).
-  - **abuse.ch ThreatFox**: Blokada indikatorjev napadov (IOC).
-  - **Phishing Army**: Zaščita pred lažnim predstavljanjem in krajo bančnih/uporabniških podatkov.
-  - **StevenBlack Unified**: Blokada nevarnih stavniških in preusmeritvenih domen.
-- **🔒 Zero-Bypass Pravilo**: Za nevarne C2/malware domene **ne veljajo nobene video/m3u8/embed izjeme**.
-- **⚠️ Main-Frame Varnostni Opozorilni Zaslon (Security Interstitial Page)**:
-  - Ob poskusu obiska nevarne domene brskalnik prikaže eleganten rdeč opozorilni zaslon z razlago grožnje, virom zaznave ter možnostjo varne vrnitve ali odklepa na lastno odgovornost.
-- **🔑 SHA-256 Integriteta**: Preverjanje kontrolnih vsot pri posodabljanju seznamov groženj v ozadju.
-
-### 2. ⚡ Visoko-zmogljiv Radix / Domain Suffix Trie ($O(k)$)
-- Preverjanje domen v mikrosekundah brez obremenjevanja procesorja ali počasnih nizovnih zank.
-- Avtomatsko prestrezanje vseh poddomen (`sub.evil-server.cc` -> `evil-server.cc`).
-
-### 3. 🎯 Path-Aware Rule Matching & Odprava Mrtvih Pravil
-- Pravilno razdeljevanje domen in poti za prestrezanje vzorcev kot so `yandex.ru/metrika`, `/pagead/`, `/ads/`, `/pixel.`, `gtag/js`, `collect?v=`.
-
-### 4. 🎨 EasyList Kozmetično Filtriranje & YouTube Predvajalnik
-- Odstranitev praznih oglasnih okvirjev preko injiciranja CSS pravil (`##.ad-slot, ##[id^="google_ads"]`).
-- SmartTube/Brave mehanizem za samodejni preskok YouTube oglasov in neprekinjeno predvajanje v ozadju (Background Audio Playback z ugasnjenim zaslonom).
+**TV Browser 2** je napreden, visoko-varen spletni brskalnik za Android TV in pametne televizorje, optimiziran za upravljanje z **daljinskim upravljalnikom (D-Pad Navigation)** ter s vgrajeno kibernetsko zaščito pred Botnet C2 strežniki, zlonamerno kodo (Malware) in oglasnimi mrežami.
 
 ---
 
-## ⚡ Hitra 1-Klik Namestitev & Kratke Povezave (Quick Install)
-
-### 🚀 1. Kratka povezava za vpis v brskalnik na telefonu:
-Vnesite v poljuben brskalnik na telefonu za takojšen prenos APK:
-* 👉 **`tinyurl.com/safeer-apk`** (ali `https://tinyurl.com/safeer-apk`)
-* 👉 Alternativa: **`tinyurl.com/safeer-mobi`**
-* 👉 Rezervna povezava: **`da.gd/xfcGi`**
-
-### 📲 2. 1-Vrstični samodejni namestitveni ukaz prek terminala:
-```bash
-curl -sL https://tinyurl.com/install-safeer | bash
-```
-*(Ali z uradne GitHub povezave: `curl -sL https://raw.githubusercontent.com/memelandfaner/-safeer-browser/main/install_safeer.sh | bash`)*
-
-### 📥 3. Neposredna povezava do uradne APK datoteke:
-* **Najnovejši Release APK**: [Safeer-Browser.apk](https://raw.githubusercontent.com/memelandfaner/-safeer-browser/main/Safeer-Browser.apk)
-* **Release Artifact**: [safeer-browser-release.apk](https://raw.githubusercontent.com/memelandfaner/-safeer-browser/main/Release/Artifacts/safeer-browser-release.apk)
-
-### 📱 4. Lokalna namestitev prek ADB:
-```bash
-adb -s 192.168.0.216:34527 install -r Safeer-Browser.apk
-```
+## 🎮 Značilnosti za Android TV (Daljinski Upravljalnik)
+- 🎯 **D-Pad Upravljanje**: Popolna podpora za smerne tipke (GOR, DOL, LEVO, DESNO, OK/ENTER) na TV daljincu.
+- 🔍 **Avtomatski Fokus Barve**: Brskalnik samodejno označi in obrobi fokusirane elemente na spletni strani z svetlo modro (Cyan) barvo (`00e5ff`).
+- ⚡ **Hitre Tipke na Daljincu**:
+  - `GOR` na vrhu strani -> Skok v Iskalnik / URL polje (`editUrl`).
+  - `DOL` v URL polju -> Povratek na vsebino spletne strani.
+  - `MENI` -> Odpre stranski meni brskalnika.
+  - `RDEČA tipka` / `ISKANJE` -> Hitro iskanje.
+  - `RUMENA tipka` -> Zaznamki.
+  - `KANAL UP/DOWN` ali `PAGE UP/DOWN` -> Hitro pomikanje po strani.
+  - `PREDVAJAJ/PAVZA` -> Nadzor video posnetkov na spletu.
 
 ---
 
-## 🛠️ Gradnja iz Izvorne Kode
+## 🛑 Kibernetska Zaščita & AdBlock
+- **abuse.ch Feodo Tracker, URLhaus & ThreatFox**: Samodejna blokada nevarne C2 botnet in malware infrastrukture.
+- **Phishing Army & StevenBlack Hosts**: Zaščita pred lažnim predstavljanjem.
+- **SmartTube & Brave Shield Technology**: Preskok oglasov in delovanje zeliščnega predvajanja v ozadju.
 
+---
+
+## 🛠️ Gradnja in Namestitev
+
+### Gradnja APK paketa:
 ```bash
-./build_mobile_apk.sh
+./build_tv_apk.sh
 ```
-Skripta uporablja AAPT2, Kotlinc, D8 in Uber-Apk-Signer ter ustvari podpisan, optimiziran APK paket.
+
+### Namestitev na Android TV prek ADB:
+```bash
+adb connect 192.168.0.77:5555
+adb -s 192.168.0.77:5555 install -r TV-Browser-2.apk
+```
