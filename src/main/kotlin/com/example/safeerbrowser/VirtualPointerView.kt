@@ -19,7 +19,7 @@ class VirtualPointerView @JvmOverloads constructor(
 
     var pointerX: Float = 0f
     var pointerY: Float = 0f
-    var isPointerVisible: Boolean = true
+    var isPointerVisible: Boolean = false
         set(value) {
             field = value
             visibility = if (value) VISIBLE else GONE
@@ -43,12 +43,13 @@ class VirtualPointerView @JvmOverloads constructor(
         strokeWidth = 3f
     }
 
-    private var hideRunnable = Runnable {
-        // Auto-dim cursor on video or inactivity if desired
+    private val hideRunnable = Runnable {
+        isPointerVisible = false
     }
 
     init {
         setLayerType(LAYER_TYPE_SOFTWARE, null)
+        visibility = GONE
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -76,6 +77,7 @@ class VirtualPointerView @JvmOverloads constructor(
     fun movePointer(dx: Float, dy: Float, targetWebView: WebView?): Boolean {
         isPointerVisible = true
         removeCallbacks(hideRunnable)
+        postDelayed(hideRunnable, 3000)
 
         val newX = max(10f, min(width - 10f, pointerX + dx))
         val newY = max(10f, min(height - 10f, pointerY + dy))
