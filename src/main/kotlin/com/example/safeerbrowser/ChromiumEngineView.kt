@@ -93,6 +93,7 @@ class ChromiumEngineView @JvmOverloads constructor(
             displayZoomControls = false
             useWideViewPort = isDesktopMode
             loadWithOverviewMode = isDesktopMode
+            textZoom = 120
             
             cacheMode = WebSettings.LOAD_DEFAULT
             userAgentString = MOBILE_USER_AGENT

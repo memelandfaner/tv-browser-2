@@ -93,18 +93,35 @@
                 android:background="@drawable/bg_mobile_icon_button" />
         </LinearLayout>
 
-        <!-- 3. Add Tab (+) Button -->
+        <!-- 3. TV Remote Virtual Pointer Toggle Button -->
+        <Button
+            android:id="@+id/btnPointerToggle"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_mobile_icon_button"
+            android:text="🖱️"
+            android:textColor="@color/accent_cyan"
+            android:textSize="16sp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:contentDescription="Virtual Pointer Mode" />
+
+        <!-- 4. Add Tab (+) Button -->
         <Button
             android:id="@+id/btnAddTab"
             android:layout_width="36dp"
             android:layout_height="36dp"
+            android:layout_marginStart="4dp"
             android:background="@drawable/bg_mobile_icon_button"
             android:text="➕"
             android:textColor="@color/text_primary"
             android:textSize="15sp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:contentDescription="@string/btn_add_tab" />
 
-        <!-- 4. Tab Switcher Badge [ 1 ] -->
+        <!-- 5. Tab Switcher Badge [ 1 ] -->
         <Button
             android:id="@+id/btnTabCount"
             android:layout_width="32dp"
@@ -115,9 +132,11 @@
             android:textColor="@color/accent_cyan"
             android:textSize="13sp"
             android:textStyle="bold"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:padding="0dp" />
 
-        <!-- 5. 3-Dots Menu (⋮) Button -->
+        <!-- 6. 3-Dots Menu (⋮) Button -->
         <Button
             android:id="@+id/btnMenu"
             android:layout_width="36dp"
@@ -128,6 +147,8 @@
             android:textColor="@color/text_primary"
             android:textSize="20sp"
             android:textStyle="bold"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:contentDescription="@string/btn_menu" />
     </LinearLayout>
 
@@ -302,5 +323,12 @@
                 android:padding="8dp" />
         </LinearLayout>
     </RelativeLayout>
+
+    <!-- TV Remote Virtual Pointer Overlay Layer -->
+    <com.example.safeerbrowser.VirtualPointerView
+        android:id="@+id/virtualPointerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="50dp" />
 
 </RelativeLayout>

@@ -27,11 +27,13 @@ class MainActivity : android.app.Activity() {
     private lateinit var editUrl: EditText
     private lateinit var btnClearUrl: TextView
     private lateinit var btnSearchTrigger: TextView
+    private lateinit var btnPointerToggle: Button
     private lateinit var btnAddTab: Button
     private lateinit var btnTabCount: Button
     private lateinit var btnMenu: Button
     private lateinit var pageProgressBar: ProgressBar
     private lateinit var webViewContainer: FrameLayout
+    private lateinit var virtualPointerView: VirtualPointerView
 
     // Overlays & Secondary Views
     private lateinit var tabSwitcherOverlay: RelativeLayout
@@ -145,11 +147,13 @@ class MainActivity : android.app.Activity() {
         editUrl = findViewById(R.id.editUrl)
         btnClearUrl = findViewById(R.id.btnClearUrl)
         btnSearchTrigger = findViewById(R.id.btnSearchTrigger)
+        btnPointerToggle = findViewById(R.id.btnPointerToggle)
         btnAddTab = findViewById(R.id.btnAddTab)
         btnTabCount = findViewById(R.id.btnTabCount)
         btnMenu = findViewById(R.id.btnMenu)
         pageProgressBar = findViewById(R.id.pageProgressBar)
         webViewContainer = findViewById(R.id.webViewContainer)
+        virtualPointerView = findViewById(R.id.virtualPointerView)
 
         tabSwitcherOverlay = findViewById(R.id.tabSwitcherOverlay)
         tabsGridView = findViewById(R.id.tabsGridView)
@@ -344,6 +348,15 @@ class MainActivity : android.app.Activity() {
     private fun setupTopButtons() {
         btnHome.setOnClickListener {
             tabManager.getActiveTab()?.webView?.loadUrl("file:///android_asset/brave_home.html")
+        }
+
+        btnPointerToggle.setOnClickListener {
+            virtualPointerView.isPointerVisible = !virtualPointerView.isPointerVisible
+            Toast.makeText(
+                this,
+                if (virtualPointerView.isPointerVisible) "🖱️ Kazalec TV vklopljen" else "🖐️ Kazalec TV izklopljen",
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         btnAddTab.setOnClickListener {
@@ -755,16 +768,75 @@ class MainActivity : android.app.Activity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val activeWv = tabManager.getActiveTab()?.webView
 
+        // 1. Zelen gumb / INFO -> Preklop kazalca
+        if (keyCode == KeyEvent.KEYCODE_PROG_GREEN || keyCode == KeyEvent.KEYCODE_INFO) {
+            virtualPointerView.isPointerVisible = !virtualPointerView.isPointerVisible
+            Toast.makeText(
+                this,
+                if (virtualPointerView.isPointerVisible) "🖱️ Kazalec TV vklopljen" else "🖐️ Kazalec TV izklopljen",
+                Toast.LENGTH_SHORT
+            ).show()
+            return true
+        }
+
+        // 2. Modri gumb -> Ponovno naloži stran
+        if (keyCode == KeyEvent.KEYCODE_PROG_BLUE) {
+            activeWv?.reload()
+            return true
+        }
+
+        val isTopBarFocused = editUrl.hasFocus() || btnHome.hasFocus() || btnPointerToggle.hasFocus() ||
+                              btnAddTab.hasFocus() || btnTabCount.hasFocus() || btnMenu.hasFocus()
+
+        // 3. Če je kazalec vklopljen in fokus NI v vnosnem polju ali gumbih vrstice:
+        if (virtualPointerView.isPointerVisible && !isTopBarFocused) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (virtualPointerView.pointerY < 120f) {
+                        editUrl.requestFocus()
+                    } else {
+                        virtualPointerView.movePointer(0f, -40f, activeWv)
+                    }
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    virtualPointerView.movePointer(0f, 40f, activeWv)
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    virtualPointerView.movePointer(-40f, 0f, activeWv)
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    virtualPointerView.movePointer(40f, 0f, activeWv)
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    if (activeWv != null) {
+                        virtualPointerView.performClickOnWebView(activeWv)
+                    }
+                    return true
+                }
+            }
+        }
+
+        // Standardna D-Pad navigacija brez kazalca ali za vrstico:
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> {
                 if (activeWv != null && activeWv.hasFocus() && activeWv.scrollY == 0) {
                     editUrl.requestFocus()
                     return true
+                } else if (activeWv != null && activeWv.hasFocus()) {
+                    activeWv.scrollBy(0, -220)
+                    return true
                 }
             }
             KeyEvent.KEYCODE_DPAD_DOWN -> {
-                if (editUrl.hasFocus() || btnHome.hasFocus() || btnAddTab.hasFocus() || btnMenu.hasFocus() || btnTabCount.hasFocus()) {
+                if (isTopBarFocused) {
                     activeWv?.requestFocus()
+                    return true
+                } else if (activeWv != null && activeWv.hasFocus()) {
+                    activeWv.scrollBy(0, 220)
                     return true
                 }
             }

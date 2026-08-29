@@ -563,6 +563,11 @@ object UserScriptManager {
                         border-radius: 4px !important;
                         transition: outline 0.1s ease-in-out !important;
                     }
+                    /* 🛑 Auto-hide Cookie Consent & App Banner overlays on TV */
+                    #onetrust-banner-sdk, .cookie-banner, .gdpr-consent, .cookie-notice,
+                    .open-in-app, .smartbanner, [class*="CookieConsent"], [id*="cookie-notice"] {
+                        display: none !important;
+                    }
                 `;
                 (document.head || document.documentElement).appendChild(style);
             } catch(e) {}
