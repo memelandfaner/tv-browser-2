@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.media.AudioManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -15,12 +16,14 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebChromeClient
 import android.widget.*
+import org.json.JSONObject
 import java.net.URLEncoder
 
 class MainActivity : android.app.Activity() {
 
     private lateinit var mainRoot: RelativeLayout
     private lateinit var mobileTopBar: LinearLayout
+    private lateinit var btnBack: Button
     private lateinit var btnHome: Button
     private lateinit var omniboxContainer: LinearLayout
     private lateinit var tvSecurityLock: TextView
@@ -36,6 +39,10 @@ class MainActivity : android.app.Activity() {
     private lateinit var virtualPointerView: VirtualPointerView
 
     // Overlays & Secondary Views
+    private lateinit var searchSuggestionsOverlay: LinearLayout
+    private lateinit var portalChipsContainer: LinearLayout
+    private lateinit var suggestionsListContainer: LinearLayout
+
     private lateinit var tabSwitcherOverlay: RelativeLayout
     private lateinit var tabsGridView: GridView
     private lateinit var btnNewTabInSwitcher: Button
@@ -58,6 +65,23 @@ class MainActivity : android.app.Activity() {
     private var customVideoCallback: WebChromeClient.CustomViewCallback? = null
     private var isDarkModeActive: Boolean = true
 
+    private fun handlePageScroll(direction: Int, scrollY: Int) {
+        val url = tabManager.getActiveTab()?.url ?: ""
+        if (url.contains("youtube.com/tv", ignoreCase = true) || url.contains("xploretv", ignoreCase = true)) {
+            return
+        }
+        val isTopBarFocused = editUrl.hasFocus() || btnHome.hasFocus() || btnBack.hasFocus() || btnMenu.hasFocus()
+        if (direction > 0 && scrollY > 100) {
+            if (mobileTopBar.translationY == 0f && !isTopBarFocused && searchSuggestionsOverlay.visibility != View.VISIBLE) {
+                mobileTopBar.animate().translationY(-mobileTopBar.height.toFloat()).setDuration(220).start()
+            }
+        } else if (direction < 0 || scrollY <= 40) {
+            if (mobileTopBar.translationY != 0f) {
+                mobileTopBar.animate().translationY(0f).setDuration(220).start()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -65,12 +89,23 @@ class MainActivity : android.app.Activity() {
         window.statusBarColor = Color.parseColor("#06090F")
         window.navigationBarColor = Color.parseColor("#000000")
 
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            or View.SYSTEM_UI_FLAG_FULLSCREEN
+            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        )
+
         repository = BrowserRepository(this)
         downloadHandler = DownloadHandler(this)
+        isDarkModeActive = getSharedPreferences("safeer_ui_prefs", MODE_PRIVATE).getBoolean("dark_mode", true)
 
         initViews()
         setupTabManager()
         setupOmnibox()
+        setupSearchSuggestions()
         setupTopButtons()
         setupTouchGestures()
         setupFindInPage()
@@ -78,12 +113,22 @@ class MainActivity : android.app.Activity() {
         // Zaženi posodobitev varnostnih seznamov (Feodo, URLhaus, Phishing Army) v ozadju
         ThreatFeedsUpdater.updateFeedsAsync(this)
 
-        // Odpri začetni zavihek
         val targetUrl = intent?.dataString ?: "file:///android_asset/brave_home.html"
         tabManager.createTab(this, targetUrl, true)
+
+        debugJsReceiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val cmd = intent.getStringExtra("cmd") ?: return
+                tabManager.getActiveTab()?.webView?.evaluateJavascript(cmd, null)
+            }
+        }
+        @Suppress("DEPRECATION")
+        registerReceiver(debugJsReceiver, android.content.IntentFilter("com.example.safeerbrowser.EVAL_JS"))
     }
 
     private var wakeLock: android.os.PowerManager.WakeLock? = null
+    private var debugJsReceiver: android.content.BroadcastReceiver? = null
+    private var webViewsPaused = false
 
     private fun acquireWakeLock() {
         try {
@@ -106,27 +151,166 @@ class MainActivity : android.app.Activity() {
         } catch (_: Exception) {}
     }
 
+    private fun silenceBackgroundMedia(reason: String) {
+        if (!::tabManager.isInitialized) return
+        val tabs = tabManager.getAllTabs()
+        // #region agent log
+        SafeerDbg.log(
+            "H210",
+            "MainActivity.kt:$reason",
+            "pauseAll",
+            JSONObject()
+                .put("tabs", tabs.size)
+                .put("already", webViewsPaused)
+                .put("wl", wakeLock?.isHeld == true)
+        )
+        // #endregion
+        val js = """
+            (function(){
+                window._safeer_app_bg = true;
+                try { sessionStorage.setItem('safeer_app_bg','1'); } catch (eS) {}
+                try { if (window._safeerSiteAgent && window._safeerSiteAgent.clearWant) window._safeerSiteAgent.clearWant(); } catch (e) {}
+                var n = 0;
+                document.querySelectorAll('video,audio').forEach(function(m){
+                    try { m.pause(); m.muted = true; m.volume = 0; n++; } catch (e2) {}
+                });
+                try { if (navigator.mediaSession) navigator.mediaSession.playbackState = 'paused'; } catch (e3) {}
+                try { if (window._safeerDbg) window._safeerDbg('H210','site_agent.js','silence',{n:n,path:(location.pathname||'').slice(0,40),vis:document.visibilityState,paused:true}); } catch (e4) {}
+                return n;
+            })();
+        """.trimIndent()
+        val firstSilence = !webViewsPaused
+        webViewsPaused = true
+        for (tab in tabs) {
+            try {
+                if (firstSilence) {
+                    tab.webView.evaluateJavascript(js) { result ->
+                        // #region agent log
+                        SafeerDbg.log(
+                            "H210",
+                            "MainActivity.kt:$reason",
+                            "js-done",
+                            JSONObject().put("n", result ?: "null")
+                        )
+                        // #endregion
+                        try { tab.webView.onPause() } catch (_: Exception) {}
+                        try { tab.webView.pauseTimers() } catch (_: Exception) {}
+                    }
+                } else {
+                    tab.webView.post {
+                        try { tab.webView.onPause() } catch (_: Exception) {}
+                        try { tab.webView.pauseTimers() } catch (_: Exception) {}
+                    }
+                }
+            } catch (_: Exception) {
+                try { tab.webView.onPause() } catch (_: Exception) {}
+            }
+        }
+        releaseWakeLock()
+        try {
+            @Suppress("DEPRECATION")
+            (getSystemService(AUDIO_SERVICE) as? AudioManager)?.abandonAudioFocus(null)
+        } catch (_: Exception) {}
+    }
+
+    private fun resumeBackgroundMedia() {
+        if (!::tabManager.isInitialized) return
+        val tabs = tabManager.getAllTabs()
+        // #region agent log
+        SafeerDbg.log(
+            "H211",
+            "MainActivity.kt:onResume",
+            "resumeAll",
+            JSONObject().put("tabs", tabs.size).put("paused", webViewsPaused)
+        )
+        // #endregion
+        try { tabs.firstOrNull()?.webView?.resumeTimers() } catch (_: Exception) {}
+        for (tab in tabs) {
+            try { tab.webView.onResume() } catch (_: Exception) {}
+            try {
+                tab.webView.evaluateJavascript(
+                    "try{window._safeer_app_bg=false;sessionStorage.removeItem('safeer_app_bg');}catch(e){}",
+                    null
+                )
+            } catch (_: Exception) {}
+        }
+        webViewsPaused = false
+    }
+
+    private fun stopPageMedia(reason: String) {
+        if (!::tabManager.isInitialized) return
+        val tabs = tabManager.getAllTabs()
+        // #region agent log
+        SafeerDbg.log(
+            "H220",
+            "MainActivity.kt:$reason",
+            "stopPage",
+            JSONObject().put("tabs", tabs.size)
+        )
+        // #endregion
+        val js = """
+            (function(){
+                window._safeer_app_bg = true;
+                try { sessionStorage.setItem('safeer_app_bg','1'); } catch (eS) {}
+                try { if (window._safeerSiteAgent && window._safeerSiteAgent.clearWant) window._safeerSiteAgent.clearWant(); } catch (e) {}
+                var n = 0;
+                document.querySelectorAll('video,audio').forEach(function(m){
+                    try { m.pause(); m.muted = true; m.volume = 0; n++; } catch (e2) {}
+                });
+                try { if (navigator.mediaSession) navigator.mediaSession.playbackState = 'paused'; } catch (e3) {}
+                try { if (window._safeerDbg) window._safeerDbg('H220','site_agent.js','stopPage',{n:n,path:(location.pathname||'').slice(0,40)}); } catch (e4) {}
+                return n;
+            })();
+        """.trimIndent()
+        for (tab in tabs) {
+            try { tab.webView.evaluateJavascript(js, null) } catch (_: Exception) {}
+        }
+        try {
+            @Suppress("DEPRECATION")
+            (getSystemService(AUDIO_SERVICE) as? AudioManager)?.abandonAudioFocus(null)
+        } catch (_: Exception) {}
+    }
+
     override fun onPause() {
+        silenceBackgroundMedia("onPause")
         super.onPause()
-        acquireWakeLock()
     }
 
     override fun onResume() {
         super.onResume()
+        resumeBackgroundMedia()
     }
 
     override fun onStop() {
+        silenceBackgroundMedia("onStop")
+        if (::tabManager.isInitialized) {
+            val tab = tabManager.getActiveTab()
+            val url = tab?.url ?: ""
+            if (url.contains("xploretv", ignoreCase = true) || url.contains("a1xploretv", ignoreCase = true)) {
+                // #region agent log
+                SafeerDbg.log("H222", "MainActivity.kt:onStop", "leave xplore", JSONObject().put("url", url.take(120)))
+                // #endregion
+                try { tab?.webView?.loadUrl("file:///android_asset/brave_home.html") } catch (_: Exception) {}
+            }
+        }
         super.onStop()
-        acquireWakeLock()
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        silenceBackgroundMedia("onDestroy")
+        if (::tabManager.isInitialized) {
+            for (tab in tabManager.getAllTabs()) {
+                try { tab.webView.destroy() } catch (_: Exception) {}
+            }
+        }
+        try { debugJsReceiver?.let { unregisterReceiver(it) } } catch (_: Exception) {}
         releaseWakeLock()
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
+        if (intent != null) setIntent(intent)
         val url = intent?.dataString
         if (!url.isNullOrEmpty()) {
             val activeTab = tabManager.getActiveTab()
@@ -135,12 +319,45 @@ class MainActivity : android.app.Activity() {
             } else {
                 tabManager.createTab(this, url, true)
             }
+        } else if (intent?.action == Intent.ACTION_MAIN) {
+            // #region agent log
+            SafeerDbg.log(
+                "H110",
+                "MainActivity.kt:onNewIntent",
+                "launcher home",
+                org.json.JSONObject().put("action", intent.action ?: "")
+            )
+            // #endregion
+            showBrowserStartPage()
+        }
+    }
+
+    private fun showBrowserStartPage() {
+        try {
+            customVideoCallback?.onCustomViewHidden()
+        } catch (_: Exception) {}
+        try {
+            customVideoView?.let { mainRoot.removeView(it) }
+        } catch (_: Exception) {}
+        customVideoView = null
+        customVideoCallback = null
+        webViewContainer.visibility = View.VISIBLE
+        mobileTopBar.visibility = View.VISIBLE
+        mobileTopBar.translationY = 0f
+        val home = "file:///android_asset/brave_home.html"
+        val activeTab = tabManager.getActiveTab()
+        if (activeTab != null) {
+            stopPageMedia("startPage")
+            activeTab.webView.loadUrl(home)
+        } else {
+            tabManager.createTab(this, home, true)
         }
     }
 
     private fun initViews() {
         mainRoot = findViewById(R.id.mainRoot)
         mobileTopBar = findViewById(R.id.mobileTopBar)
+        btnBack = findViewById(R.id.btnBack)
         btnHome = findViewById(R.id.btnHome)
         omniboxContainer = findViewById(R.id.omniboxContainer)
         tvSecurityLock = findViewById(R.id.tvSecurityLock)
@@ -154,6 +371,10 @@ class MainActivity : android.app.Activity() {
         pageProgressBar = findViewById(R.id.pageProgressBar)
         webViewContainer = findViewById(R.id.webViewContainer)
         virtualPointerView = findViewById(R.id.virtualPointerView)
+
+        searchSuggestionsOverlay = findViewById(R.id.searchSuggestionsOverlay)
+        portalChipsContainer = findViewById(R.id.portalChipsContainer)
+        suggestionsListContainer = findViewById(R.id.suggestionsListContainer)
 
         tabSwitcherOverlay = findViewById(R.id.tabSwitcherOverlay)
         tabsGridView = findViewById(R.id.tabsGridView)
@@ -182,6 +403,19 @@ class MainActivity : android.app.Activity() {
 
     private fun attachTabListeners(tab: TabModel) {
         val wv = tab.webView
+        try {
+            wv.setOnScrollChanged { direction, scrollY -> handlePageScroll(direction, scrollY) }
+            wv.setOnChromeHidden { hidden ->
+                val onXplore = tab.url.contains("xploretv", ignoreCase = true) ||
+                    (wv.url ?: "").contains("xploretv", ignoreCase = true)
+                if (hidden || onXplore) {
+                    mobileTopBar.visibility = View.GONE
+                } else if (customVideoView == null) {
+                    mobileTopBar.visibility = View.VISIBLE
+                    mobileTopBar.translationY = 0f
+                }
+            }
+        } catch (_: Exception) {}
 
         wv.onProgressUpdate = { progress ->
             if (tabManager.getActiveTab()?.id == tab.id) {
@@ -198,6 +432,26 @@ class MainActivity : android.app.Activity() {
             tab.url = newUrl
             if (tabManager.getActiveTab()?.id == tab.id) {
                 updateOmniboxDisplay(newUrl, wv.title)
+                if (newUrl.contains("youtube.com/tv", ignoreCase = true)) {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    searchSuggestionsOverlay.visibility = View.GONE
+                    if (mobileTopBar.translationY != 0f) {
+                        mobileTopBar.animate().translationY(0f).setDuration(180).start()
+                    }
+                    wv.requestFocus()
+                } else if (newUrl.contains("xploretv", ignoreCase = true)) {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    searchSuggestionsOverlay.visibility = View.GONE
+                    mobileTopBar.visibility = View.GONE
+                    wv.requestFocus()
+                } else if (customVideoView == null) {
+                    mobileTopBar.visibility = View.VISIBLE
+                    if (mobileTopBar.translationY != 0f) {
+                        mobileTopBar.animate().translationY(0f).setDuration(180).start()
+                    }
+                }
             }
         }
 
@@ -219,10 +473,16 @@ class MainActivity : android.app.Activity() {
 
         wv.onSecurityChanged = { isSecure ->
             if (tabManager.getActiveTab()?.id == tab.id) {
-                tvSecurityLock.text = if (isSecure) "🔒" else "⚠️"
-                tvSecurityLock.setTextColor(
-                    if (isSecure) Color.parseColor("#10B981") else Color.parseColor("#F59E0B")
-                )
+                val url = tab.url
+                if (url.startsWith("file://") || url.startsWith("about:") || url.isEmpty()) {
+                    tvSecurityLock.text = "🦁"
+                    tvSecurityLock.setTextColor(Color.parseColor("#10B981"))
+                } else {
+                    tvSecurityLock.text = if (isSecure) "🔒" else "⚠️"
+                    tvSecurityLock.setTextColor(
+                        if (isSecure) Color.parseColor("#10B981") else Color.parseColor("#F59E0B")
+                    )
+                }
             }
         }
 
@@ -247,7 +507,9 @@ class MainActivity : android.app.Activity() {
                 customVideoView?.let { mainRoot.removeView(it) }
                 customVideoView = null
                 customVideoCallback = null
-                mobileTopBar.visibility = View.VISIBLE
+                val stayKiosk = tab.url.contains("xploretv", ignoreCase = true) ||
+                    (wv.url ?: "").contains("xploretv", ignoreCase = true)
+                mobileTopBar.visibility = if (stayKiosk) View.GONE else View.VISIBLE
                 webViewContainer.visibility = View.VISIBLE
             }
         }
@@ -256,15 +518,34 @@ class MainActivity : android.app.Activity() {
     private fun setupOmnibox() {
         editUrl.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
+                omniboxContainer.setBackgroundResource(R.drawable.bg_tab_card_active)
+                searchSuggestionsOverlay.visibility = View.VISIBLE
+                mobileTopBar.animate().translationY(0f).setDuration(150).start()
                 val currentUrl = tabManager.getActiveTab()?.url ?: ""
-                editUrl.setText(currentUrl)
-                editUrl.selectAll()
+                if (currentUrl.startsWith("https://www.google.com") || currentUrl.startsWith("file:///android_asset") || currentUrl == "about:blank") {
+                    editUrl.setText("")
+                } else {
+                    editUrl.setText(currentUrl)
+                    editUrl.selectAll()
+                }
                 btnClearUrl.visibility = if (editUrl.text.isNotEmpty()) View.VISIBLE else View.GONE
+                fetchGoogleSuggestions(editUrl.text.toString())
             } else {
+                omniboxContainer.setBackgroundResource(R.drawable.bg_mobile_omnibox)
                 btnClearUrl.visibility = View.GONE
+                searchSuggestionsOverlay.visibility = View.GONE
                 val activeTab = tabManager.getActiveTab()
                 updateOmniboxDisplay(activeTab?.url ?: "", activeTab?.webView?.title)
             }
+        }
+
+        editUrl.setOnClickListener {
+            showKeyboard()
+        }
+
+        omniboxContainer.setOnClickListener {
+            editUrl.requestFocus()
+            showKeyboard()
         }
 
         editUrl.addTextChangedListener(object : TextWatcher {
@@ -272,6 +553,7 @@ class MainActivity : android.app.Activity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 if (editUrl.hasFocus()) {
                     btnClearUrl.visibility = if (!s.isNullOrEmpty()) View.VISIBLE else View.GONE
+                    fetchGoogleSuggestions(s?.toString() ?: "")
                 }
             }
             override fun afterTextChanged(s: Editable?) {}
@@ -282,31 +564,252 @@ class MainActivity : android.app.Activity() {
                 performNavigation(editUrl.text.toString().trim())
                 hideKeyboard()
                 editUrl.clearFocus()
+                searchSuggestionsOverlay.visibility = View.GONE
+                tabManager.getActiveTab()?.webView?.requestFocus()
                 true
             } else {
                 false
             }
         }
 
+        editUrl.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    hideKeyboard()
+                    if (portalChipsContainer.childCount > 0) {
+                        portalChipsContainer.getChildAt(0).requestFocus()
+                        return@setOnKeyListener true
+                    } else if (suggestionsListContainer.childCount > 0) {
+                        suggestionsListContainer.getChildAt(0).requestFocus()
+                        return@setOnKeyListener true
+                    }
+                }
+            }
+            false
+        }
+
         btnClearUrl.setOnClickListener {
             editUrl.setText("")
             editUrl.requestFocus()
+            showKeyboard()
+            suggestionsListContainer.removeAllViews()
         }
 
         btnSearchTrigger.setOnClickListener {
-            performNavigation(editUrl.text.toString().trim())
-            hideKeyboard()
-            editUrl.clearFocus()
+            val text = editUrl.text.toString().trim()
+            if (text.isNotEmpty()) {
+                performNavigation(text)
+                hideKeyboard()
+                editUrl.clearFocus()
+                searchSuggestionsOverlay.visibility = View.GONE
+                tabManager.getActiveTab()?.webView?.requestFocus()
+            } else {
+                editUrl.requestFocus()
+                showKeyboard()
+            }
+        }
+    }
+
+    private fun setupSearchSuggestions() {
+        renderPortals()
+    }
+
+    private fun renderPortals() {
+        portalChipsContainer.removeAllViews()
+        val portals = PortalManager.loadPortals(this)
+        val density = resources.displayMetrics.density
+
+        for (item in portals) {
+            val btn = Button(this).apply {
+                text = item.title
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    setTextColor(resources.getColorStateList(R.color.color_portal_chip_text, theme))
+                } else {
+                    setTextColor(Color.parseColor("#00E5FF"))
+                }
+                textSize = 13f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setBackgroundResource(R.drawable.bg_portal_chip)
+                setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+                isFocusable = true
+                isFocusableInTouchMode = true
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    (38 * density).toInt()
+                )
+                lp.marginEnd = (10 * density).toInt()
+                layoutParams = lp
+
+                setOnClickListener {
+                    performNavigation(item.url)
+                    closeSuggestionsAndFocusWeb()
+                }
+
+                setOnLongClickListener {
+                    PortalManager.showEditPortalsDialog(this@MainActivity) {
+                        renderPortals()
+                    }
+                    true
+                }
+
+                setOnKeyListener { view, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                            editUrl.requestFocus()
+                            return@setOnKeyListener true
+                        } else if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                            if (suggestionsListContainer.childCount > 0) {
+                                suggestionsListContainer.getChildAt(0).requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                            val nextIdx = portalChipsContainer.indexOfChild(view) + 1
+                            if (nextIdx < portalChipsContainer.childCount) {
+                                portalChipsContainer.getChildAt(nextIdx).requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                            val prevIdx = portalChipsContainer.indexOfChild(view) - 1
+                            if (prevIdx >= 0) {
+                                portalChipsContainer.getChildAt(prevIdx).requestFocus()
+                                return@setOnKeyListener true
+                            }
+                        }
+                    }
+                    false
+                }
+            }
+            portalChipsContainer.addView(btn)
+        }
+
+        // Add ⚙️ Uredi Portale button at the end
+        val editBtn = Button(this).apply {
+            text = "⚙️ Uredi"
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                setTextColor(resources.getColorStateList(R.color.color_portal_chip_text, theme))
+            } else {
+                setTextColor(Color.parseColor("#94A3B8"))
+            }
+            textSize = 13f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setBackgroundResource(R.drawable.bg_portal_chip)
+            setPadding((16 * density).toInt(), 0, (16 * density).toInt(), 0)
+            isFocusable = true
+            isFocusableInTouchMode = true
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                (38 * density).toInt()
+            )
+            layoutParams = lp
+
+            setOnClickListener {
+                PortalManager.showEditPortalsDialog(this@MainActivity) {
+                    renderPortals()
+                }
+            }
+
+            setOnKeyListener { view, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                        editUrl.requestFocus()
+                        return@setOnKeyListener true
+                    } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                        val prevIdx = portalChipsContainer.indexOfChild(view) - 1
+                        if (prevIdx >= 0) {
+                            portalChipsContainer.getChildAt(prevIdx).requestFocus()
+                            return@setOnKeyListener true
+                        }
+                    }
+                }
+                false
+            }
+        }
+        portalChipsContainer.addView(editBtn)
+    }
+
+    private fun closeSuggestionsAndFocusWeb() {
+        hideKeyboard()
+        editUrl.clearFocus()
+        searchSuggestionsOverlay.visibility = View.GONE
+        tabManager.getActiveTab()?.webView?.requestFocus()
+    }
+
+    private fun fetchGoogleSuggestions(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            runOnUiThread { suggestionsListContainer.removeAllViews() }
+            return
+        }
+        Thread {
+            try {
+                val encoded = URLEncoder.encode(trimmed, "UTF-8")
+                val url = java.net.URL("https://suggestqueries.google.com/complete/search?client=chrome&q=$encoded")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.connectTimeout = 1200
+                conn.readTimeout = 1200
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0")
+                if (conn.responseCode == 200) {
+                    val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonArr = org.json.JSONArray(responseText)
+                    if (jsonArr.length() > 1) {
+                        val suggestionsArr = jsonArr.getJSONArray(1)
+                        val list = mutableListOf<String>()
+                        for (i in 0 until minOf(suggestionsArr.length(), 5)) {
+                            list.add(suggestionsArr.getString(i))
+                        }
+                        displaySuggestions(list)
+                    }
+                }
+            } catch (_: Exception) {}
+        }.start()
+    }
+
+    private fun displaySuggestions(list: List<String>) {
+        runOnUiThread {
+            suggestionsListContainer.removeAllViews()
+            if (list.isEmpty()) return@runOnUiThread
+
+            for (item in list) {
+                val tv = TextView(this).apply {
+                    text = "🔍  $item"
+                    setTextColor(Color.parseColor("#F8FAFC"))
+                    textSize = 14f
+                    setBackgroundResource(R.drawable.bg_mobile_omnibox)
+                    setPadding(28, 16, 28, 16)
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+                    val lp = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    lp.setMargins(0, 4, 0, 4)
+                    layoutParams = lp
+
+                    setOnFocusChangeListener { _, hasFocus ->
+                        if (hasFocus) {
+                            setBackgroundResource(R.drawable.bg_tab_card_active)
+                        } else {
+                            setBackgroundResource(R.drawable.bg_mobile_omnibox)
+                        }
+                    }
+
+                    setOnClickListener {
+                        performNavigation(item)
+                        closeSuggestionsAndFocusWeb()
+                    }
+                }
+                suggestionsListContainer.addView(tv)
+            }
         }
     }
 
     private fun updateOmniboxDisplay(url: String, title: String?) {
         if (editUrl.hasFocus()) return
 
-        if (url.isEmpty() || url == "about:blank" || url.startsWith("file:///android_asset/brave_home.html")) {
+        if (url.isEmpty() || url == "about:blank" || url.startsWith("https://www.google.com") || url.startsWith("file:///android_asset")) {
             editUrl.setText("")
-            editUrl.hint = getString(R.string.url_hint)
-            tvSecurityLock.text = "🦁"
+            editUrl.hint = "Iščite na Google ali vnesite naslov..."
+            tvSecurityLock.text = "🔍"
             return
         }
 
@@ -315,7 +818,13 @@ class MainActivity : android.app.Activity() {
             val host = uri.host ?: url
             val cleanHost = host.removePrefix("www.")
             val path = uri.path ?: ""
-            val display = if (path.length > 1 && path != "/") "$cleanHost$path" else cleanHost
+            val display = if (!uri.fragment.isNullOrEmpty()) {
+                "$cleanHost$path#${uri.fragment}"
+            } else if (path.length > 1 && path != "/") {
+                "$cleanHost$path"
+            } else {
+                cleanHost
+            }
             editUrl.setText(display)
         } catch (_: Exception) {
             editUrl.setText(url)
@@ -323,17 +832,57 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun performNavigation(input: String) {
-        if (input.isEmpty()) return
+        var cleanInput = input.trim()
+        if (cleanInput.isEmpty()) return
+
+        if (cleanInput.startsWith("file:///android_asset/brave_home.html", ignoreCase = true)) {
+            cleanInput = cleanInput.removePrefix("file:///android_asset/brave_home.html").trim()
+            if (cleanInput.isEmpty()) return
+        }
+
+        val activeUrl = tabManager.getActiveTab()?.url ?: ""
+        val onYoutubeTv = activeUrl.contains("youtube.com/tv", ignoreCase = true)
+        val onXploreTv = activeUrl.contains("xploretv", ignoreCase = true)
 
         val finalUrl = when {
-            input.startsWith("http://", ignoreCase = true) || input.startsWith("https://", ignoreCase = true) || input.startsWith("file://", ignoreCase = true) -> {
-                input
+            cleanInput.startsWith("http://", ignoreCase = true) || cleanInput.startsWith("https://", ignoreCase = true) || cleanInput.startsWith("file://", ignoreCase = true) -> {
+                cleanInput
             }
-            input.contains(".") && !input.contains(" ") -> {
-                "https://$input"
+            cleanInput.contains(".") && !cleanInput.contains(" ") -> {
+                "https://$cleanInput"
+            }
+            onXploreTv -> {
+                val xpWv = tabManager.getActiveTab()?.webView
+                val escaped = cleanInput.replace("\\", "\\\\").replace("'", "\\'")
+                if (xpWv != null) {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    xpWv.requestFocus()
+                    xpWv.evaluateJavascript(
+                        "window._safeer_xplore_search ? window._safeer_xplore_search('$escaped') : false;",
+                        null
+                    )
+                    return
+                }
+                "https://www.xploretv.si/home?action=search&q=" + URLEncoder.encode(cleanInput, "UTF-8")
+            }
+            onYoutubeTv -> {
+                val ytWv = tabManager.getActiveTab()?.webView
+                val escaped = cleanInput.replace("\\", "\\\\").replace("'", "\\'")
+                if (ytWv != null) {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    ytWv.requestFocus()
+                    ytWv.evaluateJavascript(
+                        "window._safeer_yt_tv_search ? window._safeer_yt_tv_search('$escaped') : (location.hash = '#/search?q=' + encodeURIComponent('$escaped'));",
+                        null
+                    )
+                    return
+                }
+                "https://www.youtube.com/tv#/search?q=" + URLEncoder.encode(cleanInput, "UTF-8")
             }
             else -> {
-                "https://www.google.com/search?q=" + URLEncoder.encode(input, "UTF-8")
+                "https://www.google.com/search?q=" + URLEncoder.encode(cleanInput, "UTF-8")
             }
         }
 
@@ -346,7 +895,12 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun setupTopButtons() {
+        btnBack.setOnClickListener {
+            onBackPressed()
+        }
+
         btnHome.setOnClickListener {
+            stopPageMedia("btnHome")
             tabManager.getActiveTab()?.webView?.loadUrl("file:///android_asset/brave_home.html")
         }
 
@@ -531,7 +1085,7 @@ class MainActivity : android.app.Activity() {
         }
 
         dialog.findViewById<LinearLayout>(R.id.rowMenuNewTab).setOnClickListener {
-            tabManager.createTab(this, "https://www.google.com", true)
+            tabManager.createTab(this, "file:///android_asset/brave_home.html", true)
             dialog.dismiss()
             editUrl.requestFocus()
             showKeyboard()
@@ -597,6 +1151,7 @@ class MainActivity : android.app.Activity() {
         dialog.findViewById<LinearLayout>(R.id.rowMenuDarkMode).setOnClickListener {
             isDarkModeActive = !isDarkModeActive
             cbDark.isChecked = isDarkModeActive
+            getSharedPreferences("safeer_ui_prefs", MODE_PRIVATE).edit().putBoolean("dark_mode", isDarkModeActive).apply()
             tabManager.getAllTabs().forEach { t ->
                 t.webView.applyDarkMode(isDarkModeActive)
             }
@@ -762,33 +1317,228 @@ class MainActivity : android.app.Activity() {
 
     private fun hideKeyboard() {
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-        imm?.hideSoftInputFromWindow(editUrl.windowToken, 0)
+        val token = currentFocus?.windowToken ?: editUrl.windowToken ?: window.decorView.windowToken
+        imm?.hideSoftInputFromWindow(token, 0)
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        val activeWv = tabManager.getActiveTab()?.webView
+    private var lastCenterClickTime: Long = 0L
 
-        // 1. Zelen gumb / INFO -> Preklop kazalca
-        if (keyCode == KeyEvent.KEYCODE_PROG_GREEN || keyCode == KeyEvent.KEYCODE_INFO) {
+    private fun dispatchYoutubeTvKey(webView: ChromiumEngineView?, event: KeyEvent): Boolean {
+        if (webView == null) return super.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_DOWN && !webView.hasFocus()) {
+            hideKeyboard()
+            editUrl.clearFocus()
+            webView.requestFocus()
+        }
+        return webView.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val keyCode = event.keyCode
+        val activeTab = tabManager.getActiveTab()
+        val activeWv = activeTab?.webView
+        val curUrl = activeTab?.url?.lowercase() ?: ""
+        val isYoutubeTv = curUrl.contains("youtube.com/tv")
+        val isXploreTv = curUrl.contains("xploretv")
+        val isWatchPage = !isYoutubeTv && !isXploreTv && (curUrl.contains("/watch") || curUrl.contains("/shorts/") || curUrl.contains("youtube.com/embed"))
+        val chromeFocused = btnBack.hasFocus() || btnHome.hasFocus() || btnPointerToggle.hasFocus() ||
+            btnAddTab.hasFocus() || btnTabCount.hasFocus() || btnMenu.hasFocus() ||
+            btnClearUrl.hasFocus() || btnSearchTrigger.hasFocus() ||
+            editUrl.hasFocus() || mobileTopBar.hasFocus()
+
+        if (isYoutubeTv && chromeFocused && event.action == KeyEvent.ACTION_DOWN) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    activeWv?.requestFocus()
+                    return true
+                }
+            }
+        }
+
+        if (isYoutubeTv && !chromeFocused && !virtualPointerView.isPointerVisible &&
+            tabSwitcherOverlay.visibility != View.VISIBLE && findInPageBar.visibility != View.VISIBLE
+        ) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (curUrl.contains("#/watch") || curUrl.contains("/watch?v=")) {
+                        btnBack.requestFocus()
+                        return true
+                    }
+                    return dispatchYoutubeTvKey(activeWv, event)
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY,
+                KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_REWIND,
+                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                    return dispatchYoutubeTvKey(activeWv, event)
+                }
+            }
+        }
+
+        if (event.action != KeyEvent.ACTION_DOWN) {
+            if (isXploreTv && !chromeFocused) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
+                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        // #region agent log
+                        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                            SafeerDbg.log(
+                                "H130",
+                                "MainActivity.kt:keyup",
+                                "consume xplore OK up",
+                                org.json.JSONObject().put("code", keyCode)
+                            )
+                        }
+                        // #endregion
+                        return true
+                    }
+                }
+            }
+            return super.dispatchKeyEvent(event)
+        }
+
+        // 1. Če je odprt Tab Switcher ali iskanje na strani, omogoči nativno D-Pad navigacijo
+        if (tabSwitcherOverlay.visibility == View.VISIBLE || findInPageBar.visibility == View.VISIBLE) {
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                onBackPressed()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
+        }
+
+        // 2. 🔴 RDEČI gumb / SEARCH / MENU
+        if (keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_MENU || keyCode == 183) {
+            mobileTopBar.animate().translationY(0f).setDuration(150).start()
+            searchSuggestionsOverlay.visibility = View.VISIBLE
+            renderPortals()
+            if (portalChipsContainer.childCount > 0) {
+                portalChipsContainer.getChildAt(0).requestFocus()
+            } else {
+                editUrl.requestFocus()
+            }
+            Toast.makeText(this, "🔍 Hitri TV portali...", Toast.LENGTH_SHORT).show()
+            return true
+        }
+
+        // 🔍 SEARCH na YouTube TV ali Xplore odpre nativni iskalnik (ne Google)
+        if (keyCode == KeyEvent.KEYCODE_SEARCH) {
+            if (isYoutubeTv) {
+                hideKeyboard()
+                editUrl.clearFocus()
+                activeWv?.requestFocus()
+                activeWv?.evaluateJavascript(
+                    "window._safeer_yt_tv_search ? window._safeer_yt_tv_search('') : (location.hash = '#/search');",
+                    null
+                )
+                return true
+            }
+            if (isXploreTv) {
+                hideKeyboard()
+                editUrl.clearFocus()
+                activeWv?.requestFocus()
+                activeWv?.evaluateJavascript(
+                    "window._safeer_xplore_search ? window._safeer_xplore_search('') : false;",
+                    null
+                )
+                return true
+            }
+            mobileTopBar.animate().translationY(0f).setDuration(150).start()
+            searchSuggestionsOverlay.visibility = View.VISIBLE
+            renderPortals()
+            if (portalChipsContainer.childCount > 0) {
+                portalChipsContainer.getChildAt(0).requestFocus()
+            } else {
+                editUrl.requestFocus()
+            }
+            return true
+        }
+
+        // 3. 🟢 ZELENI gumb / INFO -> Preklop kazalca
+        if (keyCode == KeyEvent.KEYCODE_PROG_GREEN || keyCode == KeyEvent.KEYCODE_INFO || keyCode == 184) {
             virtualPointerView.isPointerVisible = !virtualPointerView.isPointerVisible
             Toast.makeText(
                 this,
-                if (virtualPointerView.isPointerVisible) "🖱️ Kazalec TV vklopljen" else "🖐️ Kazalec TV izklopljen",
+                if (virtualPointerView.isPointerVisible) "🖱️ Kazalec TV vklopljen" else "🖐️ D-Pad način vklopljen",
                 Toast.LENGTH_SHORT
             ).show()
             return true
         }
 
-        // 2. Modri gumb -> Ponovno naloži stran
-        if (keyCode == KeyEvent.KEYCODE_PROG_BLUE) {
-            activeWv?.reload()
+        // 4. 🟡 RUMENI gumb / BOOKMARK -> Zaznamki
+        if (keyCode == KeyEvent.KEYCODE_PROG_YELLOW || keyCode == KeyEvent.KEYCODE_BOOKMARK || keyCode == 185) {
+            showBookmarksDialog()
             return true
         }
 
-        val isTopBarFocused = editUrl.hasFocus() || btnHome.hasFocus() || btnPointerToggle.hasFocus() ||
-                              btnAddTab.hasFocus() || btnTabCount.hasFocus() || btnMenu.hasFocus()
+        // 5. 🔵 MODRI gumb -> Preklop celozaslonskega načina (Fullscreen ⛶)
+        if (keyCode == KeyEvent.KEYCODE_PROG_BLUE || keyCode == 186 || keyCode == KeyEvent.KEYCODE_BUTTON_X || keyCode == KeyEvent.KEYCODE_F) {
+            activeWv?.evaluateJavascript("window._safeer_toggle_fullscreen();", null)
+            return true
+        }
 
-        // 3. Če je kazalec vklopljen in fokus NI v vnosnem polju ali gumbih vrstice:
+        // 6. Če ima fokus iskalno polje (editUrl):
+        if (editUrl.hasFocus()) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    val q = editUrl.text.toString().trim()
+                    if (q.isNotEmpty() && q != "https://www.google.com" && q != "www.google.com") {
+                        performNavigation(q)
+                        hideKeyboard()
+                        editUrl.clearFocus()
+                        activeWv?.requestFocus()
+                        return true
+                    } else {
+                        showKeyboard()
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    activeWv?.requestFocus()
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    if (editUrl.selectionStart <= 0) {
+                        btnHome.requestFocus()
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (editUrl.selectionEnd >= editUrl.text.length) {
+                        btnSearchTrigger.requestFocus()
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_BACK -> {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    activeWv?.requestFocus()
+                    return true
+                }
+            }
+            return super.dispatchKeyEvent(event)
+        }
+
+        val isSuggestionsOverlayFocused = searchSuggestionsOverlay.hasFocus() || 
+                                          portalChipsContainer.hasFocus() || 
+                                          suggestionsListContainer.hasFocus()
+
+        if (isSuggestionsOverlayFocused) {
+            return super.dispatchKeyEvent(event)
+        }
+
+        val isTopBarFocused = btnBack.hasFocus() || btnHome.hasFocus() || btnPointerToggle.hasFocus() ||
+                              btnAddTab.hasFocus() || btnTabCount.hasFocus() || btnMenu.hasFocus() ||
+                              btnClearUrl.hasFocus() || btnSearchTrigger.hasFocus() || 
+                              editUrl.hasFocus() || mobileTopBar.hasFocus()
+
+        // 7. Če je kazalec vklopljen in fokus NI v top bar:
         if (virtualPointerView.isPointerVisible && !isTopBarFocused) {
             when (keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP -> {
@@ -820,61 +1570,232 @@ class MainActivity : android.app.Activity() {
             }
         }
 
-        // Standardna D-Pad navigacija brez kazalca ali za vrstico:
-        when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> {
-                if (activeWv != null && activeWv.hasFocus() && activeWv.scrollY == 0) {
+        // 8. 🎬 Predvajalniški način (Watch Page / Video Playing)
+        if (isWatchPage && !isTopBarFocused && !virtualPointerView.isPointerVisible) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    val now = System.currentTimeMillis()
+                    if (now - lastCenterClickTime < 380) {
+                        activeWv?.evaluateJavascript("window._safeer_toggle_fullscreen();", null)
+                    } else {
+                        activeWv?.evaluateJavascript("window._safeer_toggle_play_pause();", null)
+                    }
+                    lastCenterClickTime = now
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                    activeWv?.evaluateJavascript("window._safeer_seek(-10);", null)
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                    activeWv?.evaluateJavascript("window._safeer_seek(10);", null)
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_UP -> {
                     editUrl.requestFocus()
                     return true
-                } else if (activeWv != null && activeWv.hasFocus()) {
-                    activeWv.scrollBy(0, -220)
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    activeWv?.evaluateJavascript("window._safeer_toggle_fullscreen();", null)
                     return true
                 }
             }
+        }
+
+        // 9. 🧭 Standardna D-Pad navigacija po spletnih straneh in predlogih
+        when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (editUrl.hasFocus() && searchSuggestionsOverlay.visibility == View.VISIBLE) {
+                    hideKeyboard()
+                    if (portalChipsContainer.childCount > 0) {
+                        portalChipsContainer.getChildAt(0).requestFocus()
+                        return true
+                    } else if (suggestionsListContainer.childCount > 0) {
+                        suggestionsListContainer.getChildAt(0).requestFocus()
+                        return true
+                    }
+                }
                 if (isTopBarFocused) {
+                    hideKeyboard()
+                    editUrl.clearFocus()
                     activeWv?.requestFocus()
+                    activeWv?.evaluateJavascript("window._safeer_navigate_spatial('DOWN');", null)
                     return true
-                } else if (activeWv != null && activeWv.hasFocus()) {
-                    activeWv.scrollBy(0, 220)
+                } else if (activeWv != null) {
+                    activeWv.requestFocus()
+                    activeWv.evaluateJavascript("window._safeer_navigate_spatial('DOWN');", null)
                     return true
                 }
             }
-            KeyEvent.KEYCODE_MENU -> {
-                showMobileMenu()
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                if (isTopBarFocused) {
+                    return super.dispatchKeyEvent(event)
+                } else if (activeWv != null) {
+                    val stayInXplore = isXploreTv
+                    activeWv.evaluateJavascript("window._safeer_navigate_spatial('UP');") { result ->
+                        if (stayInXplore) return@evaluateJavascript
+                        if (result == "-1" || result == "null" || result == null) {
+                            runOnUiThread { 
+                                mobileTopBar.visibility = View.VISIBLE
+                                mobileTopBar.animate().translationY(0f).setDuration(150).start()
+                                editUrl.requestFocus() 
+                            }
+                        }
+                    }
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                if (isTopBarFocused) {
+                    return super.dispatchKeyEvent(event)
+                } else if (activeWv != null) {
+                    activeWv.requestFocus()
+                    activeWv.evaluateJavascript("window._safeer_navigate_spatial('LEFT');", null)
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (isTopBarFocused) {
+                    return super.dispatchKeyEvent(event)
+                } else if (activeWv != null) {
+                    activeWv.requestFocus()
+                    activeWv.evaluateJavascript("window._safeer_navigate_spatial('RIGHT');", null)
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                if (isTopBarFocused) {
+                    return super.dispatchKeyEvent(event)
+                } else if (activeWv != null) {
+                        if (isXploreTv) {
+                        // #region agent log
+                        SafeerDbg.log(
+                            "H4",
+                            "MainActivity.kt:ok",
+                            "xplore OK",
+                            org.json.JSONObject().put("url", curUrl.take(160)).put("hasWv", true)
+                        )
+                        // #endregion
+                        activeWv.evaluateJavascript(
+                            """
+                            (function(){
+                                try {
+                                    var elPeek = document.querySelector('.safeer-active-card');
+                                    var clsPeek = ((elPeek && elPeek.className) || '') + '';
+                                    var tileFocused = clsPeek.indexOf('item--event') !== -1;
+                                    var pv = window._safeer_xplore_player_el || document.querySelector('video');
+                                    var ov = document.querySelector('.zw-overlays-layer, [class*="overlays-layer"]');
+                                    var oc = ov ? ((ov.className || '') + '').toLowerCase() : '';
+                                    var overlayOn = oc.indexOf('player-fullwindow') !== -1 || oc.indexOf('player-scaled') !== -1;
+                                    if (!tileFocused && overlayOn && pv && (pv.videoWidth || 0) >= 320 && pv.readyState >= 2) {
+                                        var pr = pv.getBoundingClientRect();
+                                        if (pr.width >= 800 && pr.height >= 450) {
+                                            try { if (window._safeerDbg) window._safeerDbg('H94', 'MainActivity.kt:ok', 'ok while player', { paused: !!pv.paused, playing: !!window._safeer_xplore_playing, w: Math.round(pr.width || 0) }); } catch (eOk) {}
+                                            if (pv.paused) { try { pv.play(); } catch (ePlay) {} }
+                                            return true;
+                                        }
+                                    }
+                                    var elMenu = document.querySelector('.safeer-active-card');
+                                    var tMenu = ((elMenu && (elMenu.innerText || elMenu.textContent)) || '').replace(/\s+/g, ' ').trim().toLowerCase();
+                                    var clsMenu = ((elMenu && elMenu.className) || '').toString().toLowerCase();
+                                    var isLiveNav = clsMenu.indexOf('livetv-link') !== -1 || ((tMenu === 'tv v živo' || tMenu === 'tv v zivo') && clsMenu.indexOf('menu-items-wrapper') === -1);
+                                    if (isLiveNav) {
+                                        try { if (window._safeerDbg) window._safeerDbg('H120', 'MainActivity.kt:ok', 'livetv menu', { t: tMenu.slice(0, 40), path: (location.pathname || '').slice(0, 60) }); } catch (eLn) {}
+                                        window._safeer_xplore_want_play = false;
+                                        try { sessionStorage.removeItem('safeer_xplore_autoplay'); } catch (eSs) {}
+                                        location.href = 'https://www.xploretv.si/livetv';
+                                        return true;
+                                    }
+                                    if (window._safeer_xplore_ensure_focus) window._safeer_xplore_ensure_focus();
+                                    var el = document.querySelector('.safeer-active-card');
+                                    var t = ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim().toLowerCase();
+                                    var isEventItem = !!(el && el.className && ('' + el.className).indexOf('item--event') !== -1);
+                                    var isMenu = false;
+                                    try { isMenu = !!(el && el.closest && el.closest('.menu, #csh__menu_bar, .menu-items-wrapper')); } catch (e0) {}
+                                    if (el && ((el.className || '') + '').toLowerCase().indexOf('livetv-link') !== -1) isMenu = true;
+                                    try { if (window._safeerDbg) window._safeerDbg('H13', 'MainActivity.kt:ok', 'ok path', { t: t.slice(0, 80), tag: el ? el.tagName : '', hasEl: !!el, isEventItem: isEventItem, isMenu: isMenu }); } catch (e) {}
+                                    if (el && t.indexOf('glej zdaj') === -1 && !isMenu) {
+                                        var cls = ((el.className || '') + '').toLowerCase();
+                                        if (cls.indexOf('search') === -1) {
+                                            var alreadyEvent = (location.pathname || '').toLowerCase().indexOf('/event') !== -1;
+                                            if (!alreadyEvent) {
+                                                try { sessionStorage.setItem('safeer_xplore_autoplay', '1'); } catch (e2) {}
+                                            } else {
+                                                try { sessionStorage.removeItem('safeer_xplore_autoplay'); } catch (e2b) {}
+                                            }
+                                            window._safeer_xplore_want_play = true;
+                                            window._safeer_xplore_video_boosted = false;
+                                            window._safeer_xplore_playing = false;
+                                            return window._safeer_click_focused_card();
+                                        }
+                                    }
+                                    if (isMenu) {
+                                        return window._safeer_click_focused_card();
+                                    }
+                                } catch (e) {}
+                                return window._safeer_xplore_play_from_start ? window._safeer_xplore_play_from_start() : window._safeer_click_focused_card();
+                            })();
+                            """.trimIndent(),
+                            null
+                        )
+                    } else {
+                        activeWv.evaluateJavascript("window._safeer_click_focused_card();", null)
+                    }
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_BUTTON_L1 -> {
+                if (tabManager.count > 1) {
+                    tabManager.switchToPrevTab()
+                    Toast.makeText(this, "◀ Prejšnji zavihek", Toast.LENGTH_SHORT).show()
+                } else {
+                    activeWv?.pageUp(false)
+                }
                 return true
             }
-            KeyEvent.KEYCODE_SEARCH, KeyEvent.KEYCODE_PROG_RED -> {
-                editUrl.requestFocus()
-                showKeyboard()
-                return true
-            }
-            KeyEvent.KEYCODE_BOOKMARK, KeyEvent.KEYCODE_PROG_YELLOW -> {
-                showBookmarksDialog()
-                return true
-            }
-            KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_CHANNEL_UP -> {
-                activeWv?.pageUp(false)
-                return true
-            }
-            KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                activeWv?.pageDown(false)
+            KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_BUTTON_R1 -> {
+                if (tabManager.count > 1) {
+                    tabManager.switchToNextTab()
+                    Toast.makeText(this, "Naslednji zavihek ▶", Toast.LENGTH_SHORT).show()
+                } else {
+                    activeWv?.pageDown(false)
+                }
                 return true
             }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                activeWv?.evaluateJavascript(
-                    "var v = document.querySelector('video'); if (v) { v.paused ? v.play() : v.pause(); }",
-                    null
-                )
+                activeWv?.evaluateJavascript("window._safeer_toggle_play_pause();", null)
+                return true
+            }
+            KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                activeWv?.evaluateJavascript("window._safeer_seek(-10);", null)
+                return true
+            }
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                activeWv?.evaluateJavascript("window._safeer_seek(10);", null)
+                return true
+            }
+            KeyEvent.KEYCODE_BACK -> {
+                onBackPressed()
                 return true
             }
         }
-        return super.onKeyDown(keyCode, event)
+
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onBackPressed() {
+        val exitingXploreFs = customVideoView != null &&
+            (tabManager.getActiveTab()?.url?.lowercase()?.contains("xploretv") == true)
         if (customVideoView != null) {
             tabManager.getActiveTab()?.webView?.exitFullscreenVideo()
+            if (!exitingXploreFs) return
+        }
+
+        if (searchSuggestionsOverlay.visibility == View.VISIBLE) {
+            searchSuggestionsOverlay.visibility = View.GONE
+            hideKeyboard()
+            editUrl.clearFocus()
+            tabManager.getActiveTab()?.webView?.requestFocus()
             return
         }
 
@@ -889,7 +1810,137 @@ class MainActivity : android.app.Activity() {
             return
         }
 
+        if (editUrl.hasFocus()) {
+            hideKeyboard()
+            editUrl.clearFocus()
+            tabManager.getActiveTab()?.webView?.requestFocus()
+            return
+        }
+
         val activeTab = tabManager.getActiveTab()
+        val curUrl = activeTab?.url?.lowercase() ?: ""
+        val isBrowserHome = curUrl.contains("android_asset/brave_home") ||
+            curUrl.startsWith("file:///android_asset/brave_home")
+        val isYoutubeTv = curUrl.contains("youtube.com/tv")
+        val isXploreTv = curUrl.contains("xploretv")
+        val isWatchPage = !isYoutubeTv && !isXploreTv && (curUrl.contains("/watch") || curUrl.contains("/shorts/"))
+
+        if (isBrowserHome) {
+            // #region agent log
+            SafeerDbg.log("H220", "MainActivity.kt:back", "leave browser", JSONObject().put("url", curUrl.take(80)))
+            // #endregion
+            silenceBackgroundMedia("backHome")
+            finish()
+            return
+        }
+
+        if (isXploreTv) {
+            val xv = activeTab?.webView
+            // #region agent log
+            SafeerDbg.log(
+                "H14",
+                "MainActivity.kt:back",
+                "xplore native back",
+                org.json.JSONObject().put("url", curUrl.take(160)).put("exitingFs", exitingXploreFs)
+            )
+            // #endregion
+            xv?.evaluateJavascript(
+                """
+                (function(){
+                    var p = (location.pathname || '').toLowerCase();
+                    var v = window._safeer_xplore_player_el || document.querySelector('video');
+                    var r = v ? v.getBoundingClientRect() : { width: 0, height: 0 };
+                    var framed = !!(v && (v.videoWidth || 0) >= 320 && v.readyState >= 2);
+                    var ov = document.querySelector('.zw-overlays-layer, [class*="overlays-layer"]');
+                    var oc = ov ? ((ov.className || '') + '').toLowerCase() : '';
+                    var overlayOn = oc.indexOf('player-fullwindow') !== -1 || oc.indexOf('player-scaled') !== -1;
+                    var playing = overlayOn || framed || !!window._safeer_xplore_playing || (!!v && !v.paused && r.width >= 400);
+                    try { if (window._safeerDbg) window._safeerDbg('H14', 'MainActivity.kt:back', 'xplore back', { path: p.slice(0, 80), playing: !!playing, framed: !!framed, overlay: overlayOn, w: Math.round(r.width || 0), vw: v ? (v.videoWidth || 0) : 0 }); } catch (e) {}
+                    try {
+                        document.querySelectorAll('video,audio').forEach(function(m){ try { m.pause(); m.muted = true; } catch (eP) {} });
+                    } catch (eVid) {}
+                    try {
+                        window._safeer_xplore_playing = false;
+                        window._safeer_xplore_want_play = false;
+                        window._safeer_xplore_video_boosted = false;
+                        window._safeer_xplore_fs_clicked = false;
+                        window._safeer_xplore_replay_clicked = false;
+                        window._safeer_xplore_player_el = null;
+                        if (window._safeerSiteAgent && window._safeerSiteAgent.clearWant) window._safeerSiteAgent.clearWant();
+                    } catch (e2) {}
+                    var stay = playing || overlayOn || p.indexOf('/event') !== -1 || p.indexOf('/livetv') !== -1 ||
+                        p.indexOf('/movies') !== -1 || p.indexOf('/library') !== -1 || p.indexOf('/gridguide') !== -1;
+                    if (stay) {
+                        if (p.indexOf('/livetv') !== -1) {
+                            if (playing || overlayOn || framed) {
+                                try { if (window._safeer_xplore_unsmash) window._safeer_xplore_unsmash(); } catch (eU) {}
+                                try {
+                                    var ovClose = document.querySelector('.zw-overlays-layer, [class*="overlays-layer"]');
+                                    if (ovClose) {
+                                        ovClose.classList.remove('player-fullwindow', 'player-scaled');
+                                        ovClose.classList.add('player-closed');
+                                    }
+                                } catch (eC) {}
+                                location.href = 'https://www.xploretv.si/livetv';
+                                // #region agent log
+                                try { if (window._safeerDbg) window._safeerDbg('H270', 'MainActivity.kt:back', 'livetv reload', { framed: !!framed, overlay: overlayOn }); } catch (eL) {}
+                                // #endregion
+                                return 'livetv';
+                            }
+                            location.href = 'https://www.xploretv.si/home';
+                            return 'home';
+                        }
+                        location.href = 'https://www.xploretv.si/home';
+                        return 'home';
+                    }
+                    try { if (window.SafeerBridge && window.SafeerBridge.setChromeHidden) window.SafeerBridge.setChromeHidden(false); } catch (e3) {}
+                    return 'exit';
+                })();
+                """.trimIndent()
+            ) { result ->
+                if (result != null && result.contains("exit")) {
+                    runOnUiThread {
+                        stopPageMedia("xploreExit")
+                        xv?.loadUrl("file:///android_asset/brave_home.html")
+                    }
+                }
+            }
+            return
+        }
+
+        if (isYoutubeTv) {
+            val ytWv = activeTab?.webView
+            ytWv?.evaluateJavascript(
+                """
+                (function() {
+                    var h = (location.hash || '').toLowerCase();
+                    if (h.indexOf('/watch') !== -1 || h.indexOf('/search') !== -1 || h.indexOf('/player') !== -1) {
+                        history.back();
+                        return 'back';
+                    }
+                    return 'exit';
+                })();
+                """.trimIndent()
+            ) { result ->
+                if (result != null && result.contains("exit")) {
+                    runOnUiThread {
+                        ytWv.loadUrl("file:///android_asset/brave_home.html")
+                    }
+                }
+            }
+            return
+        }
+
+        if (isWatchPage) {
+            if (activeTab?.webView?.canGoBack() == true) {
+                activeTab.webView.goBack()
+                return
+            } else {
+                activeTab?.webView?.loadUrl("file:///android_asset/brave_home.html")
+                return
+            }
+        }
+
         if (activeTab != null && activeTab.webView.canGoBack()) {
             activeTab.webView.goBack()
             return

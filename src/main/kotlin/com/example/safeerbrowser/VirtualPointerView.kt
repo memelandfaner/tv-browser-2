@@ -77,7 +77,7 @@ class VirtualPointerView @JvmOverloads constructor(
     fun movePointer(dx: Float, dy: Float, targetWebView: WebView?): Boolean {
         isPointerVisible = true
         removeCallbacks(hideRunnable)
-        postDelayed(hideRunnable, 3000)
+        postDelayed(hideRunnable, 30000)
 
         val newX = max(10f, min(width - 10f, pointerX + dx))
         val newY = max(10f, min(height - 10f, pointerY + dy))

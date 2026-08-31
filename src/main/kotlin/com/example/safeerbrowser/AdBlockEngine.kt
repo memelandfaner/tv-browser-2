@@ -24,11 +24,17 @@ object AdBlockEngine {
     private val whitelistTrie = DomainSuffixTrie()
 
     // Vzorci oglasnih, sledilnih in analitičnih poti (Path Rules)
+    // Ne uporabljaj splošnih imen kot /watch.js — to pobije predvajalnike (Xplore TV).
     private val BLOCKED_PATH_PATTERNS = listOf(
         "/pagead/", "/api/stats/ads", "/ptracking", "/get_midroll_info",
+        "/pcs/activeview", "/pagead/adview", "/pagead/interaction",
         "/ads.js", "/ad.js", "/adservice.", "/pixel.", "collect?v=",
-        "/metrika", "/watch.js", "/tag.js", "/monetag/", "/popunder",
+        "/metrika", "/tag.js", "/monetag/", "/popunder",
         "disable-devtool", "devtools-detector"
+    )
+
+    private val TRUSTED_AD_PATHS = listOf(
+        "/pagead/", "/api/stats/ads", "/get_midroll_info", "/pcs/activeview"
     )
 
     init {
@@ -46,6 +52,10 @@ object AdBlockEngine {
             "sparkasse.si", "revolut.com", "n26.com", "delavska-hranilnica.si",
             "bks-bank.si", "unicreditbank.si", "lon.si", "gorenjska-banka.si",
             "rtvslo.si", "24ur.com", "siol.net", "github.com",
+            "xploretv.si", "www.xploretv.si", "a1xploretv.si", "a1.si", "a1.net",
+            "cdn23.a1.net", "widevine.com",
+            "bitmovin.com", "bitmovin-a.akamaihd.net", "theoplayer.com",
+            "akamaihd.net", "akamaized.net",
             "themoviedb.org", "tmdb.org", "image.tmdb.org", "api.themoviedb.org",
             "streamex.sh", "streamex.ws", "vidlink.pro", "vidsrc.me", "vidsrc.in", "vidsrc.pm",
             "vidsrc.net", "vidsrc.to", "vidsrc.xyz", "autoembed.co", "autoembed.cc", "multiembed.mov",
@@ -96,6 +106,14 @@ object AdBlockEngine {
         return whitelistTrie.matches(host)
     }
 
+    private fun isXploreRelated(host: String, url: String): Boolean {
+        return host.contains("xploretv") || host.contains("a1xploretv") ||
+            host == "a1.si" || host.endsWith(".a1.si") ||
+            host == "a1.net" || host.endsWith(".a1.net") ||
+            host.contains("widevine") ||
+            url.contains("xploretv.si")
+    }
+
     /**
      * Preveri, ali URL ustreza oglasu, sledilcu ali blokirani domeni.
      */
@@ -108,37 +126,46 @@ object AdBlockEngine {
             return true
         }
 
-        // 2. Preverjanje poti (Path Rules)
+        // YouTube oglasni video tokovi (ne originalni posnetek)
+        if (lower.contains("googlevideo.com") && (
+                lower.contains("&oad=") || lower.contains("?oad=") ||
+                lower.contains("ctier=l") || lower.contains("/ad_break")
+            )) {
+            return true
+        }
+
+        // 2. Domene: bela lista PREJ, da predvajalnik (npr. Xplore /watch.js) ni izpraznjen
+        try {
+            val uri = Uri.parse(lower)
+            val host = uri.host?.lowercase()?.trim() ?: ""
+
+            if (host.isNotEmpty()) {
+                if (blockedTrie.matches(host)) {
+                    return true
+                }
+
+                if (whitelistTrie.matches(host) || isXploreRelated(host, lower)) {
+                    for (p in TRUSTED_AD_PATHS) {
+                        if (lower.contains(p)) return true
+                    }
+                    return false
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 3. Preverjanje poti samo za nezaupanja vredne gostitelje
         for (pattern in BLOCKED_PATH_PATTERNS) {
             if (lower.contains(pattern)) {
                 return true
             }
         }
 
-        // 3. Domensko preverjanje v Trie (O(k))
-        try {
-            val uri = Uri.parse(lower)
-            val host = uri.host?.lowercase()?.trim() ?: ""
-
-            if (host.isNotEmpty()) {
-                // Če je blokirana domena v Trie (tudi če ponuja .m3u8 ali .mp4 oglas), blokiraj takoj!
-                if (blockedTrie.matches(host)) {
-                    return true
-                }
-
-                // Če je na beli listi, dovoli
-                if (whitelistTrie.matches(host)) {
-                    return false
-                }
-            }
-        } catch (_: Exception) {}
-
         // 4. 🎬 Video Media Guard: Dovoli veljavne video toke in segmente preverjenih medijskih strežnikov
         if (lower.contains(".m3u8") || lower.contains(".ts") || lower.contains("/hls/") || 
             lower.contains("/embed/") || lower.contains("googlevideo.com") ||
             lower.contains("youtube.com/youtubei") || lower.contains("youtube.com/s/player") ||
-            lower.contains("youtube.com/watch") || lower.contains("youtube.com/api/") ||
-            lower.contains("youtube.com/results") || lower.contains("ytimg.com") ||
+            lower.contains("youtube.com/tv") || lower.contains("xploretv.si") ||
+            lower.contains("youtube.com/api/") || lower.contains("youtube.com/results") || lower.contains("ytimg.com") ||
             lower.contains("phncdn.com") || lower.contains("phncdn.net")) {
             // Če je specifičen oglasni strežnik, ga blokiraj
             if (lower.contains("googleads") || lower.contains("pagead") || lower.contains("adservice") ||

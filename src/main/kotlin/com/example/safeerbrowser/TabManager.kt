@@ -8,10 +8,10 @@ import java.util.UUID
 data class TabModel(
     val id: String = UUID.randomUUID().toString(),
     val webView: ChromiumEngineView,
-    var title: String = "Začetna stran",
-    var url: String = "file:///android_asset/brave_home.html",
+    var title: String = "Google",
+    var url: String = "https://www.google.com",
     var isDesktop: Boolean = false,
-    var favicon: String = "🦁"
+    var favicon: String = "🔍"
 )
 
 class TabManager(
@@ -24,7 +24,7 @@ class TabManager(
 
     val count: Int get() = tabs.size
 
-    fun createTab(context: Context, url: String = "file:///android_asset/brave_home.html", makeActive: Boolean = true): TabModel {
+    fun createTab(context: Context, url: String = "https://www.google.com", makeActive: Boolean = true): TabModel {
         val webView = ChromiumEngineView(context)
         webView.layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,

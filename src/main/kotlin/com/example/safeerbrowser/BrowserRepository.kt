@@ -69,7 +69,8 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     private fun insertDefaultBookmarks(db: SQLiteDatabase) {
         val defaults = listOf(
             Bookmark(0, "Google Iskalnik", "https://www.google.com", "🔍"),
-            Bookmark(0, "YouTube", "https://www.youtube.com", "📺"),
+            Bookmark(0, "Xplore TV", "https://www.xploretv.si/home", "📡"),
+            Bookmark(0, "YouTube", "https://www.youtube.com/tv", "📺"),
             Bookmark(0, "StreamNexus Filmi", "https://hydrahd.ws/", "🎬"),
             Bookmark(0, "ChatGPT AI", "https://chatgpt.com", "💬"),
             Bookmark(0, "RTV Slovenija", "https://www.rtvslo.si", "📰"),

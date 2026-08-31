@@ -5,16 +5,162 @@ import android.webkit.WebView
 object UserScriptManager {
 
     private const val DARK_MODE_AMOLED_CSS = """
-        /* Samsung Galaxy AMOLED True Black Engine */
-        html, body {
-            background-color: #000000 !important;
-            color: #f1f5f9 !important;
+        /* 🌌 Safeer Universal Smart OLED Dark Theme */
+        :root {
+            color-scheme: dark !important;
+        }
+        html, body, #root, #app, [id*="root"], [id*="app"],
+        main, article, section, [class*="content"], [class*="container"], [class*="wrapper"],
+        [class*="layout"], [class*="page"], [class*="view"], [class*="main"], [class*="body"],
+        [class*="theme"], [class*="grid"], [class*="row"], [class*="section"], [class*="list"],
+        [class*="guide"], [class*="epg"], [class*="channel"], [class*="vod"], [class*="home"] {
+            background-color: #0b0e14 !important;
+            color: #e2e8f0 !important;
+        }
+        header, nav, [class*="header"], [class*="topbar"], [class*="nav-bar"], [class*="navbar"], [class*="navigation"], .header {
+            background-color: #0f131c !important;
+            color: #f8fafc !important;
+            border-bottom: 1px solid #1e293b !important;
+        }
+        [class*="modal"], [class*="dialog"], [class*="popup"], [class*="overlay"], [class*="drawer"], [class*="sheet"] {
+            background-color: #141824 !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+        [class*="card"], [class*="tile"], [class*="panel"], [class*="box"], [class*="item"] {
+            background-color: #131722 !important;
+            color: #e2e8f0 !important;
+            border-color: #232a3b !important;
+        }
+        h1, h2, h3, h4, h5, h6, b, strong, th {
+            color: #ffffff !important;
+        }
+        p, span, label, li, td, dt, dd {
+            color: #cbd5e1 !important;
+        }
+        a, a * {
+            color: #38bdf8 !important;
+        }
+        input, textarea, select {
+            background-color: #1a1f2c !important;
+            color: #ffffff !important;
+            border: 1px solid #334155 !important;
+        }
+        /* Zaščiti video, slike, grafike, logotipe, hero pasice in ozadja pred brisanjem */
+        img, video, canvas, svg, picture, [class*="poster"], [class*="thumb"], [class*="image"], [class*="photo"], [class*="avatar"], [class*="logo"], [class*="banner"] {
+            filter: none !important;
+            background-color: transparent !important;
+        }
+        /* YouTube / HTML5 predvajalnik ne sme dobiti črnega overlayja */
+        .html5-video-player, .html5-video-container, ytd-player, ytm-player,
+        #player, #movie_player, #player-container, #player-container-inner,
+        [class*="html5-video"], video.html5-main-video, video.video-stream {
+            background: transparent !important;
+            background-color: transparent !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        video {
+            background-color: transparent !important;
+            opacity: 1 !important;
+        }
+    """
+
+    private const val XPLORE_DARK_CSS = """
+        .content-carousel, .content-carousel__container, .content-carousel__slider,
+        .item, .item--event, .item__container, .item__metadata {
+            background-color: transparent !important;
+        }
+        html, body, #root, #app, #__next, main {
+            background: #07090d !important;
+            color: #e8eef5 !important;
+            color-scheme: dark !important;
+        }
+        html.safeer-xplore-dark, html.safeer-xplore-dark body {
+            background: #07090d !important;
+            background-color: #07090d !important;
+            color: #e8eef5 !important;
+            color-scheme: dark !important;
+        }
+        html.safeer-xplore-dark .gradient-bg-white,
+        html.safeer-xplore-dark [class*="gradient-bg-white"],
+        html.safeer-xplore-dark [class*="page-content"],
+        html.safeer-xplore-dark [class*="PageContent"],
+        html.safeer-xplore-dark [class*="livetv"],
+        html.safeer-xplore-dark [class*="LiveTv"],
+        html.safeer-xplore-dark [class*="all-program"],
+        html.safeer-xplore-dark [class*="channel-list"],
+        html.safeer-xplore-dark [class*="epg"],
+        html.safeer-xplore-dark .options-wrapper,
+        html.safeer-xplore-dark [class*="options-wrapper"],
+        html.safeer-xplore-dark [class*="livetv-grid"] {
+            background: #07090d !important;
+            background-color: #07090d !important;
+            background-image: none !important;
+            color: #e8eef5 !important;
+        }
+                        html.safeer-xplore-dark .item__bg,
+                        html.safeer-xplore-dark [class*="item__bg"] {
+                            background-color: #12161e !important;
+                        }
+        .menu, .menu--opaque, .menu--fixed, .menu--noscroll, .gradient-bg-black,
+        .menu.menu--black-text, .menu.gradient-bg-black, .menu.gradient-bg-white {
+            background: #0b0e14 !important;
+            background-image: none !important;
+            background-color: #0b0e14 !important;
+            color: #e8eef5 !important;
+            border-bottom: 1px solid #1a2230 !important;
+            box-shadow: none !important;
+        }
+        .menu-items-wrapper, #csh__menu_bar {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        .content__wrapper, .content__wrapper.has-footer,
+        html.safeer-xplore-dark .content__wrapper,
+        html.safeer-xplore-dark .content__wrapper.has-footer,
+        html.safeer-xplore-dark body {
+            background: #07090d !important;
+            background-color: #07090d !important;
+        }
+        .menu--black-text, .menu--black-text a, .menu--black-text span,
+        .menu--black-text li, .menu--white-text, .menu--white-text a, .menu--white-text span {
+            color: #e8eef5 !important;
+        }
+        header, nav, footer {
+            background-color: #0b0e14 !important;
+            color: #f8fafc !important;
+        }
+        .search__query_wrapper, [class*="search__query"] {
+            background: #07090d !important;
+            background-image: none !important;
+        }
+        img, video, canvas, picture, svg,
+        [class*="poster"], [class*="thumb"], [class*="Hero"], [class*="hero"],
+        [class*="Banner"], [class*="clpp"], [class*="player"], [class*="Player"],
+        [class*="logo"], [class*="image-header"] {
+            background-color: transparent !important;
+            filter: none !important;
+        }
+        input, textarea, select {
+            background-color: #121826 !important;
+            color: #fff !important;
+            border: 1px solid #243044 !important;
+            caret-color: #93c5fd !important;
+        }
+        input:focus, textarea:focus, input:focus-visible {
+            outline: 2px solid #3b82f6 !important;
+            outline-offset: 2px !important;
+            box-shadow: 0 0 0 1px #0b0e14, 0 0 14px rgba(59, 130, 246, 0.35) !important;
+            background-color: #121826 !important;
         }
     """
 
     private const val ANTI_POPUNDER_SHIELD_JS = """
         /* 🛡️ Safeer Anti-Popunder, Anti-Clickjacking & Streaming Shield Engine */
         (function() {
+            if ((location.href || '').indexOf('youtube.com/tv') !== -1) return;
+            if ((location.hostname || '').indexOf('xploretv.si') !== -1) return;
             if (window._safeer_popunder_shield_active) return;
             window._safeer_popunder_shield_active = true;
 
@@ -194,6 +340,7 @@ object UserScriptManager {
 
     private const val YOUTUBE_FREEDOM_MOBILE_JS = """
         (function initYouTubeFreedomAgent() {
+            if ((location.href || '').indexOf('youtube.com/tv') !== -1) return;
             if (window._safeer_yt_agent_installed) return;
             window._safeer_yt_agent_installed = true;
 
@@ -422,6 +569,8 @@ object UserScriptManager {
     private const val BACKGROUND_PLAYBACK_JS = """
         /* 🎵 Safeer Browser Background Audio & Lock-Screen Playback Engine */
         (function() {
+            if ((location.href || '').indexOf('youtube.com/tv') !== -1) return;
+            if ((location.hostname || '').indexOf('xploretv.si') !== -1) return;
             if (window._safeer_bg_playback_installed) return;
             window._safeer_bg_playback_installed = true;
 
@@ -460,6 +609,9 @@ object UserScriptManager {
             }
 
             HTMLMediaElement.prototype.pause = function() {
+                if (window._safeer_app_bg) {
+                    return origPause.apply(this, arguments);
+                }
                 var elapsed = Date.now() - lastUserInteractionTime;
                 // Če se menja pesem ali je video končan, dovoli naravno pavzo za zagon nove skladbe
                 if (location.href !== lastBgHref || this.ended || this.readyState < 2 || (isFinite(this.duration) && this.duration > 0 && Math.abs(this.currentTime - this.duration) < 1.0)) {
@@ -521,6 +673,7 @@ object UserScriptManager {
 
             // Stalni nadzornik za neprekinjeno predvajanje v ozadju
             setInterval(function() {
+                if (window._safeer_app_bg || document.hidden) return;
                 hookPlayerObject();
                 var video = document.querySelector('video');
                 if (video && video.paused && !video.ended && !userExplicitlyPaused && video.readyState >= 2) {
@@ -546,65 +699,449 @@ object UserScriptManager {
         })();
     """
 
-    private const val TV_REMOTE_NAV_JS = """
-        /* 📺 Safeer TV Remote D-Pad Navigation Engine */
-        (function() {
-            if (window._safeer_tv_remote_installed) return;
-            window._safeer_tv_remote_installed = true;
+    @Volatile
+    private var cachedTvRemoteNavJs: String? = null
+    @Volatile
+    private var cachedSiteAgentJs: String? = null
 
-            try {
-                var style = document.createElement('style');
-                style.id = 'tv-remote-focus-style';
-                style.textContent = `
-                    :focus, .tv-remote-focused {
-                        outline: 3.5px solid #00e5ff !important;
-                        outline-offset: 2px !important;
-                        box-shadow: 0 0 15px rgba(0, 229, 255, 0.8) !important;
-                        border-radius: 4px !important;
-                        transition: outline 0.1s ease-in-out !important;
-                    }
-                    /* 🛑 Auto-hide Cookie Consent & App Banner overlays on TV */
-                    #onetrust-banner-sdk, .cookie-banner, .gdpr-consent, .cookie-notice,
-                    .open-in-app, .smartbanner, [class*="CookieConsent"], [id*="cookie-notice"] {
-                        display: none !important;
-                    }
-                `;
-                (document.head || document.documentElement).appendChild(style);
-            } catch(e) {}
+    private fun assetJs(webView: WebView, name: String, cache: () -> String?, store: (String) -> Unit): String {
+        cache()?.let { return it }
+        val js = webView.context.assets.open(name).bufferedReader(Charsets.UTF_8).use { it.readText() }
+        store(js)
+        return js
+    }
 
-            function makeElementsFocusable() {
-                try {
-                    var focusables = document.querySelectorAll('a, button, input, select, textarea, [onclick], [role="button"], [tabindex], .card, .media-card');
-                    for (var i = 0; i < focusables.length; i++) {
-                        var el = focusables[i];
-                        if (!el.hasAttribute('tabindex')) {
-                            el.setAttribute('tabindex', '0');
-                        }
-                    }
-                } catch(e) {}
+    private fun siteAgentJs(webView: WebView): String {
+        return assetJs(webView, "site_agent.js", { cachedSiteAgentJs }, { cachedSiteAgentJs = it })
+    }
+
+    private fun tvRemoteNavJs(webView: WebView): String {
+        return assetJs(webView, "tv_remote_nav.js", { cachedTvRemoteNavJs }, { cachedTvRemoteNavJs = it })
+    }
+
+    private const val YOUTUBE_TV_LEANBACK_JS = """
+        (function initYouTubeTvLeanback() {
+            if ((location.href || '').indexOf('youtube.com/tv') === -1) return;
+            if (window._safeer_yt_tv_leanback) return;
+            window._safeer_yt_tv_leanback = true;
+
+            function isAdNode(item) {
+                if (!item || typeof item !== 'object') return false;
+                return !!(item.adSlotRenderer || item.promotedVideoRenderer || item.inFeedAdLayoutRenderer ||
+                    item.promotedSparklesWebRenderer || item.promotedSparklesTextRenderer ||
+                    item.promotedSparklesRenderer || item.displayAdRenderer || item.mastheadAdRenderer ||
+                    item.houseAdRenderer || item.adVideoEndRenderer || item.promotedItemRenderer ||
+                    item.bannerPromoRenderer || item.adInfoRenderer || item.instreamVideoAdRenderer ||
+                    item.playerLegacyDesktopWatchAdsRenderer);
             }
 
-            document.addEventListener('DOMContentLoaded', makeElementsFocusable);
-            setInterval(makeElementsFocusable, 1000);
+            function tileLooksSponsored(tile) {
+                if (!tile || typeof tile !== 'object') return false;
+                try {
+                    var style = (tile.style || '') + '';
+                    if (style.toUpperCase().indexOf('SPONSOR') !== -1) return true;
+                    var blob = JSON.stringify(tile.metadata || tile.header || {}).toLowerCase();
+                    if (blob.indexOf('sponzorirano') !== -1 || blob.indexOf('sponsored') !== -1) return true;
+                } catch (e) {}
+                return false;
+            }
 
-            window.addEventListener('keydown', function(e) {
-                if (e.keyCode === 13 || e.keyCode === 32) { // OK / Enter
-                    var active = document.activeElement;
-                    if (active && active !== document.body) {
-                        try { active.click(); } catch(_) {}
+            function stripAds(obj, depth) {
+                if (!obj || typeof obj !== 'object' || depth > 36) return obj;
+                if (Array.isArray(obj)) {
+                    for (var i = obj.length - 1; i >= 0; i--) {
+                        var item = obj[i];
+                        if (item && typeof item === 'object') {
+                            if (isAdNode(item) || (item.tileRenderer && tileLooksSponsored(item.tileRenderer))) {
+                                obj.splice(i, 1);
+                                continue;
+                            }
+                            stripAds(item, depth + 1);
+                        }
+                    }
+                    return obj;
+                }
+                if (obj.adPlacements) obj.adPlacements = [];
+                if (obj.adSlots) obj.adSlots = [];
+                if (obj.playerAds) obj.playerAds = [];
+                if (obj.adBreaks) obj.adBreaks = [];
+                try { delete obj.adBreakHeartbeatParams; } catch (e) {}
+                var keys = Object.keys(obj);
+                for (var k = 0; k < keys.length; k++) {
+                    var v = obj[keys[k]];
+                    if (v && typeof v === 'object') stripAds(v, depth + 1);
+                }
+                return obj;
+            }
+
+            function looksLikeYt(obj) {
+                return !!(obj && (obj.adPlacements || obj.adSlots || obj.playerAds || obj.videoDetails ||
+                    obj.contents || obj.responseContext || obj.streamingData || obj.playabilityStatus ||
+                    obj.onResponseReceivedEndpoints));
+            }
+
+            try {
+                var origParse = JSON.parse;
+                JSON.parse = function(text) {
+                    var data = origParse.apply(this, arguments);
+                    try {
+                        if (data && typeof data === 'object' && looksLikeYt(data)) stripAds(data, 0);
+                    } catch (e) {}
+                    return data;
+                };
+            } catch (e) {}
+
+            function compactText(el) {
+                if (!el) return '';
+                var t = ((el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('title'))) || el.innerText || '').replace(/\s+/g, ' ').trim();
+                if (t.length > 80) t = t.substring(0, 80);
+                return t.toLowerCase();
+            }
+
+            function clickEl(el) {
+                if (!el) return false;
+                try {
+                    if (typeof el.click === 'function') el.click();
+                    else el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            window._safeer_yt_tv_search = function(q) {
+                try {
+                    var query = (q || '').toString();
+                    location.hash = query ? ('#/search?q=' + encodeURIComponent(query)) : '#/search';
+                } catch (e) {}
+            };
+
+            var guestDone = false;
+            var lastSkip = 0;
+
+            function skipVideoAd() {
+                var nodes = document.querySelectorAll('button, [role="button"]');
+                var skipBtn = null;
+                var countdownAd = false;
+                for (var i = 0; i < nodes.length; i++) {
+                    var t = compactText(nodes[i]);
+                    if (t.indexOf('preskočite čez') !== -1 || t.indexOf('skip in') !== -1 || t.indexOf('skip after') !== -1) {
+                        countdownAd = true;
+                        continue;
+                    }
+                    if (t === 'preskoči' || t === 'preskoci' || t === 'skip' || t === 'skip ad' || t === 'skip ads' ||
+                        t.indexOf('preskoči oglas') !== -1) {
+                        skipBtn = nodes[i];
+                        break;
                     }
                 }
-            }, true);
+                if (!skipBtn && !countdownAd) {
+                    var bodyText = ((document.body && document.body.innerText) || '').toLowerCase();
+                    countdownAd = bodyText.indexOf('preskočite čez') !== -1 || bodyText.indexOf('skip in') !== -1;
+                }
+                if (!skipBtn && !countdownAd) return;
+
+                var now = Date.now();
+                if (skipBtn && now - lastSkip > 400) {
+                    if (clickEl(skipBtn)) lastSkip = now;
+                }
+
+                var videos = document.querySelectorAll('video');
+                for (var v = 0; v < videos.length; v++) {
+                    try {
+                        if (isFinite(videos[v].duration) && videos[v].duration > 0) {
+                            videos[v].currentTime = videos[v].duration;
+                        }
+                        videos[v].playbackRate = 16;
+                        videos[v].muted = true;
+                    } catch (e) {}
+                }
+            }
+
+            function hideSponsoredTiles() {
+                var hash = (location.hash || '').toLowerCase();
+                if (hash.indexOf('/watch') !== -1) return;
+                var labels = document.querySelectorAll('yt-formatted-string, span, p');
+                var max = Math.min(labels.length, 80);
+                for (var i = 0; i < max; i++) {
+                    var el = labels[i];
+                    var t = ((el.textContent || '') + '').replace(/\s+/g, ' ').trim().toLowerCase();
+                    if (t !== 'sponzorirano' && t !== 'sponsored') continue;
+                    var p = el;
+                    for (var u = 0; u < 10 && p; u++) {
+                        try {
+                            var r = p.getBoundingClientRect();
+                            if (r.width > 160 && r.width < window.innerWidth * 0.7 && r.height > 80 && r.height < window.innerHeight * 0.7) {
+                                p.style.display = 'none';
+                                break;
+                            }
+                        } catch (e) {}
+                        p = p.parentElement;
+                    }
+                }
+            }
+
+            function guestAssist() {
+                var hash = (location.hash || '').toLowerCase();
+                if (hash.indexOf('/search') !== -1 || hash.indexOf('/watch') !== -1) return;
+                if (guestDone) return;
+                var nodes = document.querySelectorAll('button, [role="button"]');
+                var i, el, t;
+                for (i = 0; i < nodes.length; i++) {
+                    el = nodes[i];
+                    t = compactText(el);
+                    if (t.indexOf('glejte kot gost') !== -1 || t.indexOf('watch as guest') !== -1 ||
+                        t.indexOf('continue as guest') !== -1) {
+                        if (clickEl(el)) { guestDone = true; return; }
+                    }
+                }
+                for (i = 0; i < nodes.length; i++) {
+                    el = nodes[i];
+                    t = compactText(el);
+                    if (t === 'začnite' || t === 'zacnite' || t === 'get started') {
+                        clickEl(el);
+                        return;
+                    }
+                }
+            }
+
+            function stripGlobals() {
+                try {
+                    if (window.ytInitialPlayerResponse) stripAds(window.ytInitialPlayerResponse, 0);
+                    if (window.ytInitialData) stripAds(window.ytInitialData, 0);
+                } catch (e) {}
+            }
+
+            stripGlobals();
+            guestAssist();
+            skipVideoAd();
+            hideSponsoredTiles();
+            setInterval(function() {
+                guestAssist();
+                skipVideoAd();
+                hideSponsoredTiles();
+                stripGlobals();
+            }, 700);
+        })();
+    """
+
+    private const val XPLORE_LIVE_JS = """
+        (function() {
+            if ((location.hostname || '').indexOf('xploretv') === -1) return;
+            if (window._safeer_xplore_live_helpers) return;
+            window._safeer_xplore_live_helpers = true;
+            function paintXploreDark() {
+                try {
+                    document.documentElement.classList.add('safeer-xplore-dark');
+                    try { document.documentElement.style.colorScheme = 'dark'; } catch (_) {}
+                    var painted = 0;
+                    var samples = [];
+                    var els = document.querySelectorAll('html, body, #root, #app, main, section, article, div');
+                    var i, el, bg, r, cls, m, lum, skip;
+                    for (i = 0; i < els.length; i++) {
+                        el = els[i];
+                        cls = ((el.className || '') + '').toString().toLowerCase();
+                        skip = cls.indexOf('clpp') !== -1 || cls.indexOf('player') !== -1 || cls.indexOf('poster') !== -1 ||
+                            cls.indexOf('thumb') !== -1 || cls.indexOf('logo') !== -1 || cls.indexOf('overlay') !== -1 ||
+                            el.tagName === 'VIDEO' || el.tagName === 'IMG';
+                        if (skip) continue;
+                        try { if (el.closest && el.closest('video, [class*="clpp"], [class*="player"], [class*="overlays-layer"]')) continue; } catch (_) {}
+                        r = el.getBoundingClientRect();
+                        if (r.width < 360 || r.height < 40) continue;
+                        bg = (window.getComputedStyle(el).backgroundColor || '');
+                        m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (!m) continue;
+                        lum = (parseInt(m[1], 10) + parseInt(m[2], 10) + parseInt(m[3], 10)) / 3;
+                        if (lum < 188) continue;
+                        el.style.setProperty('background-color', '#07090d', 'important');
+                        el.style.setProperty('background-image', 'none', 'important');
+                        if (cls.indexOf('options-wrapper') !== -1 || cls.indexOf('menu') !== -1) {
+                            el.style.setProperty('color', '#e8eef5', 'important');
+                        }
+                        painted++;
+                        if (samples.length < 8) samples.push({ cls: cls.slice(0, 70), bg: bg, w: Math.round(r.width), h: Math.round(r.height) });
+                    }
+                    // #region agent log
+                    try {
+                        if (window._safeerDbg && (!window._safeer_xplore_dark_logged || painted > (window._safeer_xplore_dark_n || 0))) {
+                            window._safeer_xplore_dark_logged = true;
+                            window._safeer_xplore_dark_n = painted;
+                            window._safeerDbg('H80', 'UserScriptManager.kt:paint_dark', 'painted', {
+                                painted: painted,
+                                samples: samples,
+                                body: getComputedStyle(document.body).backgroundColor,
+                                path: (location.pathname || '').slice(0, 40)
+                            });
+                        }
+                    } catch (_) {}
+                    // #endregion
+                } catch (_) {}
+            }
+            paintXploreDark();
+            setInterval(paintXploreDark, 1500);
+            window._safeer_xplore_list_live_tiles = function() {
+                var out = [];
+                var seen = {};
+                var els = document.querySelectorAll('a, [role="link"], [class*="card"], [class*="Card"], [class*="tile"], [class*="item"]');
+                var i, el, t, tl, r, key;
+                for (i = 0; i < els.length; i++) {
+                    el = els[i];
+                    t = ((el.innerText || el.textContent || '') + '').replace(/\\s+/g, ' ').trim();
+                    tl = t.toLowerCase();
+                    if (tl.indexOf('v živo') === -1 && tl.indexOf('v zivo') === -1) continue;
+                    r = el.getBoundingClientRect();
+                    if (r.width < 90 || r.height < 50) continue;
+                    key = t.slice(0, 48);
+                    if (seen[key]) continue;
+                    seen[key] = 1;
+                    el.setAttribute('data-safeer-live-idx', String(out.length));
+                    out.push({ i: out.length, t: t.slice(0, 80), w: Math.round(r.width), h: Math.round(r.height) });
+                }
+                try { if (window._safeerDbg) window._safeerDbg('H9', 'UserScriptManager.kt:live_tiles', 'live tiles', { n: out.length, tiles: out.slice(0, 12) }); } catch (_) {}
+                return out;
+            };
+            window._safeer_xplore_list_programs = function() {
+                var out = [];
+                var seen = {};
+                var els = document.querySelectorAll('.item.item--event, .item--event');
+                var i, el, t, r, key;
+                for (i = 0; i < els.length; i++) {
+                    el = els[i];
+                    r = el.getBoundingClientRect();
+                    if (r.width < 120 || r.height < 70) continue;
+                    if (r.bottom < 80 || r.top > ((window.innerHeight || 1080) - 20)) continue;
+                    t = ((el.innerText || el.textContent || '') + '').replace(/\\s+/g, ' ').trim();
+                    key = t.slice(0, 36);
+                    if (!key || seen[key]) continue;
+                    seen[key] = 1;
+                    el.setAttribute('data-safeer-prog-idx', String(out.length));
+                    out.push({ i: out.length, t: t.slice(0, 70), w: Math.round(r.width), h: Math.round(r.height) });
+                }
+                try { if (window._safeerDbg) window._safeerDbg('H9', 'UserScriptManager.kt:programs', 'program tiles', { n: out.length, tiles: out.slice(0, 12) }); } catch (_) {}
+                return out;
+            };
+            window._safeer_xplore_play_program = function(idx) {
+                try {
+                    var list = window._safeer_xplore_list_programs();
+                    var el = document.querySelector('[data-safeer-prog-idx="' + idx + '"]');
+                    var title = (list[idx] && list[idx].t) || '';
+                    try { if (window._safeerDbg) window._safeerDbg('H13', 'UserScriptManager.kt:play_program', 'play program', { idx: idx, found: !!el, t: title, n: list.length }); } catch (_) {}
+                    if (!el) return false;
+                    try { sessionStorage.setItem('safeer_xplore_autoplay', '1'); } catch (_) {}
+                    window._safeer_xplore_want_play = true;
+                    window._safeer_xplore_video_boosted = false;
+                    window._safeer_xplore_playing = false;
+                    window._safeer_xplore_playbtn_n = 0;
+                    try {
+                        var prevs = document.querySelectorAll('.safeer-active-card');
+                        var pi;
+                        for (pi = 0; pi < prevs.length; pi++) prevs[pi].classList.remove('safeer-active-card');
+                        el.classList.add('safeer-active-card');
+                    } catch (_) {}
+                    if (window._safeer_click_focused_card) {
+                        return window._safeer_click_focused_card();
+                    }
+                    try { el.click(); } catch (_) {}
+                    return true;
+                } catch (_) {}
+                return false;
+            };
+            window._safeer_xplore_play_live_tile = function(idx) {
+                try {
+                    var list = window._safeer_xplore_list_live_tiles();
+                    var el = document.querySelector('[data-safeer-live-idx="' + idx + '"]');
+                    var title = (list[idx] && list[idx].t) || '';
+                    try { if (window._safeerDbg) window._safeerDbg('H9', 'UserScriptManager.kt:play_live', 'play live tile', { idx: idx, found: !!el, t: title, n: list.length }); } catch (_) {}
+                    if (!el) return false;
+                    try { sessionStorage.setItem('safeer_xplore_autoplay', '1'); } catch (_) {}
+                    window._safeer_xplore_want_play = true;
+                    window._safeer_xplore_video_boosted = false;
+                    window._safeer_xplore_playing = false;
+                    try { el.click(); } catch (_) {}
+                    return true;
+                } catch (_) {}
+                return false;
+            };
+            window._safeer_xplore_exit_player = function() {
+                try {
+                    window._safeer_xplore_playing = false;
+                    window._safeer_xplore_want_play = false;
+                    window._safeer_xplore_video_boosted = false;
+                    window._safeer_xplore_fs_clicked = false;
+                    window._safeer_xplore_replay_clicked = false;
+                    window._safeer_xplore_player_el = null;
+                    try { document.documentElement.classList.remove('safeer-xplore-fs'); } catch (_) {}
+                    try { if (window.SafeerBridge && window.SafeerBridge.setChromeHidden) window.SafeerBridge.setChromeHidden(true); } catch (_) {}
+                    location.href = 'https://www.xploretv.si/home';
+                } catch (_) {}
+            };
+
+            window._safeer_xplore_search = function(query) {
+                query = (query || '').toString();
+                function findInput() {
+                    return document.querySelector('input[placeholder*="tipkanjem"], input[placeholder*="Isk"], input[placeholder*="iskanj"]')
+                        || document.querySelector('input[type="text"]:not([readonly])');
+                }
+                function openIcon() {
+                    var el = document.querySelector('.icon-p24_search') || document.querySelector('li.search');
+                    if (!el) return false;
+                    try { el.click(); } catch (_) {}
+                    try { if (el.parentElement) el.parentElement.click(); } catch (_) {}
+                    return true;
+                }
+                function fill() {
+                    var input = findInput();
+                    if (!input) return false;
+                    try {
+                        var native = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        native.call(input, query);
+                    } catch (e) { input.value = query; }
+                    try {
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'a' }));
+                    } catch (_) {}
+                    try {
+                        if (window._safeerDbg) window._safeerDbg('H10', 'UserScriptManager.kt:xplore_search', 'filled', {
+                            q: query.slice(0, 40),
+                            val: (input.value || '').slice(0, 40),
+                            href: (location.href || '').slice(0, 180)
+                        });
+                    } catch (_) {}
+                    return true;
+                }
+                openIcon();
+                if (!query) {
+                    try { if (window._safeerDbg) window._safeerDbg('H10', 'UserScriptManager.kt:xplore_search', 'opened', { hasInput: !!findInput() }); } catch (_) {}
+                    return true;
+                }
+                if (fill()) return true;
+                if (!window._safeer_xplore_search_mo) {
+                    window._safeer_xplore_search_mo = new MutationObserver(function() {
+                        if (fill()) {
+                            try { window._safeer_xplore_search_mo.disconnect(); } catch (_) {}
+                            window._safeer_xplore_search_mo = null;
+                        }
+                    });
+                    try { window._safeer_xplore_search_mo.observe(document.documentElement, { childList: true, subtree: true }); } catch (_) {}
+                }
+                return true;
+            };
         })();
     """
 
     fun injectEarlyScript(webView: WebView) {
         val cosmeticCss = CosmeticFilterEngine.buildCosmeticCss()
         injectCss(webView, cosmeticCss, "safeer-cosmetic-filter")
+        injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
+        injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
         webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
-        webView.evaluateJavascript(TV_REMOTE_NAV_JS, null)
+        webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
+        webView.evaluateJavascript(siteAgentJs(webView), null)
+        webView.evaluateJavascript(tvRemoteNavJs(webView), null)
+        webView.evaluateJavascript(XPLORE_LIVE_JS, null)
     }
 
     fun injectOnPageFinished(webView: WebView, isDarkMode: Boolean) {
@@ -613,15 +1150,21 @@ object UserScriptManager {
         webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
-        webView.evaluateJavascript(TV_REMOTE_NAV_JS, null)
+        webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
+        webView.evaluateJavascript(siteAgentJs(webView), null)
+        webView.evaluateJavascript(tvRemoteNavJs(webView), null)
+        webView.evaluateJavascript(XPLORE_LIVE_JS, null)
 
         if (isDarkMode) {
             injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
+            injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
         } else {
             removeCss(webView, "safeer-dark-mode-style")
+            injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
         }
 
         webView.evaluateJavascript(MOBILE_MEDIA_AUDIO_JS, null)
+        webView.evaluateJavascript("try{if(window._safeerSiteAgent)window._safeerSiteAgent.onPageReady()}catch(e){}", null)
     }
 
     fun injectDarkModeToggle(webView: WebView, enable: Boolean) {
@@ -640,6 +1183,19 @@ object UserScriptManager {
                 try {
                     var parent = document.head || document.documentElement;
                     if (!parent) return;
+                    if ('$idStr' === 'safeer-dark-mode-style' || '$idStr' === 'safeer-cosmetic-filter') {
+                        var href = (location.href || '').toLowerCase();
+                        var host = (location.hostname || '').toLowerCase();
+                        if (href.indexOf('youtube.com/tv') !== -1 || host.indexOf('youtube.') !== -1 || host.indexOf('youtu.be') !== -1 || host.indexOf('xploretv.si') !== -1) {
+                            var existing = document.getElementById('$idStr');
+                            if (existing) existing.remove();
+                            return;
+                        }
+                    }
+                    if ('$idStr' === 'tv-remote-xplore-dark') {
+                        var xhost = (location.hostname || '').toLowerCase();
+                        if (xhost.indexOf('xploretv') === -1) return;
+                    }
                     var old = document.getElementById('$idStr');
                     if (old) old.remove();
                     var style = document.createElement('style');

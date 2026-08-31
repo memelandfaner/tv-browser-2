@@ -1,5 +1,17 @@
 # 📺 TV Browser 2 (Android TV Remote Control Edition)
 
+**Trenutna različica: 2.1.08** — Xplore TV kiosk, Castlabs/Widevine predvajalnik, D-Pad izbira programov.
+
+## ⬇️ Prenos APK (namestitev na Android / Android TV)
+
+1. Prenesi: **[TV-Browser-2.apk](https://github.com/memelandfaner/tv-browser-2/raw/main/TV-Browser-2.apk)**
+2. Na napravi dovoli namestitev iz neznanih virov.
+3. Odpri preneseno datoteko in namesti.
+
+Ista datoteka je tudi v `Release/Artifacts/tv-browser-2-release.apk`.
+
+---
+
 **TV Browser 2** je napreden, visoko-varen spletni brskalnik za Android TV in pametne televizorje, optimiziran za upravljanje z **daljinskim upravljalnikom (D-Pad Navigation)** ter s vgrajeno kibernetsko zaščito pred Botnet C2 strežniki, zlonamerno kodo (Malware) in oglasnimi mrežami.
 
 ---

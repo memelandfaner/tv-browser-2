@@ -3,6 +3,7 @@
     <string name="app_name">Safeer Browser</string>
     <string name="url_hint">Varno iskanje ali URL</string>
     <string name="btn_home">Domov</string>
+    <string name="btn_back">Nazaj</string>
     <string name="btn_add_tab">Nov zavihek</string>
     <string name="btn_menu">Meni</string>
     <string name="btn_clear">Počisti</string>

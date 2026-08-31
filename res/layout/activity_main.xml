@@ -5,6 +5,15 @@
     android:layout_height="match_parent"
     android:background="@color/bg_pure_black">
 
+    <!-- Main WebView Container (Full Bleed Edge-to-Edge) -->
+    <FrameLayout
+        android:id="@+id/webViewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
+        android:background="@color/bg_pure_black" />
+
     <!-- Mobile Top Navigation Toolbar (Chrome / Opera Hybrid) -->
     <LinearLayout
         android:id="@+id/mobileTopBar"
@@ -15,17 +24,38 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="6dp"
-        android:elevation="6dp">
+        android:elevation="12dp">
+
+        <!-- 0. Back Button -->
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_mobile_icon_button"
+            android:text="⬅"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusRight="@+id/btnHome"
+            android:nextFocusDown="@+id/webViewContainer"
+            android:contentDescription="@string/btn_back" />
 
         <!-- 1. Home Button -->
         <Button
             android:id="@+id/btnHome"
             android:layout_width="38dp"
             android:layout_height="38dp"
+            android:layout_marginStart="2dp"
             android:background="@drawable/bg_mobile_icon_button"
             android:text="🏠"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btnBack"
+            android:nextFocusRight="@+id/editUrl"
+            android:nextFocusDown="@+id/webViewContainer"
             android:contentDescription="@string/btn_home" />
 
         <!-- 2. Modern Wide Omnibox URL Bar -->
@@ -39,7 +69,8 @@
             android:background="@drawable/bg_mobile_omnibox"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:paddingHorizontal="10dp"
+            android:focusable="false">
 
             <!-- Security SSL Indicator -->
             <TextView
@@ -66,7 +97,12 @@
                 android:singleLine="true"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_dim"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:nextFocusLeft="@+id/btnHome"
+                android:nextFocusRight="@+id/btnSearchTrigger"
+                android:nextFocusDown="@+id/webViewContainer" />
 
             <!-- Clear Text Button -->
             <TextView
@@ -78,6 +114,11 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp"
                 android:visibility="gone"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:nextFocusLeft="@+id/editUrl"
+                android:nextFocusRight="@+id/btnSearchTrigger"
+                android:nextFocusDown="@+id/webViewContainer"
                 android:background="@drawable/bg_mobile_icon_button" />
 
             <!-- Search / Voice Trigger -->
@@ -90,6 +131,11 @@
                 android:text="🔍"
                 android:textColor="@color/accent_cyan"
                 android:textSize="13sp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:nextFocusLeft="@+id/editUrl"
+                android:nextFocusRight="@+id/btnPointerToggle"
+                android:nextFocusDown="@+id/webViewContainer"
                 android:background="@drawable/bg_mobile_icon_button" />
         </LinearLayout>
 
@@ -105,6 +151,9 @@
             android:textSize="16sp"
             android:focusable="true"
             android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btnSearchTrigger"
+            android:nextFocusRight="@+id/btnAddTab"
+            android:nextFocusDown="@+id/webViewContainer"
             android:contentDescription="Virtual Pointer Mode" />
 
         <!-- 4. Add Tab (+) Button -->
@@ -119,6 +168,9 @@
             android:textSize="15sp"
             android:focusable="true"
             android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btnPointerToggle"
+            android:nextFocusRight="@+id/btnTabCount"
+            android:nextFocusDown="@+id/webViewContainer"
             android:contentDescription="@string/btn_add_tab" />
 
         <!-- 5. Tab Switcher Badge [ 1 ] -->
@@ -134,6 +186,9 @@
             android:textStyle="bold"
             android:focusable="true"
             android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btnAddTab"
+            android:nextFocusRight="@+id/btnMenu"
+            android:nextFocusDown="@+id/webViewContainer"
             android:padding="0dp" />
 
         <!-- 6. 3-Dots Menu (⋮) Button -->
@@ -149,6 +204,8 @@
             android:textStyle="bold"
             android:focusable="true"
             android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btnTabCount"
+            android:nextFocusDown="@+id/webViewContainer"
             android:contentDescription="@string/btn_menu" />
     </LinearLayout>
 
@@ -162,13 +219,43 @@
         android:progressDrawable="@color/accent_cyan"
         android:visibility="gone" />
 
-    <!-- Main WebView Container -->
-    <FrameLayout
-        android:id="@+id/webViewContainer"
+    <!-- Search Suggestions & Quick TV Portals Overlay -->
+    <LinearLayout
+        android:id="@+id/searchSuggestionsOverlay"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/pageProgressBar"
-        android:background="@color/bg_pure_black" />
+        android:layout_height="wrap_content"
+        android:layout_below="@id/mobileTopBar"
+        android:background="#0A101D"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone"
+        android:elevation="25dp">
+
+        <!-- Quick TV Portals Bar -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:focusable="false"
+            android:descendantFocusability="afterDescendants"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:id="@+id/portalChipsContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Dynamic Suggestion Items Container -->
+        <LinearLayout
+            android:id="@+id/suggestionsListContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </LinearLayout>
+
 
     <!-- Find In Page Bar (Optional overlay) -->
     <LinearLayout

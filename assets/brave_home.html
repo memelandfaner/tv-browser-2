@@ -31,11 +31,11 @@
 
         .container {
             width: 100%;
-            max-width: 480px;
+            max-width: 1080px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 22px;
         }
 
         /* 🦁 Brave Shield Privacy Card */
@@ -237,15 +237,23 @@
         }
 
         .engine-chip {
-            font-size: 11px;
+            font-size: 15px;
             font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 14px;
+            padding: 8px 16px;
+            border-radius: 16px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.08);
             color: #8c9ba8;
             cursor: pointer;
             transition: all 0.15s ease;
+        }
+
+        .engine-chip:focus,
+        .engine-chip.safeer-active-card {
+            outline: 3px solid #00e5ff;
+            outline-offset: 3px;
+            color: #ffffff;
+            background: rgba(0, 229, 255, 0.16);
         }
 
         .engine-chip.active {
@@ -275,37 +283,49 @@
         .favorites-grid {
             width: 100%;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px 10px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 18px 12px;
         }
 
         .favorite-tile {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             cursor: pointer;
             text-decoration: none;
             transition: transform 0.15s ease;
+            outline: none;
         }
 
-        .favorite-tile:active {
-            transform: scale(0.92);
+        .favorite-tile:focus,
+        .favorite-tile.safeer-active-card {
+            transform: scale(1.08);
+        }
+
+        .favorite-tile:focus .tile-icon-wrapper,
+        .favorite-tile.safeer-active-card .tile-icon-wrapper {
+            border-color: #00e5ff;
+            box-shadow: 0 0 22px rgba(0, 229, 255, 0.45);
         }
 
         .tile-icon-wrapper {
-            width: 56px;
-            height: 56px;
-            border-radius: 18px;
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
             background: rgba(255, 255, 255, 0.06);
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 30px;
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
+        }
+
+        .favorite-tile:active {
+            transform: scale(0.92);
         }
 
         .favorite-tile:hover .tile-icon-wrapper {
@@ -321,7 +341,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 68px;
+            max-width: 96px;
+            font-size: 13px;
         }
 
         /* 🛡️ Footer Security Status */
@@ -389,15 +410,16 @@
     <!-- 🔍 3. Omnibox / Search Widget -->
     <div class="search-card">
         <form class="search-bar-wrapper" id="searchForm" onsubmit="return handleSearch(event)">
-            <input type="text" class="search-input" id="searchInput" placeholder="Iščite ali vnesite naslov spleta..." autocomplete="off" autocorrect="off">
-            <button type="submit" class="search-btn">🔍</button>
+            <input type="text" class="search-input" id="searchInput" placeholder="Iščite ali vnesite naslov spleta..." autocomplete="off" autocorrect="off" tabindex="-1">
+            <button type="submit" class="search-btn" tabindex="0">🔍</button>
         </form>
         <div class="engine-chips">
-            <div class="engine-chip active" onclick="setEngine('google', this)">Google</div>
-            <div class="engine-chip" onclick="setEngine('duckduckgo', this)">DuckDuckGo</div>
-            <div class="engine-chip" onclick="setEngine('youtube', this)">YouTube</div>
-            <div class="engine-chip" onclick="setEngine('brave', this)">Brave Search</div>
-            <div class="engine-chip" onclick="setEngine('streamnexus', this)">StreamNexus</div>
+            <div class="engine-chip active" role="button" tabindex="0" onclick="setEngine('google', this)">Google</div>
+            <div class="engine-chip" role="button" tabindex="0" onclick="setEngine('duckduckgo', this)">DuckDuckGo</div>
+            <div class="engine-chip" role="button" tabindex="0" onclick="openUrl('https://www.youtube.com/tv')">YouTube</div>
+            <div class="engine-chip" role="button" tabindex="0" onclick="openUrl('https://www.xploretv.si/home')">Xplore TV</div>
+            <div class="engine-chip" role="button" tabindex="0" onclick="setEngine('brave', this)">Brave Search</div>
+            <div class="engine-chip" role="button" tabindex="0" onclick="openUrl('https://hydrahd.ws/')">StreamNexus</div>
         </div>
     </div>
 
@@ -407,51 +429,55 @@
     </div>
 
     <div class="favorites-grid" id="favoritesGrid">
-        <div class="favorite-tile" onclick="openUrl('https://www.youtube.com')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.xploretv.si/home')">
+            <div class="tile-icon-wrapper" style="background: rgba(227, 24, 55, 0.18); border-color: rgba(227, 24, 55, 0.45);">📡</div>
+            <div class="tile-name">Xplore TV</div>
+        </div>
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.youtube.com/tv')">
             <div class="tile-icon-wrapper" style="background: rgba(255, 0, 0, 0.15); border-color: rgba(255, 0, 0, 0.3);">📺</div>
             <div class="tile-name">YouTube</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://hydrahd.ws/')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://hydrahd.ws/')">
             <div class="tile-icon-wrapper" style="background: rgba(0, 210, 255, 0.15); border-color: rgba(0, 210, 255, 0.3);">🎬</div>
             <div class="tile-name">Filmi</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://www.google.com')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.google.com')">
             <div class="tile-icon-wrapper" style="background: rgba(66, 133, 244, 0.15); border-color: rgba(66, 133, 244, 0.3);">🔍</div>
             <div class="tile-name">Google</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://chatgpt.com')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://chatgpt.com')">
             <div class="tile-icon-wrapper" style="background: rgba(16, 163, 127, 0.15); border-color: rgba(16, 163, 127, 0.3);">💬</div>
             <div class="tile-name">ChatGPT</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://www.24ur.com')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.24ur.com')">
             <div class="tile-icon-wrapper" style="background: rgba(0, 102, 204, 0.15); border-color: rgba(0, 102, 204, 0.3);">📰</div>
             <div class="tile-name">24ur</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://www.rtvslo.si')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.rtvslo.si')">
             <div class="tile-icon-wrapper" style="background: rgba(0, 150, 255, 0.15); border-color: rgba(0, 150, 255, 0.3);">📡</div>
             <div class="tile-name">RTV SLO</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://cryptoquant.com')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://cryptoquant.com')">
             <div class="tile-icon-wrapper" style="background: rgba(255, 170, 0, 0.15); border-color: rgba(255, 170, 0, 0.3);">🪙</div>
             <div class="tile-name">Kripto</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://sl.wikipedia.org')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://sl.wikipedia.org')">
             <div class="tile-icon-wrapper" style="background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2);">📖</div>
             <div class="tile-name">Wikipedija</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://www.reddit.com')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.reddit.com')">
             <div class="tile-icon-wrapper" style="background: rgba(255, 69, 0, 0.15); border-color: rgba(255, 69, 0, 0.3);">📱</div>
             <div class="tile-name">Reddit</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://github.com')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://github.com')">
             <div class="tile-icon-wrapper" style="background: rgba(140, 140, 140, 0.15); border-color: rgba(140, 140, 140, 0.3);">🐙</div>
             <div class="tile-name">GitHub</div>
         </div>
-        <div class="favorite-tile" onclick="openUrl('https://www.speedtest.net')">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.speedtest.net')">
             <div class="tile-icon-wrapper" style="background: rgba(0, 230, 118, 0.15); border-color: rgba(0, 230, 118, 0.3);">⚡</div>
             <div class="tile-name">Hitrost</div>
         </div>
-        <div class="favorite-tile" onclick="addNewFavorite()">
+        <div class="favorite-tile" role="button" tabindex="0" onclick="addNewFavorite()">
             <div class="tile-icon-wrapper" style="background: rgba(255, 85, 0, 0.15); border-color: rgba(255, 85, 0, 0.4); color: #ff7700;">➕</div>
             <div class="tile-name">Dodaj</div>
         </div>
@@ -480,7 +506,7 @@
         else if (engine === 'duckduckgo') input.placeholder = 'Zasebno iskanje DuckDuckGo...';
         else if (engine === 'brave') input.placeholder = 'Brave Search...';
         else input.placeholder = 'Iščite ali vnesite naslov spleta...';
-        input.focus();
+        try { input.blur(); } catch (e) {}
     }
 
     function handleSearch(e) {
@@ -495,7 +521,7 @@
             targetUrl = 'https://' + q;
         } else {
             if (currentEngine === 'youtube') {
-                targetUrl = 'https://m.youtube.com/results?search_query=' + encodeURIComponent(q);
+                targetUrl = 'https://www.youtube.com/tv#/search?q=' + encodeURIComponent(q);
             } else if (currentEngine === 'duckduckgo') {
                 targetUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
             } else if (currentEngine === 'brave') {
