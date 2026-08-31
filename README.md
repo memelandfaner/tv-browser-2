@@ -1,6 +1,6 @@
 # 📺 TV Browser 2 (Android TV Remote Control Edition)
 
-**Trenutna različica: 2.1.09** — Xplore TV kiosk, Castlabs/Widevine predvajalnik, D-Pad izbira programov, celozaslonski HydraHD predvajalnik.
+**Trenutna različica: 2.1.10** — Xplore TV z nativnim D-Pad (brez smashanja Castlabs predvajalnika), kiosk, celozaslonski HydraHD predvajalnik.
 
 ## ⬇️ Prenos APK (namestitev na Android / Android TV)
 

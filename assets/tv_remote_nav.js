@@ -1,6 +1,20 @@
         /* 📺 Safeer TV Remote D-Pad Navigation & Cinema OSD Engine */
         (function() {
             if ((location.href || '').indexOf('youtube.com/tv') !== -1) return;
+            /* Xplore TV GO is a Castlabs/Widevine SPA. Spatial nav, CSS smash and
+               autoplay observers tear the <video> out of the player and break DRM.
+               Hide browser chrome, then let the page handle the remote. */
+            var xploreHost = ((location.hostname || '') + '').toLowerCase();
+            if (xploreHost.indexOf('xploretv') !== -1 || xploreHost.indexOf('a1xploretv') !== -1) {
+                if (window._safeer_tv_remote_installed) return;
+                window._safeer_tv_remote_installed = true;
+                try {
+                    if (window.SafeerBridge && window.SafeerBridge.setChromeHidden) {
+                        window.SafeerBridge.setChromeHidden(true);
+                    }
+                } catch (_) {}
+                return;
+            }
             if (window._safeer_tv_remote_installed) return;
             window._safeer_tv_remote_installed = true;
 

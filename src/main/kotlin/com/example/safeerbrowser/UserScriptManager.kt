@@ -928,6 +928,12 @@ object UserScriptManager {
     private const val XPLORE_LIVE_JS = """
         (function() {
             if ((location.hostname || '').indexOf('xploretv') === -1) return;
+            try {
+                if (window.SafeerBridge && window.SafeerBridge.setChromeHidden) {
+                    window.SafeerBridge.setChromeHidden(true);
+                }
+            } catch (_) {}
+            return;
             if (window._safeer_xplore_live_helpers) return;
             window._safeer_xplore_live_helpers = true;
             function paintXploreDark() {
@@ -1193,8 +1199,7 @@ object UserScriptManager {
                         }
                     }
                     if ('$idStr' === 'tv-remote-xplore-dark') {
-                        var xhost = (location.hostname || '').toLowerCase();
-                        if (xhost.indexOf('xploretv') === -1) return;
+                        return;
                     }
                     var old = document.getElementById('$idStr');
                     if (old) old.remove();
