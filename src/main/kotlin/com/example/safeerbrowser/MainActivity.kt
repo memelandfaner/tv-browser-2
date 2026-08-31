@@ -860,18 +860,9 @@ class MainActivity : android.app.Activity() {
                 "https://$cleanInput"
             }
             onXploreTv -> {
-                val xpWv = tabManager.getActiveTab()?.webView
-                val escaped = cleanInput.replace("\\", "\\\\").replace("'", "\\'")
-                if (xpWv != null) {
-                    hideKeyboard()
-                    editUrl.clearFocus()
-                    xpWv.requestFocus()
-                    xpWv.evaluateJavascript(
-                        "window._safeer_xplore_search ? window._safeer_xplore_search('$escaped') : false;",
-                        null
-                    )
-                    return
-                }
+                hideKeyboard()
+                editUrl.clearFocus()
+                tabManager.getActiveTab()?.webView?.requestFocus()
                 "https://www.xploretv.si/home?action=search&q=" + URLEncoder.encode(cleanInput, "UTF-8")
             }
             onYoutubeTv -> {
@@ -1388,26 +1379,35 @@ class MainActivity : android.app.Activity() {
             }
         }
 
-        if (event.action != KeyEvent.ACTION_DOWN) {
-            if (isXploreTv && !chromeFocused) {
-                when (keyCode) {
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
-                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
-                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        // #region agent log
-                        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-                            SafeerDbg.log(
-                                "H130",
-                                "MainActivity.kt:keyup",
-                                "consume xplore OK up",
-                                org.json.JSONObject().put("code", keyCode)
-                            )
-                        }
-                        // #endregion
-                        return true
-                    }
+        if (isXploreTv && chromeFocused && event.action == KeyEvent.ACTION_DOWN) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    hideKeyboard()
+                    editUrl.clearFocus()
+                    activeWv?.requestFocus()
+                    return true
                 }
             }
+        }
+
+        // Xplore TV GO: pass the remote through to the page. Custom spatial nav
+        // and key-up swallowing prevented Castlabs from receiving OK/arrows.
+        if (isXploreTv && !chromeFocused && !virtualPointerView.isPointerVisible &&
+            tabSwitcherOverlay.visibility != View.VISIBLE && findInPageBar.visibility != View.VISIBLE
+        ) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY,
+                KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_REWIND,
+                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                    return dispatchYoutubeTvKey(activeWv, event)
+                }
+            }
+        }
+
+        if (event.action != KeyEvent.ACTION_DOWN) {
             return super.dispatchKeyEvent(event)
         }
 
@@ -1450,11 +1450,7 @@ class MainActivity : android.app.Activity() {
                 hideKeyboard()
                 editUrl.clearFocus()
                 activeWv?.requestFocus()
-                activeWv?.evaluateJavascript(
-                    "window._safeer_xplore_search ? window._safeer_xplore_search('') : false;",
-                    null
-                )
-                return true
+                return dispatchYoutubeTvKey(activeWv, event)
             }
             mobileTopBar.animate().translationY(0f).setDuration(150).start()
             searchSuggestionsOverlay.visibility = View.VISIBLE
@@ -1676,80 +1672,7 @@ class MainActivity : android.app.Activity() {
                 if (isTopBarFocused) {
                     return super.dispatchKeyEvent(event)
                 } else if (activeWv != null) {
-                        if (isXploreTv) {
-                        // #region agent log
-                        SafeerDbg.log(
-                            "H4",
-                            "MainActivity.kt:ok",
-                            "xplore OK",
-                            org.json.JSONObject().put("url", curUrl.take(160)).put("hasWv", true)
-                        )
-                        // #endregion
-                        activeWv.evaluateJavascript(
-                            """
-                            (function(){
-                                try {
-                                    var elPeek = document.querySelector('.safeer-active-card');
-                                    var clsPeek = ((elPeek && elPeek.className) || '') + '';
-                                    var tileFocused = clsPeek.indexOf('item--event') !== -1;
-                                    var pv = window._safeer_xplore_player_el || document.querySelector('video');
-                                    var ov = document.querySelector('.zw-overlays-layer, [class*="overlays-layer"]');
-                                    var oc = ov ? ((ov.className || '') + '').toLowerCase() : '';
-                                    var overlayOn = oc.indexOf('player-fullwindow') !== -1 || oc.indexOf('player-scaled') !== -1;
-                                    if (!tileFocused && overlayOn && pv && (pv.videoWidth || 0) >= 320 && pv.readyState >= 2) {
-                                        var pr = pv.getBoundingClientRect();
-                                        if (pr.width >= 800 && pr.height >= 450) {
-                                            try { if (window._safeerDbg) window._safeerDbg('H94', 'MainActivity.kt:ok', 'ok while player', { paused: !!pv.paused, playing: !!window._safeer_xplore_playing, w: Math.round(pr.width || 0) }); } catch (eOk) {}
-                                            if (pv.paused) { try { pv.play(); } catch (ePlay) {} }
-                                            return true;
-                                        }
-                                    }
-                                    var elMenu = document.querySelector('.safeer-active-card');
-                                    var tMenu = ((elMenu && (elMenu.innerText || elMenu.textContent)) || '').replace(/\s+/g, ' ').trim().toLowerCase();
-                                    var clsMenu = ((elMenu && elMenu.className) || '').toString().toLowerCase();
-                                    var isLiveNav = clsMenu.indexOf('livetv-link') !== -1 || ((tMenu === 'tv v živo' || tMenu === 'tv v zivo') && clsMenu.indexOf('menu-items-wrapper') === -1);
-                                    if (isLiveNav) {
-                                        try { if (window._safeerDbg) window._safeerDbg('H120', 'MainActivity.kt:ok', 'livetv menu', { t: tMenu.slice(0, 40), path: (location.pathname || '').slice(0, 60) }); } catch (eLn) {}
-                                        window._safeer_xplore_want_play = false;
-                                        try { sessionStorage.removeItem('safeer_xplore_autoplay'); } catch (eSs) {}
-                                        location.href = 'https://www.xploretv.si/livetv';
-                                        return true;
-                                    }
-                                    if (window._safeer_xplore_ensure_focus) window._safeer_xplore_ensure_focus();
-                                    var el = document.querySelector('.safeer-active-card');
-                                    var t = ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g, ' ').trim().toLowerCase();
-                                    var isEventItem = !!(el && el.className && ('' + el.className).indexOf('item--event') !== -1);
-                                    var isMenu = false;
-                                    try { isMenu = !!(el && el.closest && el.closest('.menu, #csh__menu_bar, .menu-items-wrapper')); } catch (e0) {}
-                                    if (el && ((el.className || '') + '').toLowerCase().indexOf('livetv-link') !== -1) isMenu = true;
-                                    try { if (window._safeerDbg) window._safeerDbg('H13', 'MainActivity.kt:ok', 'ok path', { t: t.slice(0, 80), tag: el ? el.tagName : '', hasEl: !!el, isEventItem: isEventItem, isMenu: isMenu }); } catch (e) {}
-                                    if (el && t.indexOf('glej zdaj') === -1 && !isMenu) {
-                                        var cls = ((el.className || '') + '').toLowerCase();
-                                        if (cls.indexOf('search') === -1) {
-                                            var alreadyEvent = (location.pathname || '').toLowerCase().indexOf('/event') !== -1;
-                                            if (!alreadyEvent) {
-                                                try { sessionStorage.setItem('safeer_xplore_autoplay', '1'); } catch (e2) {}
-                                            } else {
-                                                try { sessionStorage.removeItem('safeer_xplore_autoplay'); } catch (e2b) {}
-                                            }
-                                            window._safeer_xplore_want_play = true;
-                                            window._safeer_xplore_video_boosted = false;
-                                            window._safeer_xplore_playing = false;
-                                            return window._safeer_click_focused_card();
-                                        }
-                                    }
-                                    if (isMenu) {
-                                        return window._safeer_click_focused_card();
-                                    }
-                                } catch (e) {}
-                                return window._safeer_xplore_play_from_start ? window._safeer_xplore_play_from_start() : window._safeer_click_focused_card();
-                            })();
-                            """.trimIndent(),
-                            null
-                        )
-                    } else {
-                        activeWv.evaluateJavascript("window._safeer_click_focused_card();", null)
-                    }
+                    activeWv.evaluateJavascript("window._safeer_click_focused_card();", null)
                     return true
                 }
             }
@@ -1846,74 +1769,12 @@ class MainActivity : android.app.Activity() {
 
         if (isXploreTv) {
             val xv = activeTab?.webView
-            // #region agent log
-            SafeerDbg.log(
-                "H14",
-                "MainActivity.kt:back",
-                "xplore native back",
-                org.json.JSONObject().put("url", curUrl.take(160)).put("exitingFs", exitingXploreFs)
-            )
-            // #endregion
-            xv?.evaluateJavascript(
-                """
-                (function(){
-                    var p = (location.pathname || '').toLowerCase();
-                    var v = window._safeer_xplore_player_el || document.querySelector('video');
-                    var r = v ? v.getBoundingClientRect() : { width: 0, height: 0 };
-                    var framed = !!(v && (v.videoWidth || 0) >= 320 && v.readyState >= 2);
-                    var ov = document.querySelector('.zw-overlays-layer, [class*="overlays-layer"]');
-                    var oc = ov ? ((ov.className || '') + '').toLowerCase() : '';
-                    var overlayOn = oc.indexOf('player-fullwindow') !== -1 || oc.indexOf('player-scaled') !== -1;
-                    var playing = overlayOn || framed || !!window._safeer_xplore_playing || (!!v && !v.paused && r.width >= 400);
-                    try { if (window._safeerDbg) window._safeerDbg('H14', 'MainActivity.kt:back', 'xplore back', { path: p.slice(0, 80), playing: !!playing, framed: !!framed, overlay: overlayOn, w: Math.round(r.width || 0), vw: v ? (v.videoWidth || 0) : 0 }); } catch (e) {}
-                    try {
-                        document.querySelectorAll('video,audio').forEach(function(m){ try { m.pause(); m.muted = true; } catch (eP) {} });
-                    } catch (eVid) {}
-                    try {
-                        window._safeer_xplore_playing = false;
-                        window._safeer_xplore_want_play = false;
-                        window._safeer_xplore_video_boosted = false;
-                        window._safeer_xplore_fs_clicked = false;
-                        window._safeer_xplore_replay_clicked = false;
-                        window._safeer_xplore_player_el = null;
-                        if (window._safeerSiteAgent && window._safeerSiteAgent.clearWant) window._safeerSiteAgent.clearWant();
-                    } catch (e2) {}
-                    var stay = playing || overlayOn || p.indexOf('/event') !== -1 || p.indexOf('/livetv') !== -1 ||
-                        p.indexOf('/movies') !== -1 || p.indexOf('/library') !== -1 || p.indexOf('/gridguide') !== -1;
-                    if (stay) {
-                        if (p.indexOf('/livetv') !== -1) {
-                            if (playing || overlayOn || framed) {
-                                try { if (window._safeer_xplore_unsmash) window._safeer_xplore_unsmash(); } catch (eU) {}
-                                try {
-                                    var ovClose = document.querySelector('.zw-overlays-layer, [class*="overlays-layer"]');
-                                    if (ovClose) {
-                                        ovClose.classList.remove('player-fullwindow', 'player-scaled');
-                                        ovClose.classList.add('player-closed');
-                                    }
-                                } catch (eC) {}
-                                location.href = 'https://www.xploretv.si/livetv';
-                                // #region agent log
-                                try { if (window._safeerDbg) window._safeerDbg('H270', 'MainActivity.kt:back', 'livetv reload', { framed: !!framed, overlay: overlayOn }); } catch (eL) {}
-                                // #endregion
-                                return 'livetv';
-                            }
-                            location.href = 'https://www.xploretv.si/home';
-                            return 'home';
-                        }
-                        location.href = 'https://www.xploretv.si/home';
-                        return 'home';
-                    }
-                    try { if (window.SafeerBridge && window.SafeerBridge.setChromeHidden) window.SafeerBridge.setChromeHidden(false); } catch (e3) {}
-                    return 'exit';
-                })();
-                """.trimIndent()
-            ) { result ->
-                if (result != null && result.contains("exit")) {
-                    runOnUiThread {
-                        stopPageMedia("xploreExit")
-                        xv?.loadUrl("file:///android_asset/brave_home.html")
-                    }
-                }
+            if (xv?.canGoBack() == true) {
+                xv.goBack()
+            } else {
+                stopPageMedia("xploreExit")
+                xv?.loadUrl("file:///android_asset/brave_home.html")
+                mobileTopBar.visibility = View.VISIBLE
             }
             return
         }

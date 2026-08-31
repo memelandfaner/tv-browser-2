@@ -1,5 +1,17 @@
 (function () {
     if (window._safeerSiteAgent) return;
+    var _host = ((location.hostname || '') + '').toLowerCase();
+    if (_host.indexOf('xploretv') !== -1 || _host.indexOf('a1xploretv') !== -1) {
+        window._safeerSiteAgent = {
+            wantPlay: false,
+            acceptOk: function () { return true; },
+            markWantPlay: function () {},
+            clearWant: function () {},
+            allowBoost: function () { return false; },
+            onPageReady: function () {}
+        };
+        return;
+    }
 
     var lastOkAt = 0;
     var lastPly = '';
