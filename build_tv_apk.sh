@@ -5,7 +5,9 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLS_DIR="/home/janez/Namizje/Neimenovana mapa/streamN-TV2/android_tv/.tools"
+# Location of the build toolchain (aapt2, android.jar, kotlinc, r8.jar,
+# uber-apk-signer.jar). Override with TOOLS_DIR=... to use a custom location.
+TOOLS_DIR="${TOOLS_DIR:-$HOME/android-build-tools}"
 KOTLINC="$TOOLS_DIR/kotlinc/bin/kotlinc"
 KOTLIN_LIB="$TOOLS_DIR/kotlinc/lib/kotlin-stdlib.jar"
 BUILD_DIR="$DIR/build"

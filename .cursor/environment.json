@@ -1,0 +1,4 @@
+{
+  "name": "TV Browser 2",
+  "install": "bash .cursor/install.sh"
+}
