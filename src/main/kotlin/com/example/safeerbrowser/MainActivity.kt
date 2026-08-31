@@ -65,9 +65,19 @@ class MainActivity : android.app.Activity() {
     private var customVideoCallback: WebChromeClient.CustomViewCallback? = null
     private var isDarkModeActive: Boolean = true
 
+    private fun isHydraPlayerUrl(url: String): Boolean {
+        val u = url.lowercase()
+        return u.contains("hydrahd") && (u.contains("/movie/") || u.contains("/tv/") || u.contains("/watch"))
+    }
+
+    private fun isKioskUrl(url: String): Boolean {
+        val u = url.lowercase()
+        return u.contains("xploretv") || u.contains("a1xploretv") || isHydraPlayerUrl(u)
+    }
+
     private fun handlePageScroll(direction: Int, scrollY: Int) {
         val url = tabManager.getActiveTab()?.url ?: ""
-        if (url.contains("youtube.com/tv", ignoreCase = true) || url.contains("xploretv", ignoreCase = true)) {
+        if (url.contains("youtube.com/tv", ignoreCase = true) || isKioskUrl(url)) {
             return
         }
         val isTopBarFocused = editUrl.hasFocus() || btnHome.hasFocus() || btnBack.hasFocus() || btnMenu.hasFocus()
@@ -406,9 +416,8 @@ class MainActivity : android.app.Activity() {
         try {
             wv.setOnScrollChanged { direction, scrollY -> handlePageScroll(direction, scrollY) }
             wv.setOnChromeHidden { hidden ->
-                val onXplore = tab.url.contains("xploretv", ignoreCase = true) ||
-                    (wv.url ?: "").contains("xploretv", ignoreCase = true)
-                if (hidden || onXplore) {
+                val stayKiosk = isKioskUrl(tab.url) || isKioskUrl(wv.url ?: "")
+                if (hidden || stayKiosk) {
                     mobileTopBar.visibility = View.GONE
                 } else if (customVideoView == null) {
                     mobileTopBar.visibility = View.VISIBLE
@@ -440,7 +449,7 @@ class MainActivity : android.app.Activity() {
                         mobileTopBar.animate().translationY(0f).setDuration(180).start()
                     }
                     wv.requestFocus()
-                } else if (newUrl.contains("xploretv", ignoreCase = true)) {
+                } else if (isKioskUrl(newUrl)) {
                     hideKeyboard()
                     editUrl.clearFocus()
                     searchSuggestionsOverlay.visibility = View.GONE
@@ -507,8 +516,7 @@ class MainActivity : android.app.Activity() {
                 customVideoView?.let { mainRoot.removeView(it) }
                 customVideoView = null
                 customVideoCallback = null
-                val stayKiosk = tab.url.contains("xploretv", ignoreCase = true) ||
-                    (wv.url ?: "").contains("xploretv", ignoreCase = true)
+                val stayKiosk = isKioskUrl(tab.url) || isKioskUrl(wv.url ?: "")
                 mobileTopBar.visibility = if (stayKiosk) View.GONE else View.VISIBLE
                 webViewContainer.visibility = View.VISIBLE
             }
@@ -1340,7 +1348,8 @@ class MainActivity : android.app.Activity() {
         val curUrl = activeTab?.url?.lowercase() ?: ""
         val isYoutubeTv = curUrl.contains("youtube.com/tv")
         val isXploreTv = curUrl.contains("xploretv")
-        val isWatchPage = !isYoutubeTv && !isXploreTv && (curUrl.contains("/watch") || curUrl.contains("/shorts/") || curUrl.contains("youtube.com/embed"))
+        val isHydraPlayer = isHydraPlayerUrl(curUrl)
+        val isWatchPage = !isYoutubeTv && !isXploreTv && !isHydraPlayer && (curUrl.contains("/watch") || curUrl.contains("/shorts/") || curUrl.contains("youtube.com/embed"))
         val chromeFocused = btnBack.hasFocus() || btnHome.hasFocus() || btnPointerToggle.hasFocus() ||
             btnAddTab.hasFocus() || btnTabCount.hasFocus() || btnMenu.hasFocus() ||
             btnClearUrl.hasFocus() || btnSearchTrigger.hasFocus() ||
@@ -1631,9 +1640,9 @@ class MainActivity : android.app.Activity() {
                 if (isTopBarFocused) {
                     return super.dispatchKeyEvent(event)
                 } else if (activeWv != null) {
-                    val stayInXplore = isXploreTv
+                    val stayInKiosk = isXploreTv || isHydraPlayer
                     activeWv.evaluateJavascript("window._safeer_navigate_spatial('UP');") { result ->
-                        if (stayInXplore) return@evaluateJavascript
+                        if (stayInKiosk) return@evaluateJavascript
                         if (result == "-1" || result == "null" || result == null) {
                             runOnUiThread { 
                                 mobileTopBar.visibility = View.VISIBLE
@@ -1823,7 +1832,8 @@ class MainActivity : android.app.Activity() {
             curUrl.startsWith("file:///android_asset/brave_home")
         val isYoutubeTv = curUrl.contains("youtube.com/tv")
         val isXploreTv = curUrl.contains("xploretv")
-        val isWatchPage = !isYoutubeTv && !isXploreTv && (curUrl.contains("/watch") || curUrl.contains("/shorts/"))
+        val isHydraPlayer = isHydraPlayerUrl(curUrl)
+        val isWatchPage = !isYoutubeTv && !isXploreTv && !isHydraPlayer && (curUrl.contains("/watch") || curUrl.contains("/shorts/"))
 
         if (isBrowserHome) {
             // #region agent log
@@ -1902,6 +1912,32 @@ class MainActivity : android.app.Activity() {
                     runOnUiThread {
                         stopPageMedia("xploreExit")
                         xv?.loadUrl("file:///android_asset/brave_home.html")
+                    }
+                }
+            }
+            return
+        }
+
+        if (isHydraPlayer) {
+            val hv = activeTab?.webView
+            hv?.evaluateJavascript(
+                """
+                (function(){
+                    if (document.documentElement.classList.contains('safeer-hydra-fs')) {
+                        try { if (window._safeer_hydra_unsmash) window._safeer_hydra_unsmash(); } catch (eU) {}
+                        return 'unsmash';
+                    }
+                    return 'exit';
+                })();
+                """.trimIndent()
+            ) { result ->
+                if (result != null && result.contains("exit")) {
+                    runOnUiThread {
+                        if (hv?.canGoBack() == true) {
+                            hv.goBack()
+                        } else {
+                            hv?.loadUrl("https://hydrahd.ws/")
+                        }
                     }
                 }
             }

@@ -148,6 +148,92 @@
                     try { window._safeerDbg('H112', 'tv_remote_nav.js:init', 'xplore kiosk chrome hidden', { path: (location.pathname || '').slice(0, 60) }); } catch (_) {}
                     // #endregion
                 }
+
+                function isHydraWatchPage() {
+                    var h = (location.hostname || '').toLowerCase();
+                    if (h.indexOf('hydrahd') === -1) return false;
+                    var p = (location.pathname || '').toLowerCase();
+                    return p.indexOf('/movie/') !== -1 || p.indexOf('/tv/') !== -1 || p.indexOf('/watch') !== -1;
+                }
+                function hydraPlayerFrame() {
+                    return document.getElementById('iframePlayer') ||
+                        document.querySelector('iframe.img-responsive, iframe[src*="ythd"], iframe[src*="embed"], iframe[src*="vidlink"], iframe[src*="vidsrc"], iframe[src*="megacloud"]');
+                }
+                function ensureHydraFsStyle() {
+                    if (document.getElementById('safeer-hydra-fs-style')) return;
+                    var st = document.createElement('style');
+                    st.id = 'safeer-hydra-fs-style';
+                    st.textContent = 'html.safeer-hydra-fs,html.safeer-hydra-fs body{overflow:hidden!important;background:#000!important;margin:0!important;padding:0!important;}' +
+                        'html.safeer-hydra-fs .mynav,html.safeer-hydra-fs .logo,html.safeer-hydra-fs header,html.safeer-hydra-fs footer,' +
+                        'html.safeer-hydra-fs .footer,html.safeer-hydra-fs aside,html.safeer-hydra-fs #trailerIframeUnique,' +
+                        'html.safeer-hydra-fs [class*="recommend"],html.safeer-hydra-fs [class*="related"],' +
+                        'html.safeer-hydra-fs .col-xl-3,html.safeer-hydra-fs .col-lg-3,html.safeer-hydra-fs .col-md-3,' +
+                        'html.safeer-hydra-fs [id*="server"],html.safeer-hydra-fs .server-list,html.safeer-hydra-fs .select-server,' +
+                        'html.safeer-hydra-fs .push-footer-wrapper > *:not(.movie){display:none!important;visibility:hidden!important;pointer-events:none!important;}' +
+                        'html.safeer-hydra-fs .browse,html.safeer-hydra-fs .movie,html.safeer-hydra-fs #wdthcontrol,' +
+                        'html.safeer-hydra-fs .videomp4,html.safeer-hydra-fs .loader,html.safeer-hydra-fs .iframe-body{' +
+                        'position:static!important;transform:none!important;overflow:visible!important;width:100%!important;height:100%!important;max-width:none!important;margin:0!important;padding:0!important;}' +
+                        'html.safeer-hydra-fs #iframePlayer,html.safeer-hydra-fs iframe.img-responsive,' +
+                        'html.safeer-hydra-fs iframe[src*="embed"],html.safeer-hydra-fs iframe[src*="ythd"]{' +
+                        'position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;' +
+                        'max-width:none!important;max-height:none!important;z-index:2147483646!important;border:0!important;margin:0!important;padding:0!important;' +
+                        'display:block!important;visibility:visible!important;opacity:1!important;background:#000!important;}' +
+                        'html.safeer-hydra-fs #safeer-focus-target-ring,html.safeer-hydra-fs .safeer-focus-badge,' +
+                        'html.safeer-hydra-fs .safeer-active-card,html.safeer-hydra-fs .tv-remote-focused{' +
+                        'outline:none!important;box-shadow:none!important;display:none!important;opacity:0!important;transform:none!important;}';
+                    (document.head || document.documentElement).appendChild(st);
+                }
+                function smashHydraPlayer() {
+                    try {
+                        if (!isHydraWatchPage()) return false;
+                        var ifr = hydraPlayerFrame();
+                        if (!ifr) return false;
+                        ensureHydraFsStyle();
+                        document.documentElement.classList.add('safeer-hydra-fs');
+                        try {
+                            var ring = document.getElementById('safeer-focus-target-ring');
+                            if (ring) {
+                                ring.classList.remove('active');
+                                ring.style.display = 'none';
+                            }
+                        } catch (_) {}
+                        try {
+                            if (window.SafeerBridge && window.SafeerBridge.setChromeHidden) {
+                                window.SafeerBridge.setChromeHidden(true);
+                            }
+                        } catch (_) {}
+                        try { ifr.setAttribute('allowfullscreen', 'true'); } catch (_) {}
+                        try { ifr.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture'); } catch (_) {}
+                        if (!window._safeer_hydra_tapped) {
+                            window._safeer_hydra_tapped = true;
+                            setTimeout(function() {
+                                try {
+                                    var cx = (window.innerWidth || 960) / 2;
+                                    var cy = (window.innerHeight || 540) / 2;
+                                    if (window.SafeerBridge && window.SafeerBridge.triggerNativeTap) {
+                                        window.SafeerBridge.triggerNativeTap(cx, cy);
+                                    }
+                                } catch (_) {}
+                            }, 1400);
+                        }
+                        return true;
+                    } catch (_) { return false; }
+                }
+                function unsmashHydraPlayer() {
+                    try {
+                        document.documentElement.classList.remove('safeer-hydra-fs');
+                        try {
+                            if (window.SafeerBridge && window.SafeerBridge.setChromeHidden) {
+                                window.SafeerBridge.setChromeHidden(false);
+                            }
+                        } catch (_) {}
+                        return true;
+                    } catch (_) { return false; }
+                }
+                window._safeer_hydra_smash = smashHydraPlayer;
+                window._safeer_hydra_unsmash = unsmashHydraPlayer;
+                smashHydraPlayer();
+                setInterval(function() { smashHydraPlayer(); }, 900);
             } catch(e) {}
 
             // #region agent log
@@ -212,7 +298,9 @@
             window._safeer_is_video_active = function() {
                 var v = document.querySelector('video');
                 var isWatch = location.pathname.indexOf('/watch') !== -1 || location.pathname.indexOf('/shorts') !== -1;
-                if (isWatch) return true;
+                var hydraWatch = (location.hostname || '').toLowerCase().indexOf('hydrahd') !== -1 &&
+                    ((location.pathname || '').indexOf('/movie/') !== -1 || (location.pathname || '').indexOf('/tv/') !== -1);
+                if (isWatch || hydraWatch || document.documentElement.classList.contains('safeer-hydra-fs')) return true;
                 if (!v) return false;
                 var r = v.getBoundingClientRect();
                 return r.width > 800 && r.height > 400 && (v.videoWidth || 0) > 0;
@@ -278,6 +366,16 @@
 
             window._safeer_toggle_fullscreen = function() {
                 try {
+                    if (window._safeer_hydra_smash && (location.hostname || '').toLowerCase().indexOf('hydrahd') !== -1) {
+                        if (document.documentElement.classList.contains('safeer-hydra-fs')) {
+                            if (window._safeer_hydra_unsmash) window._safeer_hydra_unsmash();
+                            window._safeer_show_osd('🗗 Običajen pogled', 1200);
+                        } else {
+                            window._safeer_hydra_smash();
+                            window._safeer_show_osd('⛶ Celozaslonski način', 1200);
+                        }
+                        return true;
+                    }
                     var fsBtn = document.querySelector('.ytp-fullscreen-button, button[aria-label*="celozaslon"], button[aria-label*="Fullscreen"], button[aria-label*="Full screen"], .fullscreen-button');
                     if (fsBtn) {
                         fsBtn.click();

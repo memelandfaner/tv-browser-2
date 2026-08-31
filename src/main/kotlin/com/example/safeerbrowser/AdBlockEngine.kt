@@ -59,7 +59,7 @@ object AdBlockEngine {
             "themoviedb.org", "tmdb.org", "image.tmdb.org", "api.themoviedb.org",
             "streamex.sh", "streamex.ws", "vidlink.pro", "vidsrc.me", "vidsrc.in", "vidsrc.pm",
             "vidsrc.net", "vidsrc.to", "vidsrc.xyz", "autoembed.co", "autoembed.cc", "multiembed.mov",
-            "2embed.cc", "111movies.com", "hydrahd.ws", "megacloud.tv", "rabbitstream.net",
+            "2embed.cc", "111movies.com", "hydrahd.ws", "ythd.org", "megacloud.tv", "rabbitstream.net",
             "dokicloud.one", "vizcloud.online", "filemoon.sx", "streamtape.com", "vidgod.me",
             "peach.stream", "cinemanos.com", "core.streamex.sh", "streamwish.to", "doodstream.com",
             "pornhub.com", "phncdn.com", "phncdn.net"

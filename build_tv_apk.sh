@@ -28,8 +28,8 @@ echo "⚙️ 1/5: Prevajam Android XML vire (AAPT2)..."
     -A "$DIR/assets" \
     --min-sdk-version 28 \
     --target-sdk-version 34 \
-    --version-code 110 \
-    --version-name "2.1.08" \
+    --version-code 111 \
+    --version-name "2.1.09" \
     -o "$BUILD_DIR/resources.apk" \
     --java "$BUILD_DIR/gen" \
     "$BUILD_DIR/compiled_res.zip"

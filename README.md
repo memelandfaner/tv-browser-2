@@ -1,6 +1,6 @@
 # 📺 TV Browser 2 (Android TV Remote Control Edition)
 
-**Trenutna različica: 2.1.08** — Xplore TV kiosk, Castlabs/Widevine predvajalnik, D-Pad izbira programov.
+**Trenutna različica: 2.1.09** — Xplore TV kiosk, Castlabs/Widevine predvajalnik, D-Pad izbira programov, celozaslonski HydraHD predvajalnik.
 
 ## ⬇️ Prenos APK (namestitev na Android / Android TV)
 
@@ -9,6 +9,10 @@
 3. Odpri preneseno datoteko in namesti.
 
 Ista datoteka je tudi v `Release/Artifacts/tv-browser-2-release.apk`.
+
+![HydraHD celozaslonski predvajalnik](docs/hydrahd-celozaslonsko.png)
+
+Na hydrahd.ws se film odpre čez cel TV zaslon (skrita orodna vrstica brskalnika in meni strani). Črne obrobe zgoraj/spodaj so filmsko razmerje slike.
 
 ---
 
