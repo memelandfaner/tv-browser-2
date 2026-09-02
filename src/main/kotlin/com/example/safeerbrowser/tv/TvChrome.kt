@@ -12,14 +12,19 @@ import android.widget.Toast
 class TvChrome(private val host: MainActivity) {
 
     private fun applyPageInset(url: String) {
-        val desktopSite = url.contains("24ur", ignoreCase = true) || url.contains("hydrahd", ignoreCase = true)
-        val pad = if (desktopSite && host.mobileTopBar.visibility == View.VISIBLE) {
+        val kiosk = SiteProfileResolver.fromUrl(url).hideChrome(url)
+        val chromeOn = !kiosk &&
+            host.mobileTopBar.visibility == View.VISIBLE &&
+            !host.playback.isActive()
+        val pad = if (chromeOn) {
             val h = host.mobileTopBar.height
             if (h > 0) h else (56 * host.resources.displayMetrics.density).toInt()
         } else {
             0
         }
-        host.webViewContainer.setPadding(0, pad, 0, 0)
+        if (host.webViewContainer.paddingTop != pad) {
+            host.webViewContainer.setPadding(0, pad, 0, 0)
+        }
     }
 
     fun setChromeHidden(hidden: Boolean) {
@@ -32,10 +37,10 @@ class TvChrome(private val host: MainActivity) {
             host.mobileTopBar.translationY = 0f
         }
         applyPageInset(url)
+        host.mobileTopBar.post { applyPageInset(url) }
     }
 
     fun applyUrlChrome(url: String) {
-        applyPageInset(url)
         if (TvSite.isYoutubeTv(url)) {
             host.hideKeyboard()
             host.editUrl.clearFocus()
@@ -56,7 +61,8 @@ class TvChrome(private val host: MainActivity) {
                 host.mobileTopBar.animate().translationY(0f).setDuration(180).start()
             }
         }
-        host.webViewContainer.post { applyPageInset(url) }
+        applyPageInset(url)
+        host.mobileTopBar.post { applyPageInset(url) }
     }
 
     fun showPortals() {

@@ -103,42 +103,80 @@ object UserScriptManager {
                         html.safeer-xplore-dark [class*="item__bg"] {
                             background-color: #12161e !important;
                         }
-        .menu, .menu--opaque, .menu--fixed, .menu--noscroll, .gradient-bg-black,
-        .menu.menu--black-text, .menu.gradient-bg-black, .menu.gradient-bg-white {
-            background: #0b0e14 !important;
+        html.safeer-xplore-dark .menu,
+        html.safeer-xplore-dark .menu.menu--opaque,
+        html.safeer-xplore-dark .menu.menu--fixed,
+        html.safeer-xplore-dark .menu.menu--noscroll,
+        html.safeer-xplore-dark .menu.menu--black-text,
+        html.safeer-xplore-dark .menu.menu--white-text,
+        html.safeer-xplore-dark .menu.gradient-bg-black,
+        html.safeer-xplore-dark .menu.gradient-bg-white,
+        html.safeer-xplore-dark .menu.gradient-bg-white.menu--black-text,
+        html.safeer-xplore-dark header,
+        html.safeer-xplore-dark nav {
+            background: #0b1220 !important;
+            background-color: #0b1220 !important;
             background-image: none !important;
-            background-color: #0b0e14 !important;
-            color: #f1f5f9 !important;
-            border-bottom: 1px solid #1a2230 !important;
-            box-shadow: none !important;
-            min-height: 76px !important;
-            height: auto !important;
+            color: #f8fafc !important;
+            border-bottom: 1px solid #2a3a52 !important;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+            min-height: 84px !important;
+            height: 84px !important;
+            z-index: 60 !important;
         }
-        .menu-items-wrapper, #csh__menu_bar {
+        html.safeer-xplore-dark .menu::before,
+        html.safeer-xplore-dark .menu::after {
+            display: none !important;
+            background: none !important;
+            content: none !important;
+        }
+        html.safeer-xplore-dark .menu-items-wrapper,
+        html.safeer-xplore-dark #csh__menu_bar,
+        html.safeer-xplore-dark .menu [class*="wrapper"],
+        html.safeer-xplore-dark .menu [class*="container"],
+        html.safeer-xplore-dark .menu [class*="inner"],
+        html.safeer-xplore-dark .menu [class*="bar"] {
             display: flex !important;
             align-items: center !important;
-            gap: 4px !important;
+            gap: 6px !important;
             background: transparent !important;
             background-color: transparent !important;
+            background-image: none !important;
         }
-        #csh__menu_bar a, .menu a.home-link, .menu a.livetv-link, .menu a.movies-link,
-        .menu a.library-link, .menu a.guide-link, .menu .dropdown-toggle-button {
+        html.safeer-xplore-dark .menu a,
+        html.safeer-xplore-dark .menu button,
+        html.safeer-xplore-dark .menu [role="button"],
+        html.safeer-xplore-dark .menu [role="tab"],
+        html.safeer-xplore-dark .menu .dropdown-toggle-button,
+        html.safeer-xplore-dark #csh__menu_bar a {
             display: inline-flex !important;
             flex-direction: row !important;
             align-items: center !important;
-            gap: 8px !important;
-            min-height: 52px !important;
-            padding: 8px 14px !important;
-            font-size: 20px !important;
+            gap: 10px !important;
+            min-height: 56px !important;
+            padding: 10px 16px !important;
+            border-radius: 12px !important;
+            font-size: 22px !important;
             font-weight: 700 !important;
-            color: #f1f5f9 !important;
+            letter-spacing: 0.01em !important;
+            color: #f8fafc !important;
+            -webkit-text-fill-color: #f8fafc !important;
             opacity: 1 !important;
             visibility: visible !important;
             overflow: visible !important;
             white-space: nowrap !important;
+            background: transparent !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
         }
-        #csh__menu_bar a span, .menu a span, .home-link span, .livetv-link span,
-        .movies-link span, .library-link span, .guide-link span, .dropdown-toggle-button span {
+        html.safeer-xplore-dark .menu a span,
+        html.safeer-xplore-dark .menu button span,
+        html.safeer-xplore-dark #csh__menu_bar a span,
+        html.safeer-xplore-dark .home-link span,
+        html.safeer-xplore-dark .livetv-link span,
+        html.safeer-xplore-dark .movies-link span,
+        html.safeer-xplore-dark .library-link span,
+        html.safeer-xplore-dark .guide-link span,
+        html.safeer-xplore-dark .dropdown-toggle-button span {
             display: inline !important;
             opacity: 1 !important;
             visibility: visible !important;
@@ -146,19 +184,50 @@ object UserScriptManager {
             width: auto !important;
             max-width: none !important;
             height: auto !important;
-            font-size: 20px !important;
+            font-size: 22px !important;
             font-weight: 700 !important;
-            color: #f1f5f9 !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
             clip: auto !important;
             clip-path: none !important;
             overflow: visible !important;
             text-indent: 0 !important;
+            white-space: nowrap !important;
         }
-        .home-link.route--active, .livetv-link.route--active, .movies-link.route--active,
-        .library-link.route--active, .guide-link.route--active {
-            background: #1e293b !important;
-            border-radius: 10px !important;
-            box-shadow: inset 0 -3px 0 #e10600 !important;
+        html.safeer-xplore-dark .menu a:not(.logo) svg,
+        html.safeer-xplore-dark .menu a:not(.logo) svg *,
+        html.safeer-xplore-dark .menu button svg,
+        html.safeer-xplore-dark .menu button svg *,
+        html.safeer-xplore-dark .menu .dropdown-toggle-button svg,
+        html.safeer-xplore-dark .menu .dropdown-toggle-button svg * {
+            fill: #f8fafc !important;
+            color: #f8fafc !important;
+            opacity: 1 !important;
+        }
+        html.safeer-xplore-dark .home-link.route--active,
+        html.safeer-xplore-dark .livetv-link.route--active,
+        html.safeer-xplore-dark .movies-link.route--active,
+        html.safeer-xplore-dark .library-link.route--active,
+        html.safeer-xplore-dark .guide-link.route--active {
+            background: rgba(0, 229, 255, 0.16) !important;
+            border-radius: 12px !important;
+            box-shadow: inset 0 -3px 0 #00e5ff !important;
+            color: #ffffff !important;
+        }
+        html.safeer-xplore-dark .menu a.safeer-active-card,
+        html.safeer-xplore-dark .menu .dropdown-toggle-button.safeer-active-card,
+        html.safeer-xplore-dark .livetv-link.safeer-active-card {
+            outline: 3px solid #00e5ff !important;
+            outline-offset: 3px !important;
+            background: rgba(0, 229, 255, 0.14) !important;
+            box-shadow: none !important;
+        }
+        html.safeer-xplore-dark .menu .logo,
+        html.safeer-xplore-dark .menu a.logo {
+            background: transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-text-fill-color: unset !important;
         }
         .content__wrapper, .content__wrapper.has-footer,
         html.safeer-xplore-dark .content__wrapper,

@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Base64
 import android.util.Log
 import android.view.Gravity
@@ -29,8 +30,10 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.dash.DashMediaSource
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
 import androidx.media3.exoplayer.drm.ExoMediaDrm
 import androidx.media3.exoplayer.drm.FrameworkMediaDrm
@@ -77,6 +80,53 @@ class HostPlayback(private val host: MainActivity) : PlaybackSession {
 
     fun handleNativeKey(event: KeyEvent): Boolean = exo.handleKey(event)
 
+    fun isLiveNative(): Boolean = exo.isActive() && exo.isLiveStream()
+
+    fun tuneLiveChannel(oneBased: Int) {
+        exo.tuneLiveChannel(oneBased)
+    }
+
+    fun togglePlayPause() {
+        if (exo.isActive()) {
+            exo.togglePlayPause()
+        } else {
+            host.activeWebView()?.evaluateJavascript(
+                """
+                (function(){
+                    var v = document.querySelector('video');
+                    if (v) {
+                        if (v.paused) v.play(); else v.pause();
+                    }
+                })();
+                """.trimIndent(), null
+            )
+        }
+    }
+
+    fun seekBy(deltaSeconds: Int) {
+        if (exo.isActive()) {
+            exo.seekBy((deltaSeconds * 1000).toLong())
+        } else {
+            val delta = deltaSeconds
+            host.activeWebView()?.evaluateJavascript(
+                """
+                (function(){
+                    var v = document.querySelector('video');
+                    if (v) v.currentTime = Math.max(0, v.currentTime + ($delta));
+                })();
+                """.trimIndent(), null
+            )
+        }
+    }
+
+    fun showOsd(title: String, subtitle: String? = null, durationMs: Long = 3000L) {
+        if (exo.isActive()) {
+            exo.showOsd(title, subtitle, durationMs)
+        } else {
+            host.showTvOsd(title, subtitle, durationMs)
+        }
+    }
+
     fun release() {
         exo.release()
         custom.exit()
@@ -121,6 +171,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
     private var overlay: FrameLayout? = null
     private var surfaceView: SurfaceView? = null
     private var player: ExoPlayer? = null
+    private var trackSelector: DefaultTrackSelector? = null
     private var spinner: ProgressBar? = null
     private var statusLabel: TextView? = null
     private var playingChannel: String = ""
@@ -128,6 +179,9 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
     private var lastSession: XploreDashSession? = null
     private var surfaceBound: Boolean = false
     private var loggedEncryptedReady: Boolean = false
+    private var lastZapAt: Long = 0L
+    /** 0 = prefer AVC; 1 = already retried 720p/30fps AVC after MediaCodec 4003. */
+    private var codecRetry: Int = 0
 
     private val pauseWebViewJs = """
         (function(){
@@ -142,13 +196,26 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         })();
     """.trimIndent()
 
+    /** Pause page media without releasing MediaKeys (zap / clear HEVC must not fight Exo). */
+    private val pauseVideosJs = """
+        (function(){
+            window._safeer_xplore_native_player = true;
+            try {
+                document.querySelectorAll('video,audio').forEach(function(m){
+                    try { m.pause(); m.muted = true; m.volume = 0; } catch (e2) {}
+                });
+            } catch (e3) {}
+            return 1;
+        })();
+    """.trimIndent()
+
     private val holdWebView = object : Runnable {
         override fun run() {
             if (!isActive() || playingChannel == SMOKE_CHANNEL) return
             try {
-                host.activeWebView()?.evaluateJavascript(pauseWebViewJs, null)
+                host.activeWebView()?.evaluateJavascript(pauseVideosJs, null)
             } catch (_: Exception) {}
-            main.postDelayed(this, 2500L)
+            main.postDelayed(this, 4000L)
         }
     }
 
@@ -197,16 +264,16 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         )
         val wv = host.activeWebView()
         val skipCdm = session.dashChannel == SMOKE_CHANNEL
-        if (wv != null && !skipCdm) {
-            wv.evaluateJavascript(pauseWebViewJs) {
+        main.removeCallbacks(holdWebView)
+        val alreadyNative = player != null
+        when {
+            wv == null || skipCdm -> attachPlayerSafe(session)
+            session.encrypted && !alreadyNative -> wv.evaluateJavascript(pauseWebViewJs) {
                 attachPlayerSafe(session)
             }
-        } else {
-            attachPlayerSafe(session)
-        }
-        if (!skipCdm) {
-            main.removeCallbacks(holdWebView)
-            main.postDelayed(holdWebView, 2500L)
+            else -> wv.evaluateJavascript(pauseVideosJs) {
+                attachPlayerSafe(session)
+            }
         }
     }
 
@@ -236,9 +303,27 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         }
     }
 
-    private fun setStatus(text: String) {
-        statusLabel?.text = text
-        statusLabel?.visibility = View.VISIBLE
+    private val hideOsdRunnable = Runnable {
+        statusLabel?.animate()?.alpha(0f)?.setDuration(250)?.withEndAction {
+            statusLabel?.visibility = View.GONE
+        }?.start()
+    }
+
+    private fun setStatus(text: String, autoHideMs: Long = 0L) {
+        main.post {
+            statusLabel?.text = text
+            statusLabel?.alpha = 1f
+            statusLabel?.visibility = View.VISIBLE
+            main.removeCallbacks(hideOsdRunnable)
+            if (autoHideMs > 0L) {
+                main.postDelayed(hideOsdRunnable, autoHideMs)
+            }
+        }
+    }
+
+    fun showOsd(title: String, subtitle: String? = null, durationMs: Long = 3000L) {
+        val text = if (!subtitle.isNullOrEmpty()) "$title\n$subtitle" else title
+        setStatus(text, durationMs)
     }
 
     private fun ensureOverlay(secure: Boolean = false) {
@@ -291,14 +376,20 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
             val tv = TextView(host)
             tv.setTextColor(Color.WHITE)
             tv.textSize = 22f
-            tv.setPadding(36, 28, 36, 28)
-            tv.setBackgroundColor(Color.parseColor("#CC111827"))
+            tv.setPadding(44, 20, 44, 20)
+            tv.gravity = Gravity.CENTER
+            val bg = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Color.parseColor("#E60B0F17"))
+                cornerRadius = 20f
+                setStroke(2, Color.parseColor("#3300D2FF"))
+            }
+            tv.background = bg
             val lp = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             )
-            lp.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            lp.topMargin = 48
+            lp.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            lp.bottomMargin = 70
             frame.addView(tv, lp)
             statusLabel = tv
         }
@@ -339,7 +430,6 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
 
         override fun onPlayerError(error: PlaybackException) {
             val msg = (error.message ?: "").take(160)
-            setStatus("Exo napaka: ${error.errorCode} $msg")
             val s = lastSession
             SafeerDbg.log(
                 "H334",
@@ -354,9 +444,24 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
                     .put("pssh", s?.hasPssh == true)
                     .put("licHost", hostOf(s?.licenseUrl ?: ""))
                     .put("hdrNames", headerNames(s))
+                    .put("retry", codecRetry)
             )
             logExoError(error)
+            if (s != null && codecRetry < 1 && isVideoCodecError(error)) {
+                codecRetry = 1
+                spinner?.visibility = View.VISIBLE
+                setStatus("Druga kakovost (H.264) …")
+                SafeerDbg.log(
+                    "H341",
+                    "ExoPlayerSession.kt:retry",
+                    "hevc 4003 fallback avc",
+                    JSONObject().put("ch", playingChannel).put("code", error.errorCode)
+                )
+                main.post { retrySaferCodec(s) }
+                return
+            }
             spinner?.visibility = View.GONE
+            setStatus("Predvajanje ni uspelo. NAZAJ za spored.")
         }
 
         override fun onRenderedFirstFrame() {
@@ -364,8 +469,14 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
             if (playingChannel == SMOKE_CHANNEL) {
                 setStatus("Media3 DASH OK (brez DRM)")
             } else {
-                statusLabel?.visibility = View.GONE
+                setStatus(playingChannel.ifEmpty { "Predvajanje" }, 3000L)
+                try {
+                    host.activeWebView()?.evaluateJavascript(pauseVideosJs, null)
+                } catch (_: Exception) {}
+                main.removeCallbacks(holdWebView)
+                main.postDelayed(holdWebView, 4000L)
             }
+            val fmt = player?.videoFormat
             SafeerDbg.log(
                 "H335",
                 "ExoPlayerSession.kt:frame",
@@ -373,6 +484,9 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
                 JSONObject()
                     .put("ch", playingChannel)
                     .put("enc", lastSession?.encrypted == true)
+                    .put("mime", fmt?.sampleMimeType ?: "")
+                    .put("codec", fmt?.codecs ?: "")
+                    .put("retry", codecRetry)
             )
             player?.let { logEncryptedReady(it) }
         }
@@ -381,6 +495,9 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
     private fun attachPlayer(session: XploreDashSession) {
         lastSession = session
         loggedEncryptedReady = false
+        if (playingChannel != session.dashChannel) {
+            codecRetry = 0
+        }
         ensureOverlay(session.encrypted)
         playingChannel = session.dashChannel
         val licenseHeaders = LinkedHashMap(session.licenseHeaders)
@@ -398,20 +515,20 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         if (live) {
             mediaItemBuilder.setLiveConfiguration(
                 MediaItem.LiveConfiguration.Builder()
-                    .setTargetOffsetMs(5_000)
+                    .setTargetOffsetMs(2_000)
+                    .setMinOffsetMs(1_200)
+                    .setMaxOffsetMs(4_000)
                     .build()
             )
         }
         val mediaItem = mediaItemBuilder.build()
         val exo = ensurePlayer()
-        try {
-            exo.stop()
-        } catch (_: Exception) {}
+        applyTrackPolicy()
         val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(ua)
             .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
+            .setConnectTimeoutMs(8_000)
+            .setReadTimeoutMs(8_000)
             .setDefaultRequestProperties(mediaHeaders)
         val dashFactory = DashMediaSource.Factory(DefaultDataSource.Factory(host, httpFactory))
         if (session.encrypted) {
@@ -475,11 +592,23 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
     private fun ensurePlayer(): ExoPlayer {
         player?.let { return it }
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(2_000, 30_000, 1_000, 2_000)
+            .setBufferDurationsMs(1_500, 12_000, 800, 1_500)
+            .setPrioritizeTimeOverSizeThresholds(true)
             .build()
+        val sel = DefaultTrackSelector(host)
+        trackSelector = sel
+        applyTrackPolicy()
+        val renderers = DefaultRenderersFactory(host)
+            .setEnableDecoderFallback(true)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
         val exo = ExoPlayer.Builder(host)
+            .setRenderersFactory(renderers)
+            .setTrackSelector(sel)
             .setLoadControl(loadControl)
             .build()
+        try {
+            exo.setForegroundMode(true)
+        } catch (_: Exception) {}
         exo.setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
@@ -491,6 +620,46 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         exo.addListener(playerListener)
         player = exo
         return exo
+    }
+
+    private fun applyTrackPolicy() {
+        val sel = trackSelector ?: return
+        val b = sel.buildUponParameters()
+            .setForceHighestSupportedBitrate(false)
+            .setAllowVideoMixedMimeTypeAdaptiveness(false)
+            .setPreferredVideoMimeTypes(MimeTypes.VIDEO_H264, MimeTypes.VIDEO_H265)
+            .setMaxVideoSize(1920, 1080)
+        if (codecRetry >= 1) {
+            b.setPreferredVideoMimeTypes(MimeTypes.VIDEO_H264)
+                .setMaxVideoSize(1280, 720)
+                .setMaxVideoFrameRate(30)
+                .setExceedVideoConstraintsIfNecessary(true)
+        }
+        sel.setParameters(b)
+    }
+
+    private fun isVideoCodecError(error: PlaybackException): Boolean {
+        return when (error.errorCode) {
+            PlaybackException.ERROR_CODE_DECODING_FAILED,
+            PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> true
+            else -> (error.message ?: "").contains("MediaCodecVideoRenderer", ignoreCase = true)
+        }
+    }
+
+    /** Recreate Exo after MediaCodec 4003 so the decoder is not left in an error state. */
+    private fun retrySaferCodec(session: XploreDashSession) {
+        val old = player
+        player = null
+        trackSelector = null
+        try {
+            old?.stop()
+        } catch (_: Exception) {}
+        try {
+            old?.release()
+        } catch (_: Exception) {}
+        attachPlayerSafe(session)
     }
 
     private fun bindSurface(exo: ExoPlayer) {
@@ -586,9 +755,11 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
     fun handleKey(event: KeyEvent): Boolean {
         if (!isActive() || event.action != KeyEvent.ACTION_DOWN) return isActive()
         val p = player ?: return true
+        val live = isLiveStream()
         return when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                if (host.channelPad.confirmOrCancel()) return true
                 if (p.isPlaying) p.pause() else p.play()
                 true
             }
@@ -601,23 +772,113 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
                 true
             }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                seekBy(-10_000L)
+                if (live) zapChannel(-1, event.repeatCount) else seekBy(-10_000L)
                 true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                seekBy(10_000L)
+                if (live) zapChannel(1, event.repeatCount) else seekBy(10_000L)
                 true
             }
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> true
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP,
+            KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_BUTTON_R1 -> {
+                if (live) zapChannel(1, event.repeatCount)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN,
+            KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_BUTTON_L1 -> {
+                if (live) zapChannel(-1, event.repeatCount)
+                true
+            }
             else -> false
         }
     }
 
-    private fun seekBy(deltaMs: Long) {
+    fun isLiveStream(): Boolean {
+        val s = lastSession
+        if (s != null && (s.dashChannel.contains("ott", true) || s.mpdUrl.contains("__c/"))) return true
+        return host.activeUrl().contains("/livetv", true)
+    }
+
+    fun tuneLiveChannel(oneBased: Int) {
+        if (oneBased < 1) return
+        host.lastCenterClickTime = System.currentTimeMillis()
+        XploreDashCapture.markOk()
+        if (isActive()) {
+            main.removeCallbacks(holdWebView)
+            main.postDelayed(holdWebView, 4000L)
+            spinner?.visibility = View.VISIBLE
+            setStatus("Program $oneBased")
+        }
+        SafeerDbg.log(
+            "H340",
+            "ExoPlayerSession.kt:tune",
+            "tune live",
+            JSONObject().put("n", oneBased).put("ch", playingChannel)
+        )
+        val js = "window._safeer_xplore_tune_channel && window._safeer_xplore_tune_channel($oneBased)"
+        host.activeWebView()?.evaluateJavascript(js) { raw ->
+            main.post {
+                val name = parseZapName(raw)
+                if (name.startsWith("!")) {
+                    val have = name.drop(1)
+                    setStatus("Ni programa $oneBased (spored $have)", 3000L)
+                } else if (name.isNotEmpty()) {
+                    setStatus("$oneBased | $name", 3500L)
+                }
+            }
+        }
+    }
+
+    private fun zapChannel(delta: Int, repeatCount: Int): Boolean {
+        val now = SystemClock.uptimeMillis()
+        val minGap = if (repeatCount > 0) 420L else 240L
+        if (now - lastZapAt < minGap) return true
+        lastZapAt = now
+        host.lastCenterClickTime = System.currentTimeMillis()
+        XploreDashCapture.markOk()
+        main.removeCallbacks(holdWebView)
+        main.postDelayed(holdWebView, 4000L)
+        spinner?.visibility = View.VISIBLE
+        setStatus("Preklop …")
+        SafeerDbg.log(
+            "H339",
+            "ExoPlayerSession.kt:zap",
+            "live zap",
+            JSONObject().put("d", delta).put("ch", playingChannel)
+        )
+        val js = "window._safeer_xplore_zap_channel && window._safeer_xplore_zap_channel($delta)"
+        host.activeWebView()?.evaluateJavascript(js) { raw ->
+            main.post {
+                val name = parseZapName(raw)
+                if (name.isNotEmpty()) setStatus(name, 3500L)
+            }
+        }
+        return true
+    }
+
+    private fun parseZapName(raw: String?): String {
+        if (raw.isNullOrBlank() || raw == "null" || raw == "0") return ""
+        return raw.trim().trim('"').replace("\\n", " ").replace("\\\"", "\"").trim().take(40)
+    }
+
+    fun togglePlayPause() {
+        val p = player ?: return
+        if (p.isPlaying) {
+            p.pause()
+            showOsd("⏸ Pavza", playingChannel.ifEmpty { null }, 2500L)
+        } else {
+            p.play()
+            showOsd("▶ Predvajanje", playingChannel.ifEmpty { null }, 2500L)
+        }
+    }
+
+    fun seekBy(deltaMs: Long) {
         val p = player ?: return
         if (!p.isCurrentMediaItemSeekable) return
         val next = (p.currentPosition + deltaMs).coerceAtLeast(0L)
         p.seekTo(next)
+        val sign = if (deltaMs >= 0) "+${deltaMs / 1000}s" else "${deltaMs / 1000}s"
+        showOsd("⏩ $sign", playingChannel.ifEmpty { null }, 2000L)
     }
 
     override fun exit() {
@@ -633,6 +894,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         surfaceBound = false
         lastSession = null
         loggedEncryptedReady = false
+        codecRetry = 0
         try {
             host.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } catch (_: Exception) {}
@@ -661,6 +923,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
             player?.release()
         } catch (_: Exception) {}
         player = null
+        trackSelector = null
     }
 }
 

@@ -10,6 +10,13 @@ class TvKeyRouter(private val host: MainActivity) {
     private var lastDpadNavAt = 0L
 
     fun dispatch(event: KeyEvent): Boolean {
+        if (host.isScreenOffActive()) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                host.toggleScreenOffAudio(false)
+            }
+            return true
+        }
+
         val keyCode = event.keyCode
         val profile = SiteProfileResolver.fromUrl(host.activeUrl())
         val chromeFocused = host.isChromeFocused()
@@ -19,12 +26,17 @@ class TvKeyRouter(private val host: MainActivity) {
                 return true
             }
             if (keyCode == KeyEvent.KEYCODE_BACK) {
+                if (host.channelPad.cancel()) return true
                 host.handleBrowserBack()
                 return true
             }
             if (keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_MENU || keyCode == 183) {
                 host.chrome.showPortals()
                 return true
+            }
+            val nativeDigit = ChannelDigitPad.digitOf(keyCode)
+            if (nativeDigit != null && host.channelPad.accepts()) {
+                return host.channelPad.onDigit(nativeDigit, event.repeatCount)
             }
             if (host.playback.handleNativeKey(event)) return true
         }
@@ -94,6 +106,12 @@ class TvKeyRouter(private val host: MainActivity) {
             return true
         }
 
+        if (host.isChromeFocused() &&
+            (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
+        ) {
+            return host.moveChromeFocus(keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)
+        }
+
         if (host.editUrl.hasFocus()) {
             when (keyCode) {
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
@@ -114,18 +132,6 @@ class TvKeyRouter(private val host: MainActivity) {
                     host.editUrl.clearFocus()
                     host.activeWebView()?.requestFocus()
                     return true
-                }
-                KeyEvent.KEYCODE_DPAD_LEFT -> {
-                    if (host.editUrl.selectionStart <= 0) {
-                        host.btnHome.requestFocus()
-                        return true
-                    }
-                }
-                KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    if (host.editUrl.selectionEnd >= host.editUrl.text.length) {
-                        host.btnSearchTrigger.requestFocus()
-                        return true
-                    }
                 }
                 KeyEvent.KEYCODE_BACK -> {
                     host.hideKeyboard()
@@ -212,6 +218,7 @@ class TvKeyRouter(private val host: MainActivity) {
                 return true
             }
             KeyEvent.KEYCODE_BACK -> {
+                if (host.channelPad.cancel()) return true
                 host.handleBrowserBack()
                 return true
             }
@@ -236,6 +243,11 @@ class TvKeyRouter(private val host: MainActivity) {
                 return true
             }
             lastDpadNavAt = now
+        }
+
+        val gridDigit = ChannelDigitPad.digitOf(keyCode)
+        if (gridDigit != null && host.channelPad.accepts()) {
+            return host.channelPad.onDigit(gridDigit, event.repeatCount)
         }
 
         if (profile.handleKey(event, host)) return true

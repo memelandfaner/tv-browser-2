@@ -78,6 +78,13 @@ object XploreSiteProfile : SiteProfile {
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> true
+            KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_3,
+            KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_5, KeyEvent.KEYCODE_6, KeyEvent.KEYCODE_7,
+            KeyEvent.KEYCODE_8, KeyEvent.KEYCODE_9,
+            KeyEvent.KEYCODE_NUMPAD_0, KeyEvent.KEYCODE_NUMPAD_1, KeyEvent.KEYCODE_NUMPAD_2,
+            KeyEvent.KEYCODE_NUMPAD_3, KeyEvent.KEYCODE_NUMPAD_4, KeyEvent.KEYCODE_NUMPAD_5,
+            KeyEvent.KEYCODE_NUMPAD_6, KeyEvent.KEYCODE_NUMPAD_7, KeyEvent.KEYCODE_NUMPAD_8,
+            KeyEvent.KEYCODE_NUMPAD_9 -> true
             else -> false
         }
     }
@@ -142,6 +149,7 @@ object XploreSiteProfile : SiteProfile {
                 if (host.playback.isNativeActive()) {
                     return host.playback.handleNativeKey(event)
                 }
+                if (host.channelPad.confirmOrCancel()) return true
                 val now = System.currentTimeMillis()
                 if (now - host.lastCenterClickTime < 450) return true
                 host.lastCenterClickTime = now

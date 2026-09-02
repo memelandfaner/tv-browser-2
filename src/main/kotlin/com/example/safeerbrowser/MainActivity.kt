@@ -65,6 +65,7 @@ class MainActivity : android.app.Activity() {
     internal lateinit var chrome: TvChrome
     internal lateinit var keyRouter: TvKeyRouter
     internal lateinit var playback: HostPlayback
+    internal lateinit var channelPad: ChannelDigitPad
 
     internal var customVideoView: View? = null
     internal var customVideoCallback: WebChromeClient.CustomViewCallback? = null
@@ -83,26 +84,33 @@ class MainActivity : android.app.Activity() {
 
     internal fun isTopBarFocused(): Boolean = isChromeFocused()
 
+    /** D-Pad strip on the omnibox row. Skip tiny 🔍/✕ inside the URL field — they trap focus into the WebView. */
+    internal fun moveChromeFocus(right: Boolean): Boolean {
+        val chain = listOf(
+            btnBack, btnHome, editUrl, btnPointerToggle, btnAddTab, btnTabCount, btnMenu
+        ).filter { it.visibility == View.VISIBLE }
+        if (chain.isEmpty()) return false
+        val focused = currentFocus
+        val idx = when {
+            focused == null -> -1
+            focused === btnSearchTrigger || focused === btnClearUrl -> chain.indexOf(editUrl)
+            else -> chain.indexOfFirst { it === focused }
+        }
+        if (idx < 0) return false
+        val next = idx + if (right) 1 else -1
+        if (next !in chain.indices) return true
+        val target = chain[next]
+        if (target !== editUrl) hideKeyboard()
+        target.requestFocus()
+        return true
+    }
+
     internal fun superDispatchKey(event: KeyEvent): Boolean = super.dispatchKeyEvent(event)
 
-    private fun isKioskUrl(url: String): Boolean = SiteProfileResolver.fromUrl(url).hideChrome(url)
-
-    private fun handlePageScroll(direction: Int, scrollY: Int) {
-        val url = tabManager.getActiveTab()?.url ?: ""
-        if (url.contains("youtube.com/tv", ignoreCase = true) || isKioskUrl(url) ||
-            url.contains("24ur", ignoreCase = true) || url.contains("hydrahd", ignoreCase = true)
-        ) {
-            return
-        }
-        val isTopBarFocused = editUrl.hasFocus() || btnHome.hasFocus() || btnBack.hasFocus() || btnMenu.hasFocus()
-        if (direction > 0 && scrollY > 100) {
-            if (mobileTopBar.translationY == 0f && !isTopBarFocused && searchSuggestionsOverlay.visibility != View.VISIBLE) {
-                mobileTopBar.animate().translationY(-mobileTopBar.height.toFloat()).setDuration(220).start()
-            }
-        } else if (direction < 0 || scrollY <= 40) {
-            if (mobileTopBar.translationY != 0f) {
-                mobileTopBar.animate().translationY(0f).setDuration(220).start()
-            }
+    private fun handlePageScroll(@Suppress("UNUSED_PARAMETER") direction: Int, @Suppress("UNUSED_PARAMETER") scrollY: Int) {
+        // Toolbar occupies its own row above the WebView. Sliding it away would leave a blank band.
+        if (mobileTopBar.translationY != 0f && mobileTopBar.visibility == View.VISIBLE) {
+            mobileTopBar.animate().translationY(0f).setDuration(180).start()
         }
     }
 
@@ -143,6 +151,7 @@ class MainActivity : android.app.Activity() {
             }
         }
         chrome = TvChrome(this)
+        channelPad = ChannelDigitPad(this)
         keyRouter = TvKeyRouter(this)
         setupTabManager()
         setupOmnibox()
@@ -168,6 +177,53 @@ class MainActivity : android.app.Activity() {
                         SafeerDbg.log("H337", "MainActivity.kt:smoke", "broadcast smoke", JSONObject())
                         playback.playClearSmoke()
                     }
+                    "com.example.safeerbrowser.ACTION_OPEN_URL" -> {
+                        val url = intent.getStringExtra("url") ?: return
+                        val newTab = intent.getBooleanExtra("new_tab", false)
+                        val activeTab = tabManager.getActiveTab()
+                        if (newTab || activeTab == null) {
+                            tabManager.createTab(this@MainActivity, url, true)
+                        } else {
+                            activeTab.webView.loadUrl(url)
+                        }
+                        showTvOsd("🌐 Povezava na TV", url.take(50))
+                    }
+                    "com.example.safeerbrowser.ACTION_CHANNEL_TUNE" -> {
+                        val ch = intent.getIntExtra("channel", -1)
+                        if (ch > 0) {
+                            playback.tuneLiveChannel(ch)
+                            showTvOsd("📺 Preklop na kanal", "Kanal $ch")
+                        }
+                    }
+                    "com.example.safeerbrowser.ACTION_PLAY_PAUSE" -> {
+                        playback.togglePlayPause()
+                    }
+                    "com.example.safeerbrowser.ACTION_SEEK" -> {
+                        val delta = intent.getIntExtra("seconds", 10)
+                        playback.seekBy(delta)
+                    }
+                    "com.example.safeerbrowser.ACTION_SEARCH" -> {
+                        val query = intent.getStringExtra("query") ?: ""
+                        val engine = intent.getStringExtra("engine") ?: "google"
+                        if (query.isNotEmpty()) {
+                            val searchUrl = when (engine.lowercase()) {
+                                "youtube", "yt" -> "https://www.youtube.com/results?search_query=" + URLEncoder.encode(query, "UTF-8")
+                                "hydra", "movie", "film" -> "https://hydrahd.ws/?search=" + URLEncoder.encode(query, "UTF-8")
+                                else -> "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
+                            }
+                            val activeTab = tabManager.getActiveTab()
+                            if (activeTab != null) {
+                                activeTab.webView.loadUrl(searchUrl)
+                            } else {
+                                tabManager.createTab(this@MainActivity, searchUrl, true)
+                            }
+                            showTvOsd("🔍 Iskanje ($engine)", query)
+                        }
+                    }
+                    "com.example.safeerbrowser.ACTION_SCREEN_OFF_AUDIO" -> {
+                        val enable = intent.getBooleanExtra("enable", true)
+                        toggleScreenOffAudio(enable)
+                    }
                 }
             }
         }
@@ -177,6 +233,12 @@ class MainActivity : android.app.Activity() {
             android.content.IntentFilter().apply {
                 addAction("com.example.safeerbrowser.EVAL_JS")
                 addAction("com.example.safeerbrowser.EXO_SMOKE")
+                addAction("com.example.safeerbrowser.ACTION_OPEN_URL")
+                addAction("com.example.safeerbrowser.ACTION_CHANNEL_TUNE")
+                addAction("com.example.safeerbrowser.ACTION_PLAY_PAUSE")
+                addAction("com.example.safeerbrowser.ACTION_SEEK")
+                addAction("com.example.safeerbrowser.ACTION_SEARCH")
+                addAction("com.example.safeerbrowser.ACTION_SCREEN_OFF_AUDIO")
             }
         )
         if (intent?.getBooleanExtra("exo_smoke", false) == true) {
@@ -187,6 +249,88 @@ class MainActivity : android.app.Activity() {
     private var wakeLock: android.os.PowerManager.WakeLock? = null
     private var debugJsReceiver: android.content.BroadcastReceiver? = null
     private var webViewsPaused = false
+    private var globalOsdView: TextView? = null
+    private var screenOffOverlay: View? = null
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private val hideGlobalOsdRunnable = Runnable {
+        globalOsdView?.animate()?.alpha(0f)?.setDuration(250)?.withEndAction {
+            globalOsdView?.visibility = View.GONE
+        }?.start()
+    }
+
+    fun showTvOsd(title: String, subtitle: String? = null, durationMs: Long = 3000L) {
+        runOnUiThread {
+            if (globalOsdView == null) {
+                val tv = TextView(this)
+                tv.setTextColor(Color.WHITE)
+                tv.textSize = 22f
+                tv.setPadding(44, 20, 44, 20)
+                tv.gravity = Gravity.CENTER
+                val bg = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.parseColor("#E60B0F17"))
+                    cornerRadius = 20f
+                    setStroke(2, Color.parseColor("#3300D2FF"))
+                }
+                tv.background = bg
+                tv.elevation = 60f
+                val lp = RelativeLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
+                    addRule(RelativeLayout.CENTER_HORIZONTAL)
+                    bottomMargin = 70
+                }
+                mainRoot.addView(tv, lp)
+                globalOsdView = tv
+            }
+            val text = if (!subtitle.isNullOrEmpty()) "$title\n$subtitle" else title
+            globalOsdView?.text = text
+            globalOsdView?.alpha = 1f
+            globalOsdView?.visibility = View.VISIBLE
+            globalOsdView?.bringToFront()
+            mainHandler.removeCallbacks(hideGlobalOsdRunnable)
+            if (durationMs > 0) {
+                mainHandler.postDelayed(hideGlobalOsdRunnable, durationMs)
+            }
+        }
+    }
+
+    fun isScreenOffActive(): Boolean = screenOffOverlay != null
+
+    fun toggleScreenOffAudio(enable: Boolean? = null) {
+        runOnUiThread {
+            val shouldEnable = enable ?: (screenOffOverlay == null)
+            if (shouldEnable) {
+                acquireWakeLock()
+                if (screenOffOverlay == null) {
+                    val overlay = View(this).apply {
+                        setBackgroundColor(Color.BLACK)
+                        isClickable = true
+                        isFocusable = true
+                        isFocusableInTouchMode = true
+                        elevation = 120f
+                        setOnClickListener { toggleScreenOffAudio(false) }
+                    }
+                    mainRoot.addView(
+                        overlay,
+                        ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    )
+                    screenOffOverlay = overlay
+                    overlay.requestFocus()
+                }
+                showTvOsd("🌙 Zvok v ozadju (Zaslon ugasnjen)", "Pritisnite katerokoli tipko za vklop slike", 4000L)
+            } else {
+                screenOffOverlay?.let { mainRoot.removeView(it) }
+                screenOffOverlay = null
+                showTvOsd("☀️ Slika vklopljena", durationMs = 2000L)
+            }
+        }
+    }
 
     private fun acquireWakeLock() {
         try {

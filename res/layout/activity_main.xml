@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@color/bg_pure_black">
 
-    <!-- Main WebView Container (Full Bleed Edge-to-Edge) -->
+    <!-- Full-bleed container; top padding (TvChrome) keeps pages out from under the toolbar. -->
     <FrameLayout
         android:id="@+id/webViewContainer"
         android:layout_width="match_parent"
@@ -101,7 +101,7 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:nextFocusLeft="@+id/btnHome"
-                android:nextFocusRight="@+id/btnSearchTrigger"
+                android:nextFocusRight="@+id/btnPointerToggle"
                 android:nextFocusDown="@+id/webViewContainer" />
 
             <!-- Clear Text Button -->

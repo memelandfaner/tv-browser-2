@@ -42,6 +42,9 @@ object XploreDashCapture {
     private var hintLicHeaders: Map<String, String> = emptyMap()
     private var jsonWrapKey: String? = null
     private var lastFiredKey: String = ""
+    private var lastFiredChannel: String = ""
+    private var prevFiredChannel: String = ""
+    private var lastFireAt: Long = 0L
     private var mpdParseTries: Int = 0
     private var allowClear: Boolean = false
     private var needsDrm: Boolean = false
@@ -62,6 +65,9 @@ object XploreDashCapture {
             hintLicHeaders = emptyMap()
             jsonWrapKey = null
             lastFiredKey = ""
+            lastFiredChannel = ""
+            prevFiredChannel = ""
+            lastFireAt = 0L
             mpdParseTries = 0
             allowClear = false
             needsDrm = false
@@ -118,6 +124,16 @@ object XploreDashCapture {
     }
 
     private fun onMpd(url: String, headers: Map<String, String>) {
+        val ch = dashChannelOf(url)
+        if (isStaleChannelMpd(ch)) {
+            SafeerDbg.log(
+                "H330",
+                "XploreDashCapture.kt:mpd",
+                "stale mpd ignored",
+                JSONObject().put("ch", ch).put("cur", lastFiredChannel).put("prev", prevFiredChannel)
+            )
+            return
+        }
         val parsed: Boolean
         var newStream = false
         synchronized(lock) {
@@ -226,6 +242,9 @@ object XploreDashCapture {
             val key = mpdUrl + "|" + licUrl + "|" + needsDrm + "|" + (jsonWrapKey ?: "")
             if (key == lastFiredKey) return
             lastFiredKey = key
+            prevFiredChannel = lastFiredChannel
+            lastFiredChannel = dashChannelOf(mpdUrl)
+            lastFireAt = SystemClock.elapsedRealtime()
             XploreDashSession(
                 mpdUrl = mpdUrl,
                 licenseUrl = licUrl,
@@ -266,6 +285,21 @@ object XploreDashCapture {
 
     fun dashChannelOf(url: String): String {
         return Regex("""__c/([^/]+)""").find(url)?.groupValues?.getOrNull(1) ?: ""
+    }
+
+    private fun isStaleChannelMpd(ch: String): Boolean {
+        if (ch.isEmpty()) return false
+        val now = SystemClock.elapsedRealtime()
+        synchronized(lock) {
+            if (lastFireAt <= 0L) return false
+            if (!ch.equals(prevFiredChannel, true)) return false
+            if (ch.equals(lastFiredChannel, true)) return false
+            return if (okElapsed > lastFireAt) {
+                now - okElapsed < 4_000L
+            } else {
+                now - lastFireAt < 12_000L
+            }
+        }
     }
 
     private fun isDashManifest(lower: String): Boolean {

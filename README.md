@@ -1,6 +1,6 @@
 # TV Browser 2 (Android TV)
 
-**Trenutna različica: 2.1.70** — Xplore TV kiosk z nativnim Media3 ExoPlayerjem (DASH + Widevine), HydraHD D-Pad izbira polj, celozaslonski predvajalnik.
+**Trenutna različica: 2.1.71** — Xplore TV kiosk z nativnim Media3 ExoPlayerjem (DASH + Widevine), HydraHD D-Pad izbira polj, celozaslonski predvajalnik.
 
 ## Prenos in namestitev APK
 
