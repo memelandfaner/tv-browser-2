@@ -221,7 +221,10 @@
             boostSkipLogged = false;
             window._safeer_app_bg = false;
             try { sessionStorage.removeItem('safeer_app_bg'); } catch (_) {}
-            try { if (window._safeer_xplore_unsmash) window._safeer_xplore_unsmash(); } catch (_) {}
+            try {
+                var pWant = (location.pathname || '').toLowerCase();
+                if (pWant.indexOf('/livetv') === -1 && window._safeer_xplore_unsmash) window._safeer_xplore_unsmash();
+            } catch (_) {}
             try { watchOverlay(); } catch (_) {}
             try { syncHoldCover('want'); } catch (_) {}
             try { bindVideoEme(); } catch (_) {}
@@ -338,7 +341,7 @@
                 want: want
             });
             try { v.muted = false; v.volume = 1.0; } catch (_) {}
-            if (!want && r.width >= 800 && !framed) {
+            if (!want && r.width >= 800 && !framed && path.indexOf('/livetv') === -1) {
                 try {
                     v.style.setProperty('display', 'none', 'important');
                     v.style.setProperty('width', '0px', 'important');
@@ -389,6 +392,7 @@
 
         onDrm: function () {
             var want = this.wantPlay || !!window._safeer_xplore_want_play;
+            window._safeer_xplore_drm_at = Date.now();
             if (want) window._safeer_xplore_drm_stream = true;
             var v = videoEl();
             var r = v ? v.getBoundingClientRect() : { width: 0, height: 0 };
@@ -456,20 +460,16 @@
                     });
                     if ((agent.wantPlay || window._safeer_xplore_want_play) &&
                         (low.indexOf('player-fullwindow') !== -1 || low.indexOf('player-scaled') !== -1)) {
-                        try {
-                            var foc2 = document.querySelector('.safeer-active-card');
-                            if (foc2) foc2.classList.remove('safeer-active-card');
-                            if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-                            var ring2 = document.getElementById('safeer-focus-target-ring');
-                            if (ring2) { ring2.classList.remove('active'); ring2.style.display = 'none'; }
-                            // #region agent log
-                            dbg('blur tile overlay', { ply: ply.slice(0, 50), had: !!foc2 });
-                            // #endregion
-                        } catch (_) {}
-                        agent.holdOverlay('class');
+                        try { document.documentElement.classList.add('safeer-xplore-waitplay'); } catch (_) {}
                     }
                     if (low.indexOf('player-closed') !== -1) {
-                        try { document.documentElement.classList.remove('safeer-xplore-playing'); } catch (_) {}
+                        try { document.documentElement.classList.remove('safeer-xplore-playing', 'safeer-xplore-waitplay'); } catch (_) {}
+                        try {
+                            if (!isFramed(v)) {
+                                var lastT = window._safeer_xplore_last_tile;
+                                if (lastT && lastT.isConnected) lastT.classList.add('safeer-active-card');
+                            }
+                        } catch (_) {}
                         reopenTile('class');
                     }
                     try { syncHoldCover('class'); } catch (_) {}

@@ -1,3 +1,10 @@
 build/
 *.tmp
 .DS_Store
+.gradle/
+.android-sdk/
+local.properties
+xplore_auth.local.js
+tv_test/
+*.png
+!docs/**/*.png

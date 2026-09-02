@@ -108,13 +108,57 @@ object UserScriptManager {
             background: #0b0e14 !important;
             background-image: none !important;
             background-color: #0b0e14 !important;
-            color: #e8eef5 !important;
+            color: #f1f5f9 !important;
             border-bottom: 1px solid #1a2230 !important;
             box-shadow: none !important;
+            min-height: 76px !important;
+            height: auto !important;
         }
         .menu-items-wrapper, #csh__menu_bar {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
             background: transparent !important;
             background-color: transparent !important;
+        }
+        #csh__menu_bar a, .menu a.home-link, .menu a.livetv-link, .menu a.movies-link,
+        .menu a.library-link, .menu a.guide-link, .menu .dropdown-toggle-button {
+            display: inline-flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 8px !important;
+            min-height: 52px !important;
+            padding: 8px 14px !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            color: #f1f5f9 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            overflow: visible !important;
+            white-space: nowrap !important;
+        }
+        #csh__menu_bar a span, .menu a span, .home-link span, .livetv-link span,
+        .movies-link span, .library-link span, .guide-link span, .dropdown-toggle-button span {
+            display: inline !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            position: static !important;
+            width: auto !important;
+            max-width: none !important;
+            height: auto !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            color: #f1f5f9 !important;
+            clip: auto !important;
+            clip-path: none !important;
+            overflow: visible !important;
+            text-indent: 0 !important;
+        }
+        .home-link.route--active, .livetv-link.route--active, .movies-link.route--active,
+        .library-link.route--active, .guide-link.route--active {
+            background: #1e293b !important;
+            border-radius: 10px !important;
+            box-shadow: inset 0 -3px 0 #e10600 !important;
         }
         .content__wrapper, .content__wrapper.has-footer,
         html.safeer-xplore-dark .content__wrapper,
@@ -191,6 +235,7 @@ object UserScriptManager {
             // 🚫 3. Samodejno odstranjevanje lažnih opozoril, vsiljenih modalov in video oglasnih prekrivk
             function cleanAllAdOverlays() {
                 try {
+                    if ((location.hostname || '').indexOf('xploretv') !== -1) return;
                     var adSelectors = [
                         '.reward-zone', '#reward-zone', '.fc-ab-root', '.adblock-overlay', '#adblock-modal',
                         '[class*="dating-popup"]', '[id*="dating-popup"]', '[class*="fake-download"]',
@@ -266,6 +311,7 @@ object UserScriptManager {
             // ⚡ 4. Samodejno preskakovanje video oglasov (Instant Video Ad Skipper)
             function autoSkipVideoAds() {
                 try {
+                    if ((location.hostname || '').indexOf('xploretv') !== -1) return;
                     // Klikni gumb za preskok oglasa takoj ko se pojavi
                     var skipButtons = document.querySelectorAll(
                         '.videoAdUiSkipButton, .mgp_skipAdButton, .mgp_adSkip, [class*="skipAd"], ' +
@@ -341,6 +387,7 @@ object UserScriptManager {
     private const val YOUTUBE_FREEDOM_MOBILE_JS = """
         (function initYouTubeFreedomAgent() {
             if ((location.href || '').indexOf('youtube.com/tv') !== -1) return;
+            if ((location.hostname || '').indexOf('xploretv') !== -1) return;
             if (window._safeer_yt_agent_installed) return;
             window._safeer_yt_agent_installed = true;
 
@@ -372,6 +419,7 @@ object UserScriptManager {
                 // ⚡ Bliskovito pospeši predvajanje nove skladbe brez zakasnitev
                 boostPlayback: function() {
                     try {
+                        if ((location.hostname || '').indexOf('xploretv') !== -1) return;
                         var isWatchPage = location.pathname.indexOf('/watch') !== -1 || location.pathname.indexOf('/shorts') !== -1;
                         if (!isWatchPage) return;
 
@@ -609,6 +657,9 @@ object UserScriptManager {
             }
 
             HTMLMediaElement.prototype.pause = function() {
+                if ((location.hostname || '').indexOf('xploretv') !== -1) {
+                    return origPause.apply(this, arguments);
+                }
                 if (window._safeer_app_bg) {
                     return origPause.apply(this, arguments);
                 }
@@ -627,6 +678,9 @@ object UserScriptManager {
             };
 
             HTMLMediaElement.prototype.play = function() {
+                if ((location.hostname || '').indexOf('xploretv') !== -1) {
+                    return origPlay.apply(this, arguments);
+                }
                 userExplicitlyPaused = false;
                 lastBgHref = location.href;
                 return origPlay.apply(this, arguments);
@@ -673,6 +727,9 @@ object UserScriptManager {
 
             // Stalni nadzornik za neprekinjeno predvajanje v ozadju
             setInterval(function() {
+                if ((location.hostname || '').indexOf('xploretv') !== -1) return;
+                if ((location.hostname || '').toLowerCase().indexOf('24ur') !== -1) return;
+                if ((location.hostname || '').toLowerCase().indexOf('hydrahd') !== -1) return;
                 if (window._safeer_app_bg || document.hidden) return;
                 hookPlayerObject();
                 var video = document.querySelector('video');
@@ -680,6 +737,55 @@ object UserScriptManager {
                     video.play().catch(function() {});
                 }
             }, 500);
+        })();
+    """
+
+    const val FORCE_UNMUTE_JS = """
+        (function() {
+            if (window._safeer_force_unmute) return;
+            var host = (location.hostname || '').toLowerCase();
+            var href = (location.href || '').toLowerCase();
+            if (host.indexOf('xploretv') !== -1 || host.indexOf('a1xploretv') !== -1) return;
+            if (host.indexOf('24ur') !== -1) return;
+            if (href.indexOf('youtube.com/tv') !== -1) return;
+            if (href.indexOf('brave_home') !== -1) return;
+            window._safeer_force_unmute = true;
+
+            function lockEl(v) {
+                if (!v || v._safeer_audio_lock) return;
+                if (v.readyState < 2) return;
+                v._safeer_audio_lock = true;
+                try { v.defaultMuted = false; } catch (e0) {}
+                try { v.removeAttribute('muted'); } catch (e1) {}
+                try {
+                    var desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'muted');
+                    try { if (desc && desc.set) desc.set.call(v, false); else v.muted = false; } catch (e2) {}
+                    Object.defineProperty(v, 'muted', {
+                        configurable: true,
+                        get: function() { return false; },
+                        set: function() {
+                            try { if (desc && desc.set) desc.set.call(v, false); } catch (e3) {}
+                        }
+                    });
+                } catch (e4) {
+                    try { v.muted = false; } catch (e5) {}
+                }
+                try { if (v.volume < 0.15) v.volume = 1.0; } catch (e6) {}
+            }
+
+            function sweep() {
+                try {
+                    var vids = document.querySelectorAll('video, audio');
+                    for (var i = 0; i < vids.length; i++) {
+                        var v = vids[i];
+                        if (!v || v.ended || v.paused || v.readyState < 2) continue;
+                        lockEl(v);
+                    }
+                } catch (eSw) {}
+            }
+
+            document.addEventListener('playing', function(ev) { lockEl(ev.target); }, true);
+            setInterval(sweep, 1200);
         })();
     """
 
@@ -700,9 +806,17 @@ object UserScriptManager {
     """
 
     @Volatile
-    private var cachedTvRemoteNavJs: String? = null
+    private var cachedTvSpatialJs: String? = null
+    @Volatile
+    private var cachedSiteXploreJs: String? = null
+    @Volatile
+    private var cachedSiteHydraJs: String? = null
+    @Volatile
+    private var cachedSite24urJs: String? = null
     @Volatile
     private var cachedSiteAgentJs: String? = null
+    @Volatile
+    private var cachedXploreAuthJs: String? = null
 
     private fun assetJs(webView: WebView, name: String, cache: () -> String?, store: (String) -> Unit): String {
         cache()?.let { return it }
@@ -715,8 +829,28 @@ object UserScriptManager {
         return assetJs(webView, "site_agent.js", { cachedSiteAgentJs }, { cachedSiteAgentJs = it })
     }
 
-    private fun tvRemoteNavJs(webView: WebView): String {
-        return assetJs(webView, "tv_remote_nav.js", { cachedTvRemoteNavJs }, { cachedTvRemoteNavJs = it })
+    private fun tvSpatialJs(webView: WebView): String {
+        return assetJs(webView, "tv_spatial.js", { cachedTvSpatialJs }, { cachedTvSpatialJs = it })
+    }
+
+    private fun siteXploreJs(webView: WebView): String {
+        return assetJs(webView, "site_xplore.js", { cachedSiteXploreJs }, { cachedSiteXploreJs = it })
+    }
+
+    private fun siteHydraJs(webView: WebView): String {
+        return assetJs(webView, "site_hydra.js", { cachedSiteHydraJs }, { cachedSiteHydraJs = it })
+    }
+
+    private fun site24urJs(webView: WebView): String {
+        return assetJs(webView, "site_24ur.js", { cachedSite24urJs }, { cachedSite24urJs = it })
+    }
+
+    private fun xploreAuthJs(webView: WebView): String {
+        return try {
+            assetJs(webView, "xplore_auth.js", { cachedXploreAuthJs }, { cachedXploreAuthJs = it })
+        } catch (_: Exception) {
+            "window._safeerXploreAuth = null;"
+        }
     }
 
     private const val YOUTUBE_TV_LEANBACK_JS = """
@@ -932,6 +1066,7 @@ object UserScriptManager {
             window._safeer_xplore_live_helpers = true;
             function paintXploreDark() {
                 try {
+                    if (window._safeer_xplore_want_play || window._safeer_xplore_playing) return;
                     document.documentElement.classList.add('safeer-xplore-dark');
                     try { document.documentElement.style.colorScheme = 'dark'; } catch (_) {}
                     var painted = 0;
@@ -978,7 +1113,6 @@ object UserScriptManager {
                 } catch (_) {}
             }
             paintXploreDark();
-            setInterval(paintXploreDark, 1500);
             window._safeer_xplore_list_live_tiles = function() {
                 var out = [];
                 var seen = {};
@@ -1130,54 +1264,161 @@ object UserScriptManager {
         })();
     """
 
-    fun injectEarlyScript(webView: WebView) {
-        val cosmeticCss = CosmeticFilterEngine.buildCosmeticCss()
-        injectCss(webView, cosmeticCss, "safeer-cosmetic-filter")
-        injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
-        injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
-        webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
-        webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
-        webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
-        webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
-        webView.evaluateJavascript(siteAgentJs(webView), null)
-        webView.evaluateJavascript(tvRemoteNavJs(webView), null)
-        webView.evaluateJavascript(XPLORE_LIVE_JS, null)
+    private fun isXploreUrl(url: String?): Boolean {
+        val u = (url ?: "").lowercase()
+        return u.contains("xploretv") || u.contains("a1xploretv")
     }
 
-    fun injectOnPageFinished(webView: WebView, isDarkMode: Boolean) {
-        val cosmeticCss = CosmeticFilterEngine.buildCosmeticCss()
-        injectCss(webView, cosmeticCss, "safeer-cosmetic-filter")
+    private fun isBrowserHome(url: String?): Boolean {
+        return (url ?: "").contains("brave_home", ignoreCase = true)
+    }
+
+    private fun is24urUrl(url: String?): Boolean {
+        return (url ?: "").contains("24ur", ignoreCase = true)
+    }
+
+    private fun isHydraUrl(url: String?): Boolean {
+        return (url ?: "").contains("hydrahd", ignoreCase = true)
+    }
+
+    private const val WINDOWS_CHROME_DESKTOP_JS = """
+        (function() {
+            var host = (location.hostname || '').toLowerCase();
+            if (host.indexOf('24ur') === -1 && host.indexOf('hydrahd') === -1) return;
+            var ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36';
+            function fake(key, val) {
+                try {
+                    Object.defineProperty(navigator, key, { configurable: true, enumerable: true, get: function() { return val; } });
+                } catch (e) {}
+            }
+            fake('userAgent', ua);
+            fake('appVersion', '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36');
+            fake('platform', 'Win32');
+            fake('vendor', 'Google Inc.');
+            fake('maxTouchPoints', 0);
+            try {
+                fake('userAgentData', {
+                    brands: [{ brand: 'Google Chrome', version: '133' }, { brand: 'Chromium', version: '133' }, { brand: 'Not_A Brand', version: '24' }],
+                    mobile: false,
+                    platform: 'Windows',
+                    getHighEntropyValues: function() {
+                        return Promise.resolve({ architecture: 'x86', bitness: '64', mobile: false, model: '', platform: 'Windows', platformVersion: '15.0.0', uaFullVersion: '133.0.0.0' });
+                    }
+                });
+            } catch (e2) {}
+            try { window.chrome = window.chrome || { runtime: {} }; } catch (e3) {}
+            try {
+                var vp = document.querySelector('meta[name="viewport"]');
+                if (!vp) {
+                    vp = document.createElement('meta');
+                    vp.setAttribute('name', 'viewport');
+                    (document.head || document.documentElement).appendChild(vp);
+                }
+                vp.setAttribute('content', 'width=1280, initial-scale=1');
+            } catch (e4) {}
+        })();
+    """
+
+    fun injectWindowsDesktopSpoof(webView: WebView) {
+        webView.evaluateJavascript(WINDOWS_CHROME_DESKTOP_JS, null)
+    }
+
+    private fun injectSiteScripts(webView: WebView, pageUrl: String?, isDarkMode: Boolean, finished: Boolean) {
+        val xplore = isXploreUrl(pageUrl) || isXploreUrl(webView.url)
+        val home = isBrowserHome(pageUrl) || isBrowserHome(webView.url)
+        val news24 = is24urUrl(pageUrl) || is24urUrl(webView.url)
+        val hydra = isHydraUrl(pageUrl) || isHydraUrl(webView.url)
+        if (xplore) {
+            injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
+            webView.evaluateJavascript(
+                xploreAuthJs(webView) + "\n" + siteAgentJs(webView) + "\n" +
+                    tvSpatialJs(webView) + "\n" + siteXploreJs(webView),
+                null
+            )
+            webView.evaluateJavascript(XPLORE_LIVE_JS, null)
+            if (finished) {
+                webView.evaluateJavascript("try{if(window._safeerSiteAgent)window._safeerSiteAgent.onPageReady()}catch(e){}", null)
+            }
+            return
+        }
+        if (!home && !news24 && !hydra) {
+            injectCss(webView, CosmeticFilterEngine.buildCosmeticCss(), "safeer-cosmetic-filter")
+            if (isDarkMode) {
+                injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
+            } else if (finished) {
+                removeCss(webView, "safeer-dark-mode-style")
+            }
+        } else if (news24 || hydra) {
+            removeCss(webView, "safeer-dark-mode-style")
+            removeCss(webView, "safeer-cosmetic-filter")
+            webView.evaluateJavascript(WINDOWS_CHROME_DESKTOP_JS, null)
+        }
+        if (hydra) {
+            webView.evaluateJavascript(FORCE_UNMUTE_JS, null)
+        }
         webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
         webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
         webView.evaluateJavascript(siteAgentJs(webView), null)
-        webView.evaluateJavascript(tvRemoteNavJs(webView), null)
-        webView.evaluateJavascript(XPLORE_LIVE_JS, null)
-
-        if (isDarkMode) {
-            injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
-            injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
-        } else {
-            removeCss(webView, "safeer-dark-mode-style")
-            injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
+        webView.evaluateJavascript(tvSpatialJs(webView) + "\n" + siteHydraJs(webView) + "\n" + site24urJs(webView), null)
+        if (finished) {
+            if (!news24) webView.evaluateJavascript(MOBILE_MEDIA_AUDIO_JS, null)
+            webView.evaluateJavascript("try{if(window._safeerSiteAgent)window._safeerSiteAgent.onPageReady()}catch(e){}", null)
         }
+    }
 
-        webView.evaluateJavascript(MOBILE_MEDIA_AUDIO_JS, null)
-        webView.evaluateJavascript("try{if(window._safeerSiteAgent)window._safeerSiteAgent.onPageReady()}catch(e){}", null)
+    fun injectEarlyScript(webView: WebView, pageUrl: String? = null) {
+        val dark = (webView as? ChromiumEngineView)?.isDarkMode ?: true
+        injectSiteScripts(webView, pageUrl, dark, finished = false)
+    }
+
+    fun injectOnPageFinished(webView: WebView, isDarkMode: Boolean, pageUrl: String? = null) {
+        val ping = """
+            (function(){
+                try {
+                    var host = (location.hostname || '').toLowerCase();
+                    if (host.indexOf('xploretv') !== -1 && !window._safeer_xplore_helpers_ready) return 'need';
+                    if (window._safeer_tv_remote_installed) {
+                        try { if (window._safeerSiteAgent) window._safeerSiteAgent.onPageReady(); } catch (e) {}
+                        return 'ok';
+                    }
+                } catch (e2) {}
+                return 'need';
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(ping) { result ->
+            if (result != null && result.contains("ok")) {
+                val xplore = isXploreUrl(pageUrl) || isXploreUrl(webView.url)
+                val news24 = is24urUrl(pageUrl) || is24urUrl(webView.url)
+                val hydra = isHydraUrl(pageUrl) || isHydraUrl(webView.url)
+                if (!xplore && !news24 && !hydra) {
+                    webView.evaluateJavascript(MOBILE_MEDIA_AUDIO_JS, null)
+                    if (!isDarkMode) removeCss(webView, "safeer-dark-mode-style")
+                } else if (news24 || hydra) {
+                    removeCss(webView, "safeer-dark-mode-style")
+                    removeCss(webView, "safeer-cosmetic-filter")
+                    webView.evaluateJavascript(WINDOWS_CHROME_DESKTOP_JS, null)
+                    if (hydra) webView.evaluateJavascript(FORCE_UNMUTE_JS, null)
+                }
+                return@evaluateJavascript
+            }
+            injectSiteScripts(webView, pageUrl, isDarkMode, finished = true)
+        }
     }
 
     fun injectDarkModeToggle(webView: WebView, enable: Boolean) {
         if (enable) {
-            injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
+            injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style", replace = true)
         } else {
             removeCss(webView, "safeer-dark-mode-style")
         }
     }
 
-    private fun injectCss(webView: WebView, css: String, elementId: String? = null) {
+    private fun injectCss(webView: WebView, css: String, elementId: String? = null, replace: Boolean = false) {
         val base64 = android.util.Base64.encodeToString(css.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
         val idStr = elementId ?: "custom-css"
+        val force = if (replace) "true" else "false"
         val js = """
             (function() {
                 try {
@@ -1186,7 +1427,7 @@ object UserScriptManager {
                     if ('$idStr' === 'safeer-dark-mode-style' || '$idStr' === 'safeer-cosmetic-filter') {
                         var href = (location.href || '').toLowerCase();
                         var host = (location.hostname || '').toLowerCase();
-                        if (href.indexOf('youtube.com/tv') !== -1 || host.indexOf('youtube.') !== -1 || host.indexOf('youtu.be') !== -1 || host.indexOf('xploretv.si') !== -1) {
+                        if (href.indexOf('youtube.com/tv') !== -1 || host.indexOf('youtube.') !== -1 || host.indexOf('youtu.be') !== -1 || host.indexOf('xploretv.si') !== -1 || host.indexOf('24ur') !== -1 || host.indexOf('hydrahd') !== -1 || href.indexOf('brave_home') !== -1) {
                             var existing = document.getElementById('$idStr');
                             if (existing) existing.remove();
                             return;
@@ -1197,6 +1438,7 @@ object UserScriptManager {
                         if (xhost.indexOf('xploretv') === -1) return;
                     }
                     var old = document.getElementById('$idStr');
+                    if (old && !$force) return;
                     if (old) old.remove();
                     var style = document.createElement('style');
                     style.id = '$idStr';

@@ -3,509 +3,355 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Safeer Browser - Začetna stran</title>
+    <title>Safeer Browser</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            user-select: none;
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        html, body {
+            height: 100%;
+            background: #05060a;
+            color: #f4f7fb;
+            font-family: "Segoe UI", Roboto, "Noto Sans", sans-serif;
         }
-
         body {
-            background-color: #05070d;
-            background-image: 
-                radial-gradient(circle at 50% 0%, rgba(255, 85, 0, 0.12) 0%, transparent 50%),
-                radial-gradient(circle at 10% 30%, rgba(120, 40, 200, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 90% 60%, rgba(0, 210, 255, 0.08) 0%, transparent 40%);
-            color: #ffffff;
-            min-height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(ellipse 90% 55% at 50% -8%, rgba(0, 196, 220, 0.22), transparent 58%),
+                radial-gradient(ellipse 45% 40% at 100% 100%, rgba(227, 24, 55, 0.10), transparent 55%),
+                radial-gradient(ellipse 35% 35% at 0% 80%, rgba(80, 40, 160, 0.12), transparent 50%);
+        }
+        .stage {
+            width: min(1680px, calc(100vw - 80px));
+            margin: 0 auto;
+            padding: 88px 0 28px;
+            height: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 24px 16px 40px 16px;
-            overflow-x: hidden;
         }
 
-        .container {
-            width: 100%;
-            max-width: 1080px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 22px;
-        }
-
-        /* 🦁 Brave Shield Privacy Card */
-        .shield-card {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 16px 18px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .shield-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .shield-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 15px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-            color: #ffffff;
-        }
-
-        .shield-icon {
-            font-size: 18px;
-            background: linear-gradient(135deg, #ff5500, #ff8800);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .shield-badge {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 12px;
-            background: rgba(0, 230, 118, 0.15);
-            color: #00e676;
-            border: 1px solid rgba(0, 230, 118, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
-
-        .stat-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 14px;
-            padding: 10px 6px;
-        }
-
-        .stat-val {
-            font-size: 18px;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 2px;
-        }
-
-        .stat-val.ads {
-            background: linear-gradient(135deg, #ff5500, #ff9100);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stat-val.data {
-            background: linear-gradient(135deg, #00d2ff, #0088ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stat-val.time {
-            background: linear-gradient(135deg, #00e676, #00b0ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stat-lbl {
-            font-size: 10px;
-            font-weight: 600;
-            color: #8b9bb4;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        /* 🕒 Clock & Date Widget */
-        .clock-widget {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 6px 0;
-        }
-
-        .clock-time {
-            font-size: 46px;
-            font-weight: 800;
-            letter-spacing: -1px;
-            color: #ffffff;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-            line-height: 1.1;
-        }
-
-        .clock-date {
-            font-size: 13px;
-            font-weight: 500;
-            color: #9aa8bd;
-            text-transform: capitalize;
-            letter-spacing: 0.3px;
-            margin-top: 2px;
-        }
-
-        /* 🔍 Search Widget */
-        .search-card {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
+        .search-card { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 28px; }
         .search-bar-wrapper {
-            position: relative;
-            width: 100%;
+            width: 720px;
+            max-width: 100%;
+            height: 64px;
             display: flex;
             align-items: center;
-            background: rgba(255, 255, 255, 0.07);
+            gap: 12px;
+            padding: 0 10px 0 22px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 28px;
-            padding: 4px 6px 4px 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-            transition: all 0.2s ease;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
         }
-
-        .search-bar-wrapper:focus-within {
-            border-color: #ff5500;
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 20px rgba(255, 85, 0, 0.35);
+        .search-bar-wrapper:focus-within,
+        .search-bar-wrapper.safeer-active-card {
+            border-color: rgba(0, 229, 255, 0.85);
+            background: rgba(0, 229, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.22), 0 18px 50px rgba(0, 0, 0, 0.28);
+            outline: none;
         }
-
+        .search-glyph { width: 22px; height: 22px; opacity: 0.7; flex-shrink: 0; }
         .search-input {
             flex: 1;
             background: transparent;
             border: none;
             outline: none;
             color: #ffffff;
-            font-size: 15px;
+            font-size: 22px;
             font-weight: 500;
-            padding: 8px 0;
-            user-select: text;
         }
-
-        .search-input::placeholder {
-            color: #7b8a9e;
-        }
-
+        .search-input::placeholder { color: rgba(155, 170, 188, 0.9); }
         .search-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ff5500, #ff7700);
+            width: 48px;
+            height: 48px;
             border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.10);
+            color: #fff;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             outline: none;
-            color: #ffffff;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(255, 85, 0, 0.4);
-            transition: transform 0.15s ease;
         }
-
-        .search-btn:active {
-            transform: scale(0.9);
+        .search-btn:focus,
+        .search-btn.safeer-active-card {
+            background: #00e5ff;
+            color: #041016;
+            box-shadow: 0 0 28px rgba(0, 229, 255, 0.55);
         }
-
-        .engine-chips {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
+        .engine-chips { display: flex; gap: 12px; }
         .engine-chip {
-            font-size: 15px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 650;
+            padding: 10px 20px;
+            border-radius: 999px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #8c9ba8;
-            cursor: pointer;
-            transition: all 0.15s ease;
+            color: #9aacbf;
+            outline: none;
         }
-
+        .engine-chip.active {
+            color: #eaf6ff;
+            background: rgba(255, 255, 255, 0.10);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
         .engine-chip:focus,
         .engine-chip.safeer-active-card {
-            outline: 3px solid #00e5ff;
-            outline-offset: 3px;
-            color: #ffffff;
-            background: rgba(0, 229, 255, 0.16);
+            color: #041016;
+            background: #00e5ff;
+            border-color: #00e5ff;
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.25), 0 0 28px rgba(0, 229, 255, 0.4);
+            outline: none;
         }
 
-        .engine-chip.active {
-            background: rgba(255, 85, 0, 0.2);
-            border-color: #ff5500;
-            color: #ff8833;
-        }
-
-        /* ⭐ Top Sites / Speed Dial Grid */
-        .section-header {
-            width: 100%;
+        .section-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 6px;
-            padding: 0 4px;
+            margin: 0 0 14px 4px;
         }
-
         .section-title {
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 700;
-            color: #7f91a8;
+            letter-spacing: 1.4px;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            color: rgba(154, 172, 191, 0.9);
+            margin: 0;
+        }
+        .edit-chip {
+            font-size: 16px;
+            font-weight: 700;
+            padding: 8px 18px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #c9d6e4;
+            outline: none;
+        }
+        .edit-chip:focus,
+        .edit-chip.safeer-active-card {
+            color: #041016;
+            background: #00e5ff;
+            border-color: #00e5ff;
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.25);
+        }
+        .hero-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 28px;
+            contain: layout;
+        }
+        .hero-card {
+            position: relative;
+            height: 210px;
+            border-radius: 22px;
+            overflow: hidden;
+            outline: none;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+        }
+        .hero-card .art {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 42px;
+        }
+        .hero-card .art svg { width: 72px; height: 72px; opacity: 0.95; }
+        .hero-card .hero-label {
+            position: absolute; left: 22px; right: 22px; bottom: 18px;
+            font-size: 26px; font-weight: 750; letter-spacing: 0.2px;
+            text-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+        }
+        .hero-card.tone-0 .art { background: linear-gradient(145deg, #7a1024 0%, #e31837 58%, #ff5a6a 100%); }
+        .hero-card.tone-1 .art { background: linear-gradient(145deg, #4a0b0b 0%, #cc0000 55%, #ff4d4d 100%); }
+        .hero-card.tone-2 .art { background: linear-gradient(145deg, #062a38 0%, #0277a3 55%, #00d2ff 100%); }
+        .hero-card.tone-3 .art { background: linear-gradient(145deg, #0a2040 0%, #1256a8 58%, #3d8bff 100%); }
+        .hero-card.tone-4 .art { background: linear-gradient(145deg, #123018 0%, #1b7a45 58%, #4ade80 100%); }
+        .hero-card.tone-5 .art { background: linear-gradient(145deg, #2a1840 0%, #6d28d9 58%, #c4b5fd 100%); }
+        .hero-card:focus,
+        .hero-card.safeer-active-card {
+            transform: scale(1.035);
+            border-color: #00e5ff;
+            box-shadow: 0 0 0 4px #00e5ff, 0 0 36px rgba(0, 229, 255, 0.45);
+            z-index: 2;
         }
 
-        .favorites-grid {
-            width: 100%;
+        .more-row {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
-            gap: 18px 12px;
+            gap: 16px;
+            flex: 1;
         }
-
-        .favorite-tile {
+        .favorite-tile.mini {
+            height: 118px;
+            border-radius: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: transform 0.15s ease;
+            justify-content: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             outline: none;
         }
-
-        .favorite-tile:focus,
-        .favorite-tile.safeer-active-card {
-            transform: scale(1.08);
+        .favorite-tile.mini .tile-icon-wrapper {
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            background: transparent; border: none; box-shadow: none;
         }
-
-        .favorite-tile:focus .tile-icon-wrapper,
-        .favorite-tile.safeer-active-card .tile-icon-wrapper {
+        .favorite-tile.mini .tile-icon-wrapper svg { width: 32px; height: 32px; }
+        .favorite-tile.mini .tile-name {
+            font-size: 16px;
+            font-weight: 650;
+            color: #dbe6f2;
+            max-width: none;
+        }
+        .favorite-tile.mini:focus,
+        .favorite-tile.mini.safeer-active-card {
+            background: rgba(0, 229, 255, 0.12);
             border-color: #00e5ff;
-            box-shadow: 0 0 22px rgba(0, 229, 255, 0.45);
+            box-shadow: 0 0 0 4px #00e5ff, 0 0 28px rgba(0, 229, 255, 0.35);
+            transform: none;
         }
-
-        .tile-icon-wrapper {
-            width: 72px;
-            height: 72px;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
-            transition: all 0.2s ease;
-        }
-
-        .favorite-tile:active {
-            transform: scale(0.92);
-        }
-
-        .favorite-tile:hover .tile-icon-wrapper {
-            border-color: rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .tile-name {
-            font-size: 11px;
-            font-weight: 600;
-            color: #d1dbe8;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 96px;
-            font-size: 13px;
-        }
-
-        /* 🛡️ Footer Security Status */
-        .footer-badge {
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #5c6c80;
-        }
-
-        .pulse-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #00e676;
-            box-shadow: 0 0 8px #00e676;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 1; }
-            100% { opacity: 0.4; }
-        }
+        .mini-add { border-style: dashed; border-color: rgba(255, 255, 255, 0.18); background: transparent; }
+        .mini-add .tile-name { color: #9aacbf; }
+        .hero-card.mini-add .art { background: rgba(255, 255, 255, 0.04); }
+        .hero-card.mini-add .hero-label { color: #9aacbf; font-weight: 650; }
     </style>
 </head>
 <body>
-
-<div class="container">
-
-    <!-- 🦁 1. Brave Shield Dashboard Stats -->
-    <div class="shield-card">
-        <div class="shield-header">
-            <div class="shield-title">
-                <span class="shield-icon">🦁</span>
-                <span>Safeer Shield</span>
-            </div>
-            <span class="shield-badge">Zaščita aktivna</span>
-        </div>
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="stat-val ads" id="valAds">1.430</div>
-                <div class="stat-lbl">Blokirano</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-val data" id="valData">21.4 MB</div>
-                <div class="stat-lbl">Prihranek</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-val time" id="valTime">1.6 min</div>
-                <div class="stat-lbl">Prihranjen čas</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 🕒 2. Clock & Date Widget -->
-    <div class="clock-widget">
-        <div class="clock-time" id="clockTime">13:15</div>
-        <div class="clock-date" id="clockDate">sobota, 29. avgust 2026</div>
-    </div>
-
-    <!-- 🔍 3. Omnibox / Search Widget -->
+<div class="stage">
     <div class="search-card">
         <form class="search-bar-wrapper" id="searchForm" onsubmit="return handleSearch(event)">
-            <input type="text" class="search-input" id="searchInput" placeholder="Iščite ali vnesite naslov spleta..." autocomplete="off" autocorrect="off" tabindex="-1">
-            <button type="submit" class="search-btn" tabindex="0">🔍</button>
+            <svg class="search-glyph" viewBox="0 0 24 24" fill="none" stroke="#c9d6e4" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+            <input type="text" class="search-input" id="searchInput" placeholder="Iščite ali vnesite naslov..." autocomplete="off" autocorrect="off" tabindex="-1">
+            <button type="submit" class="search-btn" tabindex="0" aria-label="Išči">→</button>
         </form>
         <div class="engine-chips">
             <div class="engine-chip active" role="button" tabindex="0" onclick="setEngine('google', this)">Google</div>
             <div class="engine-chip" role="button" tabindex="0" onclick="setEngine('duckduckgo', this)">DuckDuckGo</div>
-            <div class="engine-chip" role="button" tabindex="0" onclick="openUrl('https://www.youtube.com/tv')">YouTube</div>
-            <div class="engine-chip" role="button" tabindex="0" onclick="openUrl('https://www.xploretv.si/home')">Xplore TV</div>
             <div class="engine-chip" role="button" tabindex="0" onclick="setEngine('brave', this)">Brave Search</div>
-            <div class="engine-chip" role="button" tabindex="0" onclick="openUrl('https://hydrahd.ws/')">StreamNexus</div>
         </div>
     </div>
 
-    <!-- ⭐ 4. Priljubljene strani (Speed Dial) -->
-    <div class="section-header">
-        <div class="section-title">Priljubljene strani</div>
+    <div class="section-head">
+        <div class="section-title">Moje strani</div>
+        <div class="edit-chip" role="button" tabindex="0" onclick="editTiles()">Uredi</div>
     </div>
+    <div class="hero-row" id="heroRow"></div>
 
-    <div class="favorites-grid" id="favoritesGrid">
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.xploretv.si/home')">
-            <div class="tile-icon-wrapper" style="background: rgba(227, 24, 55, 0.18); border-color: rgba(227, 24, 55, 0.45);">📡</div>
-            <div class="tile-name">Xplore TV</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.youtube.com/tv')">
-            <div class="tile-icon-wrapper" style="background: rgba(255, 0, 0, 0.15); border-color: rgba(255, 0, 0, 0.3);">📺</div>
-            <div class="tile-name">YouTube</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://hydrahd.ws/')">
-            <div class="tile-icon-wrapper" style="background: rgba(0, 210, 255, 0.15); border-color: rgba(0, 210, 255, 0.3);">🎬</div>
-            <div class="tile-name">Filmi</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.google.com')">
-            <div class="tile-icon-wrapper" style="background: rgba(66, 133, 244, 0.15); border-color: rgba(66, 133, 244, 0.3);">🔍</div>
-            <div class="tile-name">Google</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://chatgpt.com')">
-            <div class="tile-icon-wrapper" style="background: rgba(16, 163, 127, 0.15); border-color: rgba(16, 163, 127, 0.3);">💬</div>
-            <div class="tile-name">ChatGPT</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.24ur.com')">
-            <div class="tile-icon-wrapper" style="background: rgba(0, 102, 204, 0.15); border-color: rgba(0, 102, 204, 0.3);">📰</div>
-            <div class="tile-name">24ur</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.rtvslo.si')">
-            <div class="tile-icon-wrapper" style="background: rgba(0, 150, 255, 0.15); border-color: rgba(0, 150, 255, 0.3);">📡</div>
-            <div class="tile-name">RTV SLO</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://cryptoquant.com')">
-            <div class="tile-icon-wrapper" style="background: rgba(255, 170, 0, 0.15); border-color: rgba(255, 170, 0, 0.3);">🪙</div>
-            <div class="tile-name">Kripto</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://sl.wikipedia.org')">
-            <div class="tile-icon-wrapper" style="background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2);">📖</div>
-            <div class="tile-name">Wikipedija</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.reddit.com')">
-            <div class="tile-icon-wrapper" style="background: rgba(255, 69, 0, 0.15); border-color: rgba(255, 69, 0, 0.3);">📱</div>
-            <div class="tile-name">Reddit</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://github.com')">
-            <div class="tile-icon-wrapper" style="background: rgba(140, 140, 140, 0.15); border-color: rgba(140, 140, 140, 0.3);">🐙</div>
-            <div class="tile-name">GitHub</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="openUrl('https://www.speedtest.net')">
-            <div class="tile-icon-wrapper" style="background: rgba(0, 230, 118, 0.15); border-color: rgba(0, 230, 118, 0.3);">⚡</div>
-            <div class="tile-name">Hitrost</div>
-        </div>
-        <div class="favorite-tile" role="button" tabindex="0" onclick="addNewFavorite()">
-            <div class="tile-icon-wrapper" style="background: rgba(255, 85, 0, 0.15); border-color: rgba(255, 85, 0, 0.4); color: #ff7700;">➕</div>
-            <div class="tile-name">Dodaj</div>
-        </div>
+    <div class="section-head">
+        <div class="section-title">Več strani</div>
+        <div class="edit-chip" role="button" tabindex="0" onclick="addTile()">Dodaj</div>
     </div>
-
-    <!-- 🛡️ Footer -->
-    <div class="footer-badge">
-        <div class="pulse-dot"></div>
-        <span>Brave-Style Safeer Shield & Anti-Threat Engine</span>
-    </div>
-
+    <div class="more-row" id="favoritesGrid"></div>
 </div>
-
 <script>
     var currentEngine = 'google';
+    var DEFAULT_TILES = [
+        { title: 'Xplore TV', url: 'https://www.xploretv.si/livetv' },
+        { title: 'YouTube', url: 'https://www.youtube.com/tv' },
+        { title: 'Filmi', url: 'https://hydrahd.ws/' },
+        { title: '24ur', url: 'https://www.24ur.com' },
+        { title: 'RTV SLO', url: 'https://www.rtvslo.si' },
+        { title: 'Google', url: 'https://www.google.com' },
+        { title: 'ChatGPT', url: 'https://chatgpt.com' },
+        { title: 'Kripto', url: 'https://cryptoquant.com' },
+        { title: 'Wikipedija', url: 'https://sl.wikipedia.org' }
+    ];
+
+    function loadTiles() {
+        try {
+            if (window.SafeerBridge && typeof window.SafeerBridge.getHomeTiles === 'function') {
+                var raw = window.SafeerBridge.getHomeTiles();
+                var parsed = JSON.parse(raw);
+                if (parsed && parsed.length) return parsed;
+            }
+        } catch (e) {}
+        return DEFAULT_TILES.slice();
+    }
+
+    function letterMark(title) {
+        var t = String(title || '').replace(/^[^A-Za-z0-9ČčŠšŽž]+/, '');
+        var ch = t.charAt(0) || String(title || '?').charAt(0) || '?';
+        return ch.toUpperCase();
+    }
+
+    function bindOpen(el, url) {
+        el.addEventListener('click', function() { openUrl(url); });
+    }
+
+    function renderTiles() {
+        var tiles = loadTiles();
+        var heroes = tiles.slice(0, 4);
+        var rest = tiles.slice(4);
+        var heroRow = document.getElementById('heroRow');
+        var miniRow = document.getElementById('favoritesGrid');
+        heroRow.innerHTML = '';
+        miniRow.innerHTML = '';
+
+        function addHero(tile, index, isAdd) {
+            var el = document.createElement('div');
+            el.className = isAdd ? 'favorite-tile hero-card mini-add' : ('favorite-tile hero-card tone-' + (index % 6));
+            el.setAttribute('role', 'button');
+            el.tabIndex = 0;
+            var art = document.createElement('div');
+            art.className = 'art';
+            art.textContent = isAdd ? '+' : letterMark(tile.title);
+            var lab = document.createElement('div');
+            lab.className = 'hero-label';
+            lab.textContent = isAdd ? 'Dodaj' : tile.title;
+            el.appendChild(art);
+            el.appendChild(lab);
+            if (isAdd) el.addEventListener('click', addTile);
+            else bindOpen(el, tile.url);
+            heroRow.appendChild(el);
+        }
+
+        for (var i = 0; i < heroes.length; i++) addHero(heroes[i], i, false);
+        if (heroes.length < 4) addHero({ title: 'Dodaj', url: '' }, 0, true);
+
+        function addMini(tile, isAdd) {
+            var el = document.createElement('div');
+            el.className = isAdd ? 'favorite-tile mini mini-add' : 'favorite-tile mini';
+            el.setAttribute('role', 'button');
+            el.tabIndex = 0;
+            var wrap = document.createElement('div');
+            wrap.className = 'tile-icon-wrapper';
+            wrap.textContent = isAdd ? '+' : letterMark(tile.title);
+            wrap.style.fontSize = '22px';
+            wrap.style.fontWeight = '800';
+            wrap.style.color = '#dbe6f2';
+            var name = document.createElement('div');
+            name.className = 'tile-name';
+            name.textContent = isAdd ? 'Dodaj' : tile.title;
+            el.appendChild(wrap);
+            el.appendChild(name);
+            if (isAdd) el.addEventListener('click', addTile);
+            else bindOpen(el, tile.url);
+            miniRow.appendChild(el);
+        }
+
+        for (var j = 0; j < rest.length; j++) addMini(rest[j], false);
+        addMini({ title: 'Dodaj', url: '' }, true);
+    }
+
+    function editTiles() {
+        if (window.SafeerBridge && window.SafeerBridge.openHomeTilesEditor) window.SafeerBridge.openHomeTilesEditor();
+    }
+    function addTile() {
+        if (window.SafeerBridge && window.SafeerBridge.addHomeTile) window.SafeerBridge.addHomeTile();
+    }
 
     function setEngine(engine, el) {
         currentEngine = engine;
-        var chips = document.querySelectorAll('.engine-chip');
-        chips.forEach(function(c) { c.classList.remove('active'); });
+        document.querySelectorAll('.engine-chip').forEach(function(c) { c.classList.remove('active'); });
         if (el) el.classList.add('active');
-        
         var input = document.getElementById('searchInput');
-        if (engine === 'youtube') input.placeholder = 'Išči na YouTube...';
-        else if (engine === 'streamnexus') input.placeholder = 'Išči filme in serije...';
-        else if (engine === 'duckduckgo') input.placeholder = 'Zasebno iskanje DuckDuckGo...';
-        else if (engine === 'brave') input.placeholder = 'Brave Search...';
-        else input.placeholder = 'Iščite ali vnesite naslov spleta...';
+        if (engine === 'duckduckgo') input.placeholder = 'Zasebno iskanje DuckDuckGo...';
+        else if (engine === 'brave') input.placeholder = 'Iskanje z Brave...';
+        else input.placeholder = 'Iščite ali vnesite naslov...';
         try { input.blur(); } catch (e) {}
     }
 
@@ -513,83 +359,26 @@
         if (e) e.preventDefault();
         var q = document.getElementById('searchInput').value.trim();
         if (!q) return false;
-
         var targetUrl = '';
-        if (q.startsWith('http://') || q.startsWith('https://')) {
-            targetUrl = q;
-        } else if (q.includes('.') && !q.includes(' ')) {
-            targetUrl = 'https://' + q;
-        } else {
-            if (currentEngine === 'youtube') {
-                targetUrl = 'https://www.youtube.com/tv#/search?q=' + encodeURIComponent(q);
-            } else if (currentEngine === 'duckduckgo') {
-                targetUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
-            } else if (currentEngine === 'brave') {
-                targetUrl = 'https://search.brave.com/search?q=' + encodeURIComponent(q);
-            } else if (currentEngine === 'streamnexus') {
-                targetUrl = 'https://hydrahd.ws/search/' + encodeURIComponent(q);
-            } else {
-                targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(q);
-            }
-        }
+        if (q.indexOf('http://') === 0 || q.indexOf('https://') === 0) targetUrl = q;
+        else if (q.indexOf('.') !== -1 && q.indexOf(' ') === -1) targetUrl = 'https://' + q;
+        else if (currentEngine === 'duckduckgo') targetUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
+        else if (currentEngine === 'brave') targetUrl = 'https://search.brave.com/search?q=' + encodeURIComponent(q);
+        else targetUrl = 'https://www.google.com/search?q=' + encodeURIComponent(q);
         openUrl(targetUrl);
         return false;
     }
 
     function openUrl(url) {
-        if (window.SafeerBridge && typeof window.SafeerBridge.navigate === 'function') {
-            window.SafeerBridge.navigate(url);
-        } else {
-            window.location.href = url;
-        }
+        if (window.SafeerBridge && typeof window.SafeerBridge.navigate === 'function') window.SafeerBridge.navigate(url);
+        else window.location.href = url;
     }
 
-    function addNewFavorite() {
-        var url = prompt('Vnesite URL spletnega mesta (npr. https://siol.net):', 'https://');
-        if (url && url !== 'https://') {
-            var name = prompt('Vnesite ime zaznamka:', 'Priljubljeno');
-            if (name) {
-                var grid = document.getElementById('favoritesGrid');
-                var addBtn = grid.lastElementChild;
-                var tile = document.createElement('div');
-                tile.className = 'favorite-tile';
-                tile.onclick = function() { openUrl(url); };
-                tile.innerHTML = '<div class="tile-icon-wrapper">⭐</div><div class="tile-name">' + name + '</div>';
-                grid.insertBefore(tile, addBtn);
-            }
-        }
+    function bootTiles() {
+        renderTiles();
+        if (!window.SafeerBridge) setTimeout(renderTiles, 150);
     }
-
-    // Posodobi uro in datum v slovenščini
-    function updateClock() {
-        var now = new Date();
-        var hrs = String(now.getHours()).padStart(2, '0');
-        var mins = String(now.getMinutes()).padStart(2, '0');
-        document.getElementById('clockTime').textContent = hrs + ':' + mins;
-
-        var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        var dateStr = now.toLocaleDateString('sl-SI', options);
-        document.getElementById('clockDate').textContent = dateStr;
-    }
-
-    // Posodobi statistiko Safeer Shielda
-    function updateStats() {
-        try {
-            if (window.SafeerBridge && typeof window.SafeerBridge.getStats === 'function') {
-                var jsonStr = window.SafeerBridge.getStats();
-                var s = JSON.parse(jsonStr);
-                document.getElementById('valAds').textContent = s.ads.toLocaleString('sl-SI');
-                document.getElementById('valData').textContent = s.dataMb;
-                document.getElementById('valTime').textContent = s.timeMin;
-            }
-        } catch(e) {}
-    }
-
-    setInterval(updateClock, 1000);
-    setInterval(updateStats, 2000);
-    updateClock();
-    updateStats();
+    bootTiles();
 </script>
-
 </body>
 </html>

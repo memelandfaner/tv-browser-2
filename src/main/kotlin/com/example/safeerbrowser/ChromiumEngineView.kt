@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.media.AudioManager
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
@@ -25,9 +24,7 @@ class ChromiumEngineView @JvmOverloads constructor(
         const val MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 15; SM-S931B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36"
         const val DESKTOP_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
         const val SMART_TV_USER_AGENT = "Mozilla/5.0 (SMART-TV; LINUX; Tizen 7.0) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/8.2 Chrome/106.0.5249.126 TV Safari/537.36"
-        private val xploreInterceptLogs = java.util.concurrent.atomic.AtomicInteger(0)
         private val xploreSettingsLogs = java.util.concurrent.atomic.AtomicInteger(0)
-        private val xploreThreatLogs = java.util.concurrent.atomic.AtomicInteger(0)
         private val xploreMediaLogs = java.util.concurrent.atomic.AtomicInteger(0)
         private val lastDashChannel = java.util.concurrent.atomic.AtomicReference("")
 
@@ -77,6 +74,9 @@ class ChromiumEngineView @JvmOverloads constructor(
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private val jsBridge = SafeerWebAppInterface(context, this)
+    private var scriptNavGen = 0
+    private var earlyScriptNavGen = -1
+    private var finishedScriptNavGen = -1
 
     init {
         setupSettings()
@@ -98,13 +98,13 @@ class ChromiumEngineView @JvmOverloads constructor(
 
     private fun setupSettings() {
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
-
-        // 🔊 100% Native Strojni Vklop Zvoka (Unmute STREAM_MUSIC)
-        try {
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            audioManager?.setStreamMute(AudioManager.STREAM_MUSIC, false)
-            audioManager?.mode = AudioManager.MODE_NORMAL
-        } catch (_: Exception) {}
+        overScrollMode = View.OVER_SCROLL_NEVER
+        isHapticFeedbackEnabled = false
+        isScrollbarFadingEnabled = true
+        scrollBarStyle = View.SCROLLBARS_OUTSIDE_OVERLAY
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true)
+        }
 
         val cm = CookieManager.getInstance()
         cm.setAcceptCookie(true)
@@ -116,7 +116,9 @@ class ChromiumEngineView @JvmOverloads constructor(
             cm.setCookie(".youtube.com", "CONSENT=YES+cb.20230531-04-p0.sl+FX+999; path=/; domain=.youtube.com")
             cm.setCookie(".google.com", "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAnNsIAEaBgiA_LyaBg; path=/; domain=.google.com; SameSite=Lax")
             cm.setCookie(".google.com", "CONSENT=YES+cb.20230531-04-p0.sl+FX+999; path=/; domain=.google.com")
-            cm.flush()
+            Thread {
+                try { CookieManager.getInstance().flush() } catch (_: Exception) {}
+            }.start()
         } catch (_: Exception) {}
 
         settings.apply {
@@ -129,24 +131,40 @@ class ChromiumEngineView @JvmOverloads constructor(
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             setSupportMultipleWindows(false)
             javaScriptCanOpenWindowsAutomatically = false
-            
-            setSupportZoom(true)
-            builtInZoomControls = true
+            setSupportZoom(false)
+            builtInZoomControls = false
             displayZoomControls = false
             useWideViewPort = true
             loadWithOverviewMode = true
-            textZoom = 80
-            
+            textZoom = 100
             cacheMode = WebSettings.LOAD_DEFAULT
             userAgentString = DESKTOP_USER_AGENT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                offscreenPreRaster = true
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                safeBrowsingEnabled = false
+            }
         }
 
-        setInitialScale(80)
+        setInitialScale(100)
 
         addJavascriptInterface(jsBridge, "SafeerBridge")
 
+        try {
+            if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                androidx.webkit.WebViewCompat.addDocumentStartJavaScript(
+                    this,
+                    UserScriptManager.FORCE_UNMUTE_JS,
+                    setOf("*")
+                )
+            }
+        } catch (_: Exception) {}
+
         isFocusable = true
         isFocusableInTouchMode = true
+        // JS spatial nav owns D-Pad. Native WebView focus would land on Hydra login/logo.
+        settings.setNeedInitialFocus(false)
     }
 
     private fun applyUserAgentForUrl(url: String) {
@@ -155,21 +173,25 @@ class ChromiumEngineView @JvmOverloads constructor(
             host.contains("youtube.com") || host.contains("youtu.be")
         val isXplore = host.contains("xploretv") || host.contains("a1xploretv")
         val skip = host.contains("music.youtube") || host.contains("studio.youtube") || host.contains("accounts.")
-        if (isXplore) {
-            val density = resources.displayMetrics.density
-            val scalePct = if (density > 0.1f) (100f / density).toInt().coerceIn(40, 100) else 100
+        val isHome = url.contains("brave_home.html", ignoreCase = true)
+        val is24ur = host.contains("24ur")
+        val isHydra = host.contains("hydrahd")
+        if (isXplore || isHome || is24ur || isHydra) {
             settings.textZoom = 100
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
-            setInitialScale(scalePct)
+            setInitialScale(100)
             settings.userAgentString = DESKTOP_USER_AGENT
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
-            settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            settings.setNeedInitialFocus(false)
+            if (isXplore) {
+                settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            }
             // #region agent log
-            if (xploreSettingsLogs.incrementAndGet() <= 3) {
+            if (isXplore && xploreSettingsLogs.incrementAndGet() <= 3) {
                 SafeerDbg.log(
                     "H30",
                     "ChromiumEngineView.kt:ua",
@@ -187,8 +209,8 @@ class ChromiumEngineView @JvmOverloads constructor(
             // #endregion
             return
         }
-        settings.textZoom = 80
-        setInitialScale(80)
+        settings.textZoom = 100
+        setInitialScale(100)
         settings.userAgentString = when {
             skip -> DESKTOP_USER_AGENT
             isYoutubeTv -> SMART_TV_USER_AGENT
@@ -228,6 +250,16 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         @android.webkit.JavascriptInterface
+        fun onXploreMedia(url: String?, method: String?, headersJson: String?, kind: String?) {
+            XploreDashCapture.observeJs(
+                url ?: "",
+                method ?: "GET",
+                headersJson ?: "{}",
+                kind ?: ""
+            )
+        }
+
+        @android.webkit.JavascriptInterface
         fun getStats(): String {
             val ads = AdBlockEngine.blockedAdsCount.get()
             val threats = ThreatBlockEngine.totalBlockedThreats.get()
@@ -241,6 +273,47 @@ class ChromiumEngineView @JvmOverloads constructor(
             (context as? android.app.Activity)?.runOnUiThread {
                 webView.loadUrl(url)
             }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun getHomeTiles(): String {
+            return try {
+                HomeTilesStore.toJson(context)
+            } catch (_: Exception) {
+                "[]"
+            }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun openHomeTilesEditor() {
+            val act = context as? android.app.Activity ?: return
+            act.runOnUiThread {
+                HomeTilesStore.showEditor(act) { reloadHome() }
+            }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun addHomeTile() {
+            val act = context as? android.app.Activity ?: return
+            act.runOnUiThread {
+                HomeTilesStore.showTileForm(act, null) { created ->
+                    val tiles = HomeTilesStore.load(act)
+                    tiles.add(created)
+                    HomeTilesStore.save(act, tiles)
+                    reloadHome()
+                }
+            }
+        }
+
+        private fun reloadHome() {
+            webView.post {
+                webView.loadUrl("file:///android_asset/brave_home.html")
+            }
+        }
+
+        @android.webkit.JavascriptInterface
+        fun forceAudioOn() {
+            // Do not touch AudioManager / HDMI-CEC: JBL BAR 300 treats unmute as mute toggle.
         }
 
         @android.webkit.JavascriptInterface
@@ -277,8 +350,9 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 super.onProgressChanged(view, newProgress)
                 onProgressUpdate?.invoke(newProgress)
-                if (newProgress in 20..60) {
-                    view?.let { UserScriptManager.injectEarlyScript(it) }
+                if (newProgress >= 35 && earlyScriptNavGen != scriptNavGen) {
+                    earlyScriptNavGen = scriptNavGen
+                    view?.let { UserScriptManager.injectEarlyScript(it, it.url) }
                 }
             }
 
@@ -334,6 +408,7 @@ class ChromiumEngineView @JvmOverloads constructor(
                                         if (window._safeer_app_bg) return;
                                         try { if (sessionStorage.getItem('safeer_app_bg') === '1') return; } catch (eBg) {}
                                         window._safeer_xplore_drm_ok = true;
+                                        window._safeer_xplore_drm_at = Date.now();
                                         if (window._safeerSiteAgent) {
                                             window._safeerSiteAgent.onDrm();
                                         } else if (window._safeer_xplore_want_play) {
@@ -485,87 +560,84 @@ class ChromiumEngineView @JvmOverloads constructor(
                 } else {
                     false
                 }
+                val method = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    request.method ?: "GET"
+                } else {
+                    "GET"
+                }
+                val reqHeaders: Map<String, String> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    request.requestHeaders ?: emptyMap()
+                } else {
+                    emptyMap()
+                }
 
-                // 🛑 1. Brezkompromisni Threat Shield (Botnet C2, Malware, Phishing, IOC)
+                if (XploreDashCapture.shouldPassthrough(url)) {
+                    try {
+                        XploreDashCapture.observe(url, method, reqHeaders)
+                    } catch (_: Exception) {}
+                    val lowerUrl = url.lowercase()
+                    val isMedia = lowerUrl.contains(".mpd") || lowerUrl.contains("license") ||
+                        lowerUrl.contains("widevine") || lowerUrl.contains("cenc") ||
+                        lowerUrl.contains("/drm/") || lowerUrl.contains("drmtoday")
+                    if (isMedia && xploreMediaLogs.incrementAndGet() <= 16) {
+                        SafeerDbg.log(
+                            "H286",
+                            "ChromiumEngineView.kt:intercept",
+                            "media passthrough",
+                            org.json.JSONObject()
+                                .put("method", method)
+                                .put("main", isMainFrame)
+                                .put("url", url.take(180))
+                        )
+                    }
+                    val dashCh = Regex("""__c/([^/]+)""").find(url)?.groupValues?.getOrNull(1) ?: ""
+                    if (dashCh.isNotEmpty() && lastDashChannel.getAndSet(dashCh) != dashCh) {
+                        SafeerDbg.log(
+                            "H292",
+                            "ChromiumEngineView.kt:intercept",
+                            "dash channel",
+                            org.json.JSONObject().put("ch", dashCh)
+                        )
+                    }
+                    if (method.equals("POST", ignoreCase = true) && xploreMediaLogs.get() <= 24) {
+                        val host = try { Uri.parse(url).host ?: "" } catch (_: Exception) { "" }
+                        SafeerDbg.log(
+                            "H329",
+                            "ChromiumEngineView.kt:intercept",
+                            "post passthrough",
+                            org.json.JSONObject().put("host", host).put("path", (Uri.parse(url).path ?: "").take(80))
+                        )
+                    }
+                    return null
+                }
+
                 val threatResponse = ThreatBlockEngine.handleThreatIntercept(url, isMainFrame)
                 if (threatResponse != null) {
-                    val lu = url.lowercase()
-                    if ((lu.contains("widevine") || lu.contains("license") || lu.contains("castlabs") ||
-                            lu.contains("xplore") || lu.contains(".mpd")) &&
-                        xploreThreatLogs.incrementAndGet() <= 6
-                    ) {
-                        // #region agent log
-                        SafeerDbg.log(
-                            "H29",
-                            "ChromiumEngineView.kt:intercept",
-                            "threat blocked drm-like",
-                            org.json.JSONObject()
-                                .put("main", isMainFrame)
-                                .put("url", url.take(180))
-                        )
-                        // #endregion
-                    }
                     return threatResponse
                 }
-
-                val adResponse = AdBlockEngine.handleIntercept(url)
-                // #region agent log
-                val lowerUrl = url.lowercase()
-                val isMedia = lowerUrl.contains(".mpd") || lowerUrl.contains("license") ||
-                    lowerUrl.contains("widevine") || lowerUrl.contains("cenc") ||
-                    lowerUrl.contains("/drm/") || lowerUrl.contains("widevine")
-                if (isMedia && xploreMediaLogs.incrementAndGet() <= 16) {
-                    SafeerDbg.log(
-                        "H286",
-                        "ChromiumEngineView.kt:intercept",
-                        "media request",
-                        org.json.JSONObject()
-                            .put("blocked", adResponse != null)
-                            .put("main", isMainFrame)
-                            .put("url", url.take(180))
-                    )
-                }
-                val dashCh = Regex("""__c/([^/]+)""").find(url)?.groupValues?.getOrNull(1) ?: ""
-                if (dashCh.isNotEmpty() && lastDashChannel.getAndSet(dashCh) != dashCh) {
-                    SafeerDbg.log(
-                        "H292",
-                        "ChromiumEngineView.kt:intercept",
-                        "dash channel",
-                        org.json.JSONObject()
-                            .put("ch", dashCh)
-                            .put("blocked", adResponse != null)
-                    )
-                }
-                if (lowerUrl.contains("xplore") || lowerUrl.contains("castlabs") || lowerUrl.contains(".mpd") ||
-                    lowerUrl.contains("widevine") || lowerUrl.contains("license") || lowerUrl.contains("/player/")
-                ) {
-                    if (xploreInterceptLogs.incrementAndGet() <= 8) {
-                        SafeerDbg.log(
-                            "H5",
-                            "ChromiumEngineView.kt:intercept",
-                            "xplore-related request",
-                            org.json.JSONObject()
-                                .put("blocked", adResponse != null)
-                                .put("main", isMainFrame)
-                                .put("url", url.take(180))
-                        )
-                    }
-                }
-                // #endregion
-                return adResponse
+                return AdBlockEngine.handleIntercept(url)
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                scriptNavGen++
+                earlyScriptNavGen = -1
+                finishedScriptNavGen = -1
                 lastDashChannel.set("")
                 xploreMediaLogs.set(0)
+                val page = url ?: ""
+                if (!page.contains("xploretv", ignoreCase = true) &&
+                    !page.contains("a1xploretv", ignoreCase = true)
+                ) {
+                    XploreDashCapture.resetAll()
+                }
                 url?.let {
                     applyUserAgentForUrl(it)
+                    if (it.contains("24ur", ignoreCase = true) || it.contains("hydrahd", ignoreCase = true)) {
+                        UserScriptManager.injectWindowsDesktopSpoof(this@ChromiumEngineView)
+                    }
                     onUrlChanged?.invoke(it)
                     onSecurityChanged?.invoke(it.startsWith("https://", ignoreCase = true))
-                    view?.let { wv ->
-                        UserScriptManager.injectEarlyScript(wv)
-                    }
                 }
             }
 
@@ -576,8 +648,11 @@ class ChromiumEngineView @JvmOverloads constructor(
                     onSecurityChanged?.invoke(it.startsWith("https://", ignoreCase = true))
                     val pageTitle = title ?: ""
                     onPageLoaded?.invoke(it, pageTitle)
-                    view?.let { wv ->
-                        UserScriptManager.injectOnPageFinished(wv, isDarkMode)
+                    if (finishedScriptNavGen != scriptNavGen) {
+                        finishedScriptNavGen = scriptNavGen
+                        view?.let { wv ->
+                            UserScriptManager.injectOnPageFinished(wv, isDarkMode, it)
+                        }
                     }
                 }
             }

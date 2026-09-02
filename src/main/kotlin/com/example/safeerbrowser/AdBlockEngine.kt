@@ -53,7 +53,7 @@ object AdBlockEngine {
             "bks-bank.si", "unicreditbank.si", "lon.si", "gorenjska-banka.si",
             "rtvslo.si", "24ur.com", "siol.net", "github.com",
             "xploretv.si", "www.xploretv.si", "a1xploretv.si", "a1.si", "a1.net",
-            "cdn23.a1.net", "widevine.com",
+            "cdn23.a1.net", "widevine.com", "drmtoday.com", "castlabs.com", "expressplay.com",
             "bitmovin.com", "bitmovin-a.akamaihd.net", "theoplayer.com",
             "akamaihd.net", "akamaized.net",
             "themoviedb.org", "tmdb.org", "image.tmdb.org", "api.themoviedb.org",
@@ -110,7 +110,8 @@ object AdBlockEngine {
         return host.contains("xploretv") || host.contains("a1xploretv") ||
             host == "a1.si" || host.endsWith(".a1.si") ||
             host == "a1.net" || host.endsWith(".a1.net") ||
-            host.contains("widevine") ||
+            host.contains("widevine") || host.contains("drmtoday") ||
+            host.contains("castlabs") || host.contains("expressplay") ||
             url.contains("xploretv.si")
     }
 

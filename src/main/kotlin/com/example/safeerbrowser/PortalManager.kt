@@ -16,6 +16,8 @@ data class PortalItem(
     var url: String
 )
 
+typealias Portal = PortalItem
+
 object PortalManager {
 
     private const val PREFS_NAME = "safeer_portals_prefs"
@@ -23,8 +25,9 @@ object PortalManager {
 
     val DEFAULT_PORTALS = listOf(
         PortalItem("🌐 Google", "https://www.google.com"),
-        PortalItem("📡 Xplore TV", "https://www.xploretv.si/home"),
-        PortalItem("📺 YouTube", "https://www.youtube.com/tv"),
+        PortalItem("📡 Xplore TV", "https://www.xploretv.si/livetv"),
+        PortalItem("📺 YouTube TV", "https://www.youtube.com/tv"),
+        PortalItem("🎬 Filmi", "https://hydrahd.ws/"),
         PortalItem("📰 24ur.com", "https://www.24ur.com"),
         PortalItem("🇸🇮 RTV SLO", "https://www.rtvslo.si"),
         PortalItem("🎬 StreamNexus", "https://google.com/search?q=streamnexus+hd"),

@@ -25,6 +25,12 @@ class TabManager(
     val count: Int get() = tabs.size
 
     fun createTab(context: Context, url: String = "https://www.google.com", makeActive: Boolean = true): TabModel {
+        while (tabs.size >= 5) {
+            val victim = tabs.firstOrNull { it.id != activeTabId } ?: tabs.firstOrNull() ?: break
+            val idx = tabs.indexOf(victim)
+            try { victim.webView.destroy() } catch (_: Exception) {}
+            if (idx >= 0) tabs.removeAt(idx)
+        }
         val webView = ChromiumEngineView(context)
         webView.layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -57,6 +63,12 @@ class TabManager(
             (target.webView.parent as? ViewGroup)?.removeView(target.webView)
         }
         container.addView(target.webView)
+        for (tab in tabs) {
+            try {
+                if (tab.id == tabId) tab.webView.onResume()
+                else tab.webView.onPause()
+            } catch (_: Exception) {}
+        }
 
         notifyUpdated()
     }
