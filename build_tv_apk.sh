@@ -105,12 +105,14 @@ install_xplore_auth() {
     local dest="$DIR/assets/xplore_auth.js"
     local src="$DIR/xplore_auth.local.js"
     mkdir -p "$DIR/assets"
-    if [[ -f "$src" ]]; then
+    # Default: never bake Xplore login into the APK (GitHub / public download).
+    # Local TV with auto-login: INCLUDE_XPLORE_AUTH=1 ./build_tv_apk.sh
+    if [[ "${INCLUDE_XPLORE_AUTH:-}" == "1" && -f "$src" ]]; then
         cp "$src" "$dest"
-        echo "Xplore: lokalni samodejni vstop je v TEM APK (ne nalagaj tega APK na GitHub)."
+        echo "Xplore: lokalni samodejni vstop je v TEM APK — NE nalagaj tega APK na GitHub."
     else
         printf '%s\n' 'window._safeerXploreAuth = null;' > "$dest"
-        echo "Xplore: javna prijava, brez samodejnega vstopa."
+        echo "Xplore: javni APK, brez samodejnega vstopa."
     fi
 }
 restore_xplore_auth() {
@@ -171,6 +173,20 @@ if ! grep -a -q "androidx/media3/exoplayer/dash/DashMediaSource" "$VERIFY_DIR"/c
     exit 1
 fi
 echo "OK: Media3 ExoPlayer + DashMediaSource sta v dex."
+
+echo "🔎 Preverjam, da javni APK nima Xplore prijave..."
+AUTH_JS="$(unzip -p "$DIR/TV-Browser-2.apk" assets/xplore_auth.js 2>/dev/null || true)"
+if [[ "${INCLUDE_XPLORE_AUTH:-}" == "1" ]]; then
+    if [[ "$AUTH_JS" == *'window._safeerXploreAuth = null;'* ]]; then
+        echo "OPOZORILO: INCLUDE_XPLORE_AUTH=1, vendar je auth v APK še null."
+    fi
+else
+    if [[ "$AUTH_JS" != 'window._safeerXploreAuth = null;'* ]]; then
+        echo "NAPAKA: APK vsebuje Xplore prijavo. Ta datoteka ne sme iti na GitHub." >&2
+        exit 1
+    fi
+    echo "OK: xplore_auth.js v APK je null."
+fi
 
 echo ""
 echo "=========================================================="

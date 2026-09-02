@@ -18,9 +18,6 @@ Xplore (`xploretv.si`) catalog, login, D-Pad and EPG stay in **WebView**. Video 
 - **GitHub**: `https://github.com/memelandfaner/tv-browser-2`
 - **Download APK**: `https://github.com/memelandfaner/tv-browser-2/raw/main/TV-Browser-2.apk` — short: `https://tinyurl.com/27w3uxob` / `https://da.gd/8fziT`
 - **Install**: `curl -sL https://raw.githubusercontent.com/memelandfaner/tv-browser-2/main/install_tv_browser.sh | bash`
-- **ADB**: `192.168.0.77:5555` (Philips 50PUS8507/12)
-- **Eval JS**: `adb shell 'am broadcast -a com.example.safeerbrowser.EVAL_JS --es cmd "..."'`
-- **Clear DASH smoke (no DRM)**: `am broadcast -a com.example.safeerbrowser.EXO_SMOKE` or `am start ... --ez exo_smoke true`
 - **MainActivity** stays `android.app.Activity` (not AppCompatActivity). No `media3-ui`.
 
 ## Frozen / do-not-touch

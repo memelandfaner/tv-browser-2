@@ -4,7 +4,7 @@ set -euo pipefail
 
 APK_URL="https://github.com/memelandfaner/tv-browser-2/raw/main/TV-Browser-2.apk"
 TEMP_APK="/tmp/TV-Browser-2.apk"
-TV="${1:-192.168.0.77:5555}"
+TV="${1:-}"
 
 echo "=========================================================="
 echo "TV Browser 2 — prenos in namestitev"
@@ -25,11 +25,13 @@ if ! command -v adb >/dev/null 2>&1; then
     exit 0
 fi
 
-adb connect "$TV" >/dev/null 2>&1 || true
+if [[ -n "$TV" ]]; then
+    adb connect "$TV" >/dev/null 2>&1 || true
+fi
 DEVICE="$(adb devices | awk '/\tdevice$/{print $1; exit}')"
 if [[ -z "$DEVICE" ]]; then
     echo "Ni ADB naprave. APK je v $TEMP_APK"
-    echo "Primer: adb connect 192.168.0.77:5555 && adb install -r $TEMP_APK"
+    echo "Primer: adb connect <TV-IP>:5555 && adb install -r $TEMP_APK"
     exit 0
 fi
 

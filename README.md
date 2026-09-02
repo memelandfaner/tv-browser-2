@@ -19,8 +19,7 @@ Ista datoteka je tudi v `Release/Artifacts/tv-browser-2-release.apk`.
 Paket: `com.example.safeerbrowser`. Gradnja: `./build_tv_apk.sh`.
 
 ```bash
-adb connect 192.168.0.77:5555
-adb -s 192.168.0.77:5555 install -r TV-Browser-2.apk
+adb install -r TV-Browser-2.apk
 ```
 
 ## HydraHD (daljinec)
