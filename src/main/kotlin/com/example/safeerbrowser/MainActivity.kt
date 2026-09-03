@@ -6,9 +6,12 @@ import android.app.Dialog
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -84,6 +87,25 @@ class MainActivity : android.app.Activity() {
 
     internal fun isTopBarFocused(): Boolean = isChromeFocused()
 
+    internal fun isTelevisionDevice(): Boolean {
+        val ui = resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+        return ui == Configuration.UI_MODE_TYPE_TELEVISION ||
+            packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+    }
+
+    private fun applySystemUi() {
+        if (!isTelevisionDevice()) return
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            or View.SYSTEM_UI_FLAG_FULLSCREEN
+            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        )
+    }
+
     /** D-Pad strip on the omnibox row. Skip tiny 🔍/✕ inside the URL field — they trap focus into the WebView. */
     internal fun moveChromeFocus(right: Boolean): Boolean {
         val chain = listOf(
@@ -120,15 +142,7 @@ class MainActivity : android.app.Activity() {
 
         window.statusBarColor = Color.parseColor("#06090F")
         window.navigationBarColor = Color.parseColor("#000000")
-
-        window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            or View.SYSTEM_UI_FLAG_FULLSCREEN
-            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-        )
+        applySystemUi()
 
         repository = BrowserRepository(this)
         downloadHandler = DownloadHandler(this)
@@ -227,20 +241,24 @@ class MainActivity : android.app.Activity() {
                 }
             }
         }
-        @Suppress("DEPRECATION")
-        registerReceiver(
-            debugJsReceiver,
-            android.content.IntentFilter().apply {
-                addAction("com.example.safeerbrowser.EVAL_JS")
-                addAction("com.example.safeerbrowser.EXO_SMOKE")
-                addAction("com.example.safeerbrowser.ACTION_OPEN_URL")
-                addAction("com.example.safeerbrowser.ACTION_CHANNEL_TUNE")
-                addAction("com.example.safeerbrowser.ACTION_PLAY_PAUSE")
-                addAction("com.example.safeerbrowser.ACTION_SEEK")
-                addAction("com.example.safeerbrowser.ACTION_SEARCH")
-                addAction("com.example.safeerbrowser.ACTION_SCREEN_OFF_AUDIO")
+        val debugFilter = android.content.IntentFilter().apply {
+            addAction("com.example.safeerbrowser.EVAL_JS")
+            addAction("com.example.safeerbrowser.EXO_SMOKE")
+            addAction("com.example.safeerbrowser.ACTION_OPEN_URL")
+            addAction("com.example.safeerbrowser.ACTION_CHANNEL_TUNE")
+            addAction("com.example.safeerbrowser.ACTION_PLAY_PAUSE")
+            addAction("com.example.safeerbrowser.ACTION_SEEK")
+            addAction("com.example.safeerbrowser.ACTION_SEARCH")
+            addAction("com.example.safeerbrowser.ACTION_SCREEN_OFF_AUDIO")
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(debugJsReceiver, debugFilter, Context.RECEIVER_EXPORTED)
+            } else {
+                @Suppress("DEPRECATION")
+                registerReceiver(debugJsReceiver, debugFilter)
             }
-        )
+        } catch (_: Exception) {}
         if (intent?.getBooleanExtra("exo_smoke", false) == true) {
             webViewContainer.post { playback.playClearSmoke() }
         }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Safeer Browser</string>
+    <string name="app_name">TV Browser 2</string>
     <string name="url_hint">Varno iskanje ali URL</string>
     <string name="btn_home">Domov</string>
     <string name="btn_back">Nazaj</string>
