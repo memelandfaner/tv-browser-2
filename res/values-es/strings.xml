@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TV Browser 2</string>
+    <string name="url_hint">Búsqueda segura o URL</string>
+    <string name="btn_home">Inicio</string>
+    <string name="btn_back">Atrás</string>
+    <string name="btn_add_tab">Nueva pestaña</string>
+    <string name="btn_menu">Menú</string>
+    <string name="btn_clear">Limpiar</string>
+    
+    <!-- Menu Items -->
+    <string name="menu_new_tab">Nueva pestaña</string>
+    <string name="menu_bookmarks">Marcadores</string>
+    <string name="menu_add_bookmark">Añadir a marcadores</string>
+    <string name="menu_downloads">Descargas</string>
+    <string name="menu_history">Historial</string>
+    <string name="menu_desktop_site">Sitio para ordenador</string>
+    <string name="menu_dark_mode">Modo oscuro AMOLED</string>
+    <string name="menu_adblock">AdBlock y Escudo Botnet integrado</string>
+    <string name="menu_threat_stats">Escudo de seguridad (Feodo/URLhaus)</string>
+    <string name="menu_share">Compartir página</string>
+    <string name="menu_settings">Configuración</string>
+    <string name="menu_find_in_page">Buscar en la página</string>
+    
+    <!-- Tab Switcher -->
+    <string name="tabs_title">Pestañas abiertas</string>
+    <string name="tabs_close_all">Cerrar todas las pestañas</string>
+    <string name="tabs_new_tab">+ Nueva pestaña</string>
+    
+    <!-- Search Engines -->
+    <string name="search_google">Google</string>
+    <string name="search_duckduckgo">DuckDuckGo</string>
+    
+    <!-- Notifications -->
+    <string name="toast_bookmark_added">⭐ Añadido a marcadores</string>
+    <string name="toast_bookmark_removed">🗑️ Eliminado de marcadores</string>
+    <string name="toast_link_copied">📋 Enlace copiado al portapapeles</string>
+    <string name="toast_download_started">📥 Descarga iniciada</string>
+</resources>
