@@ -29,6 +29,8 @@ class MainActivity : android.app.Activity() {
     internal lateinit var mobileTopBar: LinearLayout
     internal lateinit var btnBack: Button
     internal lateinit var btnHome: Button
+    internal lateinit var btnReload: Button
+    internal lateinit var btnFavorite: Button
     private lateinit var omniboxContainer: LinearLayout
     internal lateinit var tvSecurityLock: TextView
     internal lateinit var editUrl: EditText
@@ -79,7 +81,8 @@ class MainActivity : android.app.Activity() {
     internal fun activeUrl(): String = tabManager.getActiveTab()?.url ?: ""
 
     internal fun isChromeFocused(): Boolean {
-        return btnBack.hasFocus() || btnHome.hasFocus() || btnPointerToggle.hasFocus() ||
+        return btnBack.hasFocus() || btnHome.hasFocus() || btnReload.hasFocus() ||
+            btnFavorite.hasFocus() || btnPointerToggle.hasFocus() ||
             btnAddTab.hasFocus() || btnTabCount.hasFocus() || btnMenu.hasFocus() ||
             btnClearUrl.hasFocus() || btnSearchTrigger.hasFocus() ||
             editUrl.hasFocus() || mobileTopBar.hasFocus()
@@ -109,7 +112,7 @@ class MainActivity : android.app.Activity() {
     /** D-Pad strip on the omnibox row. Skip tiny 🔍/✕ inside the URL field — they trap focus into the WebView. */
     internal fun moveChromeFocus(right: Boolean): Boolean {
         val chain = listOf(
-            btnBack, btnHome, editUrl, btnPointerToggle, btnAddTab, btnTabCount, btnMenu
+            btnBack, btnHome, btnReload, editUrl, btnFavorite, btnPointerToggle, btnAddTab, btnTabCount, btnMenu
         ).filter { it.visibility == View.VISIBLE }
         if (chain.isEmpty()) return false
         val focused = currentFocus
@@ -595,6 +598,8 @@ class MainActivity : android.app.Activity() {
         mobileTopBar = findViewById(R.id.mobileTopBar)
         btnBack = findViewById(R.id.btnBack)
         btnHome = findViewById(R.id.btnHome)
+        btnReload = findViewById(R.id.btnReload)
+        btnFavorite = findViewById(R.id.btnFavorite)
         omniboxContainer = findViewById(R.id.omniboxContainer)
         tvSecurityLock = findViewById(R.id.tvSecurityLock)
         editUrl = findViewById(R.id.editUrl)
@@ -633,6 +638,7 @@ class MainActivity : android.app.Activity() {
                 activeTab.webView.isDarkMode = isDarkModeActive
                 attachTabListeners(activeTab)
                 chrome.updateOmniboxDisplay(activeTab.url, activeTab.webView.title)
+                updateBookmarkButton(activeTab.url)
             }
         }
     }
@@ -662,12 +668,16 @@ class MainActivity : android.app.Activity() {
             if (tabManager.getActiveTab()?.id == tab.id) {
                 chrome.updateOmniboxDisplay(newUrl, wv.title)
                 chrome.applyUrlChrome(newUrl)
+                updateBookmarkButton(newUrl)
             }
         }
 
         wv.onPageLoaded = { finalUrl, pageTitle ->
             tab.url = finalUrl
             tab.title = pageTitle
+            if (tabManager.getActiveTab()?.id == tab.id) {
+                updateBookmarkButton(finalUrl)
+            }
             if (finalUrl.isNotEmpty() && !finalUrl.startsWith("about:", ignoreCase = true)) {
                 val cleanTitle = if (pageTitle.isNotEmpty()) pageTitle else finalUrl
                 repository.addHistory(cleanTitle, finalUrl)
@@ -823,34 +833,45 @@ class MainActivity : android.app.Activity() {
         tabManager.getActiveTab()?.webView?.requestFocus()
     }
 
+    private val suggestionHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var suggestionRunnable: Runnable? = null
+
     private fun fetchGoogleSuggestions(query: String) {
         val trimmed = query.trim()
+        suggestionRunnable?.let { suggestionHandler.removeCallbacks(it) }
         if (trimmed.isEmpty()) {
             runOnUiThread { suggestionsListContainer.removeAllViews() }
             return
         }
-        Thread {
-            try {
-                val encoded = URLEncoder.encode(trimmed, "UTF-8")
-                val url = java.net.URL("https://suggestqueries.google.com/complete/search?client=chrome&q=$encoded")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.connectTimeout = 1200
-                conn.readTimeout = 1200
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0")
-                if (conn.responseCode == 200) {
-                    val responseText = conn.inputStream.bufferedReader().use { it.readText() }
-                    val jsonArr = org.json.JSONArray(responseText)
-                    if (jsonArr.length() > 1) {
-                        val suggestionsArr = jsonArr.getJSONArray(1)
-                        val list = mutableListOf<String>()
-                        for (i in 0 until minOf(suggestionsArr.length(), 5)) {
-                            list.add(suggestionsArr.getString(i))
+        val runTask = Runnable {
+            Thread {
+                try {
+                    val encoded = URLEncoder.encode(trimmed, "UTF-8")
+                    val url = java.net.URL("https://suggestqueries.google.com/complete/search?client=chrome&q=$encoded")
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.connectTimeout = 1500
+                    conn.readTimeout = 1500
+                    conn.setRequestProperty("User-Agent", ChromiumEngineView.CHROME_ANDROID_USER_AGENT)
+                    conn.setRequestProperty("Accept", "*/*")
+                    conn.setRequestProperty("Accept-Language", "sl-SI,sl;q=0.9,en-US;q=0.8,en;q=0.7")
+                    conn.setRequestProperty("Referer", "https://www.google.com/")
+                    if (conn.responseCode == 200) {
+                        val responseText = conn.inputStream.bufferedReader().use { it.readText() }
+                        val jsonArr = org.json.JSONArray(responseText)
+                        if (jsonArr.length() > 1) {
+                            val suggestionsArr = jsonArr.getJSONArray(1)
+                            val list = mutableListOf<String>()
+                            for (i in 0 until minOf(suggestionsArr.length(), 5)) {
+                                list.add(suggestionsArr.getString(i))
+                            }
+                            displaySuggestions(list)
                         }
-                        displaySuggestions(list)
                     }
-                }
-            } catch (_: Exception) {}
-        }.start()
+                } catch (_: Exception) {}
+            }.start()
+        }
+        suggestionRunnable = runTask
+        suggestionHandler.postDelayed(runTask, 300)
     }
 
     private fun displaySuggestions(list: List<String>) {
@@ -936,6 +957,20 @@ class MainActivity : android.app.Activity() {
             tabManager.getActiveTab()?.webView?.loadUrl("file:///android_asset/brave_home.html")
         }
 
+        btnReload.setOnClickListener {
+            val activeTab = tabManager.getActiveTab()
+            activeTab?.webView?.reload()
+        }
+
+        btnFavorite.setOnClickListener {
+            toggleBookmarkCurrentPage()
+        }
+
+        btnFavorite.setOnLongClickListener {
+            showBookmarksDialog()
+            true
+        }
+
         btnPointerToggle.setOnClickListener {
             virtualPointerView.isPointerVisible = !virtualPointerView.isPointerVisible
             Toast.makeText(
@@ -970,6 +1005,45 @@ class MainActivity : android.app.Activity() {
         btnCloseAllTabs.setOnClickListener {
             tabManager.closeAllTabs(this)
             tabSwitcherOverlay.visibility = View.GONE
+        }
+    }
+
+    internal fun toggleBookmarkCurrentPage() {
+        val activeTab = tabManager.getActiveTab() ?: return
+        val curUrl = activeTab.url
+        if (curUrl.isEmpty() || curUrl == "about:blank" || curUrl.startsWith("file:///android_asset")) {
+            Toast.makeText(this, "Te strani ni mogoče dodati med zaznamke", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val isBm = repository.isBookmarked(curUrl)
+        if (isBm) {
+            repository.removeBookmark(curUrl)
+            updateBookmarkButton(curUrl)
+            showTvOsd("Zaznamki", getString(R.string.toast_bookmark_removed))
+            Toast.makeText(this, getString(R.string.toast_bookmark_removed), Toast.LENGTH_SHORT).show()
+        } else {
+            val title = activeTab.webView.title?.takeIf { it.isNotBlank() } ?: curUrl
+            repository.addBookmark(title, curUrl)
+            updateBookmarkButton(curUrl)
+            showTvOsd("Zaznamki", "⭐ $title")
+            Toast.makeText(this, getString(R.string.toast_bookmark_added), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    internal fun updateBookmarkButton(url: String) {
+        if (!::btnFavorite.isInitialized) return
+        if (url.isEmpty() || url == "about:blank" || url.startsWith("file:///android_asset")) {
+            btnFavorite.text = "☆"
+            btnFavorite.setTextColor(getColor(R.color.text_primary))
+            return
+        }
+        val isBm = repository.isBookmarked(url)
+        if (isBm) {
+            btnFavorite.text = "⭐"
+            btnFavorite.setTextColor(Color.parseColor("#FBBF24"))
+        } else {
+            btnFavorite.text = "☆"
+            btnFavorite.setTextColor(getColor(R.color.text_primary))
         }
     }
 
@@ -1099,9 +1173,11 @@ class MainActivity : android.app.Activity() {
         menuBtnStar.setOnClickListener {
             if (isBm) {
                 repository.removeBookmark(curUrl)
+                updateBookmarkButton(curUrl)
                 Toast.makeText(this, getString(R.string.toast_bookmark_removed), Toast.LENGTH_SHORT).show()
             } else {
                 repository.addBookmark(wv?.title ?: "Zaznamek", curUrl)
+                updateBookmarkButton(curUrl)
                 Toast.makeText(this, getString(R.string.toast_bookmark_added), Toast.LENGTH_SHORT).show()
             }
             dialog.dismiss()
@@ -1284,6 +1360,7 @@ class MainActivity : android.app.Activity() {
 
                 view.findViewById<Button>(R.id.btnDeleteBm).setOnClickListener {
                     repository.removeBookmark(bm.url)
+                    updateBookmarkButton(activeUrl())
                     dialog.dismiss()
                     showBookmarksDialog()
                 }

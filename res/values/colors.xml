@@ -18,6 +18,7 @@
     <color name="accent_cyan_glow">#8000D2FF</color>
     <color name="accent_blue">#3B82F6</color>
     <color name="accent_purple">#8B5CF6</color>
+    <color name="accent_gold">#FBBF24</color>
     
     <!-- Text Colors -->
     <color name="text_primary">#F8FAFC</color>

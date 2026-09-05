@@ -1,5 +1,6 @@
 package com.example.safeerbrowser
 
+import android.net.Uri
 import android.webkit.WebView
 
 object UserScriptManager {
@@ -809,6 +810,24 @@ object UserScriptManager {
         })();
     """
 
+    const val GPC_AND_DNT_JS = """
+        /* 🔒 Safeer Global Privacy Control (GPC) & Do Not Track (DNT) W3C Engine */
+        (function() {
+            if (window._safeer_gpc_active) return;
+            window._safeer_gpc_active = true;
+            var gpcProp = { value: true, writable: false, configurable: false, enumerable: true };
+            var dntProp = { value: '1', writable: false, configurable: false, enumerable: true };
+            try {
+                Object.defineProperty(navigator, 'globalPrivacyControl', gpcProp);
+                Object.defineProperty(navigator, 'doNotTrack', dntProp);
+                if (window.Navigator && window.Navigator.prototype) {
+                    Object.defineProperty(window.Navigator.prototype, 'globalPrivacyControl', gpcProp);
+                    Object.defineProperty(window.Navigator.prototype, 'doNotTrack', dntProp);
+                }
+            } catch(e) {}
+        })();
+    """
+
     const val FORCE_UNMUTE_JS = """
         (function() {
             if (window._safeer_force_unmute) return;
@@ -1350,6 +1369,36 @@ object UserScriptManager {
         return (url ?: "").contains("hydrahd", ignoreCase = true)
     }
 
+    fun isGoogleAuthUrl(url: String?): Boolean {
+        if (url.isNullOrEmpty()) return false
+        val lower = url.lowercase()
+        return lower.contains("accounts.google") ||
+               lower.contains("accounts.youtube") ||
+               lower.contains("myaccount.google") ||
+               lower.contains("google.com/accounts") ||
+               lower.contains("signin/v2") ||
+               lower.contains("signin/challenge") ||
+               lower.contains("signin/identifier") ||
+               lower.contains("v3/signin")
+    }
+
+    fun isGoogleDomain(url: String?): Boolean {
+        if (url.isNullOrEmpty()) return false
+        val lower = url.lowercase()
+        val host = try { Uri.parse(url).host?.lowercase() ?: "" } catch (_: Exception) { "" }
+        if (host.contains("youtube") || host.contains("googlevideo") || host.contains("ytimg")) return false
+        return host == "google.com" || host.endsWith(".google.com") ||
+               host == "google.si" || host.endsWith(".google.si") ||
+               host.contains(".google.") || host.startsWith("google.") ||
+               host.contains("recaptcha") ||
+               host.contains("gstatic.com") ||
+               host.contains("googleapis.com") ||
+               isGoogleAuthUrl(url) ||
+               lower.contains("google.com/search") ||
+               lower.contains("google.si/search") ||
+               lower.contains("/recaptcha")
+    }
+
     private const val WINDOWS_CHROME_DESKTOP_JS = """
         (function() {
             var host = (location.hostname || '').toLowerCase();
@@ -1389,10 +1438,16 @@ object UserScriptManager {
     """
 
     fun injectWindowsDesktopSpoof(webView: WebView) {
+        if (isGoogleDomain(webView.url)) return
         webView.evaluateJavascript(WINDOWS_CHROME_DESKTOP_JS, null)
     }
 
     private fun injectSiteScripts(webView: WebView, pageUrl: String?, isDarkMode: Boolean, finished: Boolean) {
+        val target = pageUrl ?: webView.url ?: ""
+        if (isGoogleDomain(target)) {
+            // NEVER inject any scripts or CSS into Google authentication, Google Search or reCAPTCHA to preserve 100% native environment
+            return
+        }
         val xplore = isXploreUrl(pageUrl) || isXploreUrl(webView.url)
         val home = isBrowserHome(pageUrl) || isBrowserHome(webView.url)
         val news24 = is24urUrl(pageUrl) || is24urUrl(webView.url)
@@ -1425,6 +1480,7 @@ object UserScriptManager {
         if (hydra) {
             webView.evaluateJavascript(FORCE_UNMUTE_JS, null)
         }
+        webView.evaluateJavascript(GPC_AND_DNT_JS, null)
         webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
@@ -1438,11 +1494,15 @@ object UserScriptManager {
     }
 
     fun injectEarlyScript(webView: WebView, pageUrl: String? = null) {
+        val target = pageUrl ?: webView.url ?: ""
+        if (isGoogleDomain(target)) return
         val dark = (webView as? ChromiumEngineView)?.isDarkMode ?: true
         injectSiteScripts(webView, pageUrl, dark, finished = false)
     }
 
     fun injectOnPageFinished(webView: WebView, isDarkMode: Boolean, pageUrl: String? = null) {
+        val target = pageUrl ?: webView.url ?: ""
+        if (isGoogleDomain(target)) return
         val ping = """
             (function(){
                 try {

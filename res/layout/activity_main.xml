@@ -54,9 +54,26 @@
             android:focusable="true"
             android:focusableInTouchMode="true"
             android:nextFocusLeft="@+id/btnBack"
-            android:nextFocusRight="@+id/editUrl"
+            android:nextFocusRight="@+id/btnReload"
             android:nextFocusDown="@+id/webViewContainer"
             android:contentDescription="@string/btn_home" />
+
+        <!-- 1.5. Reload Button -->
+        <Button
+            android:id="@+id/btnReload"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_mobile_icon_button"
+            android:text="🔄"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/btnHome"
+            android:nextFocusRight="@+id/editUrl"
+            android:nextFocusDown="@+id/webViewContainer"
+            android:contentDescription="@string/btn_reload" />
 
         <!-- 2. Modern Wide Omnibox URL Bar -->
         <LinearLayout
@@ -100,8 +117,8 @@
                 android:textSize="14sp"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
-                android:nextFocusLeft="@+id/btnHome"
-                android:nextFocusRight="@+id/btnPointerToggle"
+                android:nextFocusLeft="@+id/btnReload"
+                android:nextFocusRight="@+id/btnFavorite"
                 android:nextFocusDown="@+id/webViewContainer" />
 
             <!-- Clear Text Button -->
@@ -134,10 +151,27 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:nextFocusLeft="@+id/editUrl"
-                android:nextFocusRight="@+id/btnPointerToggle"
+                android:nextFocusRight="@+id/btnFavorite"
                 android:nextFocusDown="@+id/webViewContainer"
                 android:background="@drawable/bg_mobile_icon_button" />
         </LinearLayout>
+
+        <!-- 2.5. Favorite / Bookmark Button -->
+        <Button
+            android:id="@+id/btnFavorite"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_mobile_icon_button"
+            android:text="☆"
+            android:textColor="@color/accent_gold"
+            android:textSize="18sp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusLeft="@+id/editUrl"
+            android:nextFocusRight="@+id/btnPointerToggle"
+            android:nextFocusDown="@+id/webViewContainer"
+            android:contentDescription="@string/btn_favorite" />
 
         <!-- 3. TV Remote Virtual Pointer Toggle Button -->
         <Button
@@ -151,7 +185,7 @@
             android:textSize="16sp"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:nextFocusLeft="@+id/btnSearchTrigger"
+            android:nextFocusLeft="@+id/btnFavorite"
             android:nextFocusRight="@+id/btnAddTab"
             android:nextFocusDown="@+id/webViewContainer"
             android:contentDescription="Virtual Pointer Mode" />

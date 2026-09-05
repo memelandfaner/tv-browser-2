@@ -65,6 +65,12 @@ FINAL_APK="$RELEASE_DIR/safeer-browser-release.apk"
 cp "$BUILD_DIR/signed/unaligned-aligned-debugSigned.apk" "$FINAL_APK"
 cp "$FINAL_APK" "$DIR/Safeer-Browser.apk"
 
+WEB_MOBILE_DIR="/home/janez/Namizje/safeer-web/assets/mobile"
+if [[ -d "$WEB_MOBILE_DIR" ]]; then
+    cp "$FINAL_APK" "$WEB_MOBILE_DIR/Safeer-Browser.apk"
+    echo "🌐 Posodobljeno na spletni strani: $WEB_MOBILE_DIR/Safeer-Browser.apk"
+fi
+
 echo ""
 echo "=========================================================="
 echo "🎉 ZGRAJEN SIGNED SAFEER APK: $DIR/Safeer-Browser.apk"

@@ -128,6 +128,8 @@ EOF
 
 export ANDROID_SDK_ROOT="$SDK_DIR"
 export ANDROID_HOME="$SDK_DIR"
+export ANDROID_USER_HOME="$DIR/.android"
+mkdir -p "$DIR/.android"
 
 echo "☕ Gradle assembleRelease (Media3)..."
 cd "$DIR"
@@ -156,6 +158,12 @@ fi
 FINAL_APK="$RELEASE_DIR/tv-browser-2-release.apk"
 cp "$SIGNED" "$FINAL_APK"
 cp "$FINAL_APK" "$DIR/TV-Browser-2.apk"
+
+WEB_TV_DIR="/home/janez/Namizje/safeer-web/assets/tv"
+if [[ -d "$WEB_TV_DIR" ]]; then
+    cp "$FINAL_APK" "$WEB_TV_DIR/TV-Browser-2.apk"
+    echo "🌐 Posodobljeno na spletni strani: $WEB_TV_DIR/TV-Browser-2.apk"
+fi
 
 echo "🔎 Preverjam, da je Media3 v dex..."
 VERIFY_DIR="$DIR/build/dexcheck"

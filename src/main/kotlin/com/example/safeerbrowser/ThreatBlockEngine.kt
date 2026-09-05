@@ -44,10 +44,14 @@ object ThreatBlockEngine {
         // 1. abuse.ch Feodo Tracker (Botnet C2 strežniki - Dridex, Emotet, QakBot, TrickBot)
         val feodoC2 = listOf(
             "feodotracker.abuse.ch", "c2-tracker.net", "botnet-master.org", "dridex-panel.cc",
-            "emotet-feed.com", "qakbot-gate.biz", "trickbot-c2.top", "icedid-network.cc",
-            "bazarloader-c2.net", "cobaltstrike-beacon.info", "lokibot-panel.ru", "redline-stealer.cc",
-            "vidar-c2.top", "raccoon-gate.com", "asyncrat-host.duckdns.org", "njrat-beacon.biz",
-            "remcos-c2.org", "agenttesla-gate.net", "formbook-panel.cc", "xworm-controller.top"
+            "dridex-c2-botnet.ru", "emotet-feed.com", "emotet-loader.biz", "qakbot-gate.biz",
+            "qakbot-drop.cc", "trickbot-c2.top", "icedid-network.cc", "icedid-c2-network.net",
+            "bazarloader-c2.net", "cobaltstrike-beacon.info", "cobaltstrike-beacon.xyz", "lokibot-panel.ru",
+            "redline-stealer.cc", "redline-stealer-gate.org", "vidar-c2.top", "vidar-c2-gate.net",
+            "raccoon-gate.com", "raccoon-stealer.biz", "asyncrat-host.duckdns.org", "njrat-beacon.biz",
+            "njrat-server.com", "remcos-c2.org", "remcos-panel.net", "agenttesla-gate.net",
+            "agenttesla-c2.net", "formbook-panel.cc", "xworm-controller.top", "lumma-stealer.top",
+            "meduza-stealer.cc"
         )
         for (d in feodoC2) threatTrie.insert(d, category = "Botnet C2 Server", sourceFeed = "abuse.ch Feodo Tracker")
 
@@ -57,7 +61,8 @@ object ThreatBlockEngine {
             "evil-apk-download.net", "stealer-gate.org", "cryptominer-pool.top", "ransomware-host.xyz",
             "dropper-server.ru", "trojan-source.cc", "apk-injector.top", "malicious-script.biz",
             "23vlcfp.cfd", "2lizguk.buzz", "x91kza.monster", "dl-android-update.top",
-            "system-patch-android.click", "security-alert-center.top", "device-scan-security.cc"
+            "system-patch-android.click", "security-alert-center.top", "device-scan-security.cc",
+            "update-system-firmware.top", "cleaner-update-android.xyz"
         )
         for (d in urlhausMalware) threatTrie.insert(d, category = "Zlonamerna koda (Malware)", sourceFeed = "abuse.ch URLhaus / ThreatFox")
 

@@ -1,6 +1,6 @@
 # TV Browser 2 (Android TV)
 
-**Trenutna različica: 2.1.71** — Xplore TV kiosk z nativnim Media3 ExoPlayerjem (DASH + Widevine), HydraHD D-Pad izbira polj, celozaslonski predvajalnik.
+**Trenutna različica: 2.1.79** — *Varnejši na spletu.* Vgrajen W3C Global Privacy Control (GPC), Do Not Track (DNT), kirurško čiščenje sledilnih parametrov (UrlSanitizer), zaščita pred Botnet C2 strežniki (abuse.ch Feodo Tracker / URLhaus), Xplore TV kiosk z nativnim Media3 ExoPlayerjem (DASH + Widevine) ter HydraHD D-Pad navigacija.
 
 ## Prenos in namestitev APK
 
@@ -22,7 +22,13 @@ Paket: `com.example.safeerbrowser`. Gradnja: `./build_tv_apk.sh`.
 adb install -r TV-Browser-2.apk
 ```
 
-## HydraHD (daljinec)
+## 🛡️ Varnost in Zasebnost (Varnejši na spletu)
+1. **W3C Global Privacy Control & Do Not Track**: Avtomatsko posredovanje `Sec-GPC: 1` in `DNT: 1` ter injiciranje v brskalniški `navigator` objekt ob zagonu vseh spletnih strani.
+2. **Čiščenje sledilnih parametrov (UrlSanitizer)**: Avtomatsko odstranjevanje nadzornih identifikatorjev (`utm_*`, `fbclid`, `gclid`, `msclkid`, `twclid`, `mc_eid` itd.) pri vseh povezavah.
+3. **Botnet C2 & Malware ščit**: Integracija $O(k)$ drevesa z bazo znanih nevarnih domen (abuse.ch Feodo Tracker, URLhaus, ThreatFox, Phishing Army).
+4. **Zaščita pred ugrabitvijo oken**: Popolna nevtralizacija neželenih popunder oken in lažnih sistemskih opozoril.
+
+## 📺 HydraHD (daljinec)
 
 Na `hydrahd.ws` D-Pad **ne** uporablja Chromiumove izvorne prostorske navigacije. Polja so `button.slidebtn` (Watch Now), `div.tab` (Movies/Series) in `a.hthis` (plakati z `height:0`). JS v `assets/tv_spatial.js` označi samo kartice, ne logotipa, logina ali puščic carousela.
 
@@ -32,13 +38,13 @@ Na `hydrahd.ws` D-Pad **ne** uporablja Chromiumove izvorne prostorske navigacije
 
 Orodna vrstica brskalnika je skrita samo na predvajalniku (`/movie/`, `/tv/`, `/watch`).
 
-## Xplore TV
+## 📡 Xplore TV
 
 Katalog, prijava in EPG ostaneta v WebView. Video je **AndroidX Media3** na SurfaceView, ne Castlabs Android SDK. Podrobnosti: skill `tv-browser-2-xplore-drm`.
 
 Xplore gesel **ne** committaj. Lokalno: `xplore_auth.local.js` (glej `xplore_auth.local.js.example`).
 
-## Daljinec
+## 🎮 Daljinec
 
 - D-Pad: prostorska izbira polj (cyan obroč)
 - GOR na vrhu strani → URL vrstica (razen Xplore kiosk / Hydra predvajalnik)
@@ -46,3 +52,8 @@ Xplore gesel **ne** committaj. Lokalno: `xplore_auth.local.js` (glej `xplore_aut
 - ZELENA → kazalec
 - RUMENA → zaznamki
 - BACK med Xplore predvajanjem zapre Exo, ne `history.back()`
+
+---
+
+## ⚖️ Licenca
+Projekt je izdan pod licenco [Apache License 2.0](LICENSE).

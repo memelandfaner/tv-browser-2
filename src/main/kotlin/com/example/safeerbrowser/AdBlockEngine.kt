@@ -45,6 +45,7 @@ object AdBlockEngine {
     private fun initializeWhitelist() {
         val trusted = listOf(
             "google.com", "google.si", "gstatic.com", "googleapis.com", "googleusercontent.com",
+            "recaptcha.net", "www.recaptcha.net", "apis.google.com", "consent.google.com",
             "duckduckgo.com", "bing.com", "yahoo.com", "wikipedia.org", "wikimedia.org",
             "youtube.com", "m.youtube.com", "music.youtube.com", "googlevideo.com", "ytimg.com",
             "accounts.youtube.com", "accounts.google.com", "myaccount.google.com",

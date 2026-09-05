@@ -7,6 +7,8 @@
     <string name="btn_add_tab">Nov zavihek</string>
     <string name="btn_menu">Meni</string>
     <string name="btn_clear">Počisti</string>
+    <string name="btn_favorite">Priljubljene</string>
+    <string name="btn_reload">Osveži</string>
     
     <!-- Menu Items -->
     <string name="menu_new_tab">Nov zavihek</string>

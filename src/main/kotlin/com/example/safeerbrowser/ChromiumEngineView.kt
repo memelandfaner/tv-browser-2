@@ -23,7 +23,9 @@ class ChromiumEngineView @JvmOverloads constructor(
     companion object {
         const val MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 15; SM-S931B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36"
         const val DESKTOP_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+        const val CHROME_ANDROID_USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
         const val SMART_TV_USER_AGENT = "Mozilla/5.0 (SMART-TV; LINUX; Tizen 7.0) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/8.2 Chrome/106.0.5249.126 TV Safari/537.36"
+        const val GOOGLE_AUTH_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
         private val xploreSettingsLogs = java.util.concurrent.atomic.AtomicInteger(0)
         private val xploreMediaLogs = java.util.concurrent.atomic.AtomicInteger(0)
         private val lastDashChannel = java.util.concurrent.atomic.AtomicReference("")
@@ -114,11 +116,21 @@ class ChromiumEngineView @JvmOverloads constructor(
         try {
             cm.setCookie(".youtube.com", "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAnNsIAEaBgiA_LyaBg; path=/; domain=.youtube.com; SameSite=Lax")
             cm.setCookie(".youtube.com", "CONSENT=YES+cb.20230531-04-p0.sl+FX+999; path=/; domain=.youtube.com")
-            cm.setCookie(".google.com", "SOCS=CAESEwgDEgk0ODE3Nzk3MjQaAnNsIAEaBgiA_LyaBg; path=/; domain=.google.com; SameSite=Lax")
-            cm.setCookie(".google.com", "CONSENT=YES+cb.20230531-04-p0.sl+FX+999; path=/; domain=.google.com")
+            // Expire any stale hardcoded 2023 consent cookies on .google.com/.google.si
+            cm.setCookie(".google.com", "CONSENT=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.google.com")
+            cm.setCookie(".google.com", "SOCS=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.google.com")
+            cm.setCookie(".google.si", "CONSENT=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.google.si")
+            cm.setCookie(".google.si", "SOCS=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.google.si")
             Thread {
                 try { CookieManager.getInstance().flush() } catch (_: Exception) {}
             }.start()
+        } catch (_: Exception) {}
+
+        // 1. Strip X-Requested-With header to bypass Google OAuth WebView block
+        try {
+            if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+                androidx.webkit.WebSettingsCompat.setRequestedWithHeaderOriginAllowList(settings, emptySet())
+            }
         } catch (_: Exception) {}
 
         settings.apply {
@@ -129,8 +141,8 @@ class ChromiumEngineView @JvmOverloads constructor(
             allowContentAccess = true
             mediaPlaybackRequiresUserGesture = false
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            setSupportMultipleWindows(false)
-            javaScriptCanOpenWindowsAutomatically = false
+            setSupportMultipleWindows(true)
+            javaScriptCanOpenWindowsAutomatically = true
             setSupportZoom(false)
             builtInZoomControls = false
             displayZoomControls = false
@@ -155,8 +167,19 @@ class ChromiumEngineView @JvmOverloads constructor(
             if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
                 androidx.webkit.WebViewCompat.addDocumentStartJavaScript(
                     this,
-                    UserScriptManager.FORCE_UNMUTE_JS,
+                    UserScriptManager.GPC_AND_DNT_JS,
                     setOf("*")
+                )
+                androidx.webkit.WebViewCompat.addDocumentStartJavaScript(
+                    this,
+                    UserScriptManager.FORCE_UNMUTE_JS,
+                    setOf(
+                        "https://*.youtube.com",
+                        "https://youtube.com",
+                        "https://*.googlevideo.com",
+                        "https://*.hydrahd.*",
+                        "https://*.streamex.*"
+                    )
                 )
             }
         } catch (_: Exception) {}
@@ -168,7 +191,31 @@ class ChromiumEngineView @JvmOverloads constructor(
     }
 
     private fun applyUserAgentForUrl(url: String) {
-        val host = Uri.parse(url).host?.lowercase() ?: ""
+        val host = try { Uri.parse(url).host?.lowercase() ?: "" } catch (_: Exception) { "" }
+        val isGoogle = UserScriptManager.isGoogleDomain(url)
+        val isGoogleAuth = isGoogle && (UserScriptManager.isGoogleAuthUrl(url) ||
+            host.contains("accounts.google") || host.contains("accounts.youtube") ||
+            host.contains("myaccount.google") || url.contains("accounts.google.com", ignoreCase = true) ||
+            url.contains("signin/v2", ignoreCase = true) || url.contains("signin/challenge", ignoreCase = true) ||
+            url.contains("v3/signin", ignoreCase = true) || url.contains("signin/identifier", ignoreCase = true))
+
+        if (isGoogle) {
+            try {
+                removeJavascriptInterface("SafeerBridge")
+            } catch (_: Exception) {}
+            settings.textZoom = 100
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+            settings.setSupportMultipleWindows(true)
+            settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.userAgentString = if (isGoogleAuth) GOOGLE_AUTH_USER_AGENT else CHROME_ANDROID_USER_AGENT
+            return
+        } else {
+            try {
+                addJavascriptInterface(jsBridge, "SafeerBridge")
+            } catch (_: Exception) {}
+        }
+
         val isYoutubeTv = url.contains("youtube.com/tv", ignoreCase = true) ||
             host.contains("youtube.com") || host.contains("youtu.be")
         val isXplore = host.contains("xploretv") || host.contains("a1xploretv")
@@ -220,15 +267,21 @@ class ChromiumEngineView @JvmOverloads constructor(
     }
 
     override fun loadUrl(url: String) {
-        val target = rewriteYoutubeForTv(url)
+        val sanitized = UrlSanitizer.sanitize(url)
+        val target = rewriteYoutubeForTv(sanitized)
         applyUserAgentForUrl(target)
-        super.loadUrl(target)
+        val privacyHeaders = mapOf("Sec-GPC" to "1", "DNT" to "1")
+        super.loadUrl(target, privacyHeaders)
     }
 
     override fun loadUrl(url: String, additionalHttpHeaders: Map<String, String>) {
-        val target = rewriteYoutubeForTv(url)
+        val sanitized = UrlSanitizer.sanitize(url)
+        val target = rewriteYoutubeForTv(sanitized)
         applyUserAgentForUrl(target)
-        super.loadUrl(target, additionalHttpHeaders)
+        val combinedHeaders = additionalHttpHeaders.toMutableMap()
+        combinedHeaders["Sec-GPC"] = "1"
+        combinedHeaders["DNT"] = "1"
+        super.loadUrl(target, combinedHeaders)
     }
 
     class SafeerWebAppInterface(private val context: Context, private val webView: WebView) {
@@ -343,7 +396,17 @@ class ChromiumEngineView @JvmOverloads constructor(
                 isUserGesture: Boolean,
                 resultMsg: android.os.Message?
             ): Boolean {
-                // 🛑 Popolna zaščita pred pojavnimi okni in ugrabitvijo oken
+                if (resultMsg == null) return false
+                val curUrl = view?.url?.lowercase() ?: ""
+                val isAuth = curUrl.contains("google") || curUrl.contains("youtube") ||
+                    curUrl.contains("oauth") || curUrl.contains("signin") || isUserGesture
+                if (isAuth) {
+                    val transport = resultMsg.obj as? WebView.WebViewTransport ?: return false
+                    transport.webView = this@ChromiumEngineView
+                    resultMsg.sendToTarget()
+                    return true
+                }
+                // 🛑 Popolna zaščita pred vsiljenimi oglasnimi pojavnimi okni
                 return false
             }
 
@@ -477,6 +540,7 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return false
                 val urlStr = uri.toString()
+                applyUserAgentForUrl(urlStr)
                 val isMainFrame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     request.isForMainFrame
                 } else {
@@ -493,6 +557,13 @@ class ChromiumEngineView @JvmOverloads constructor(
                     if (!targetUrl.isNullOrEmpty()) {
                         view?.loadUrl(targetUrl)
                     }
+                    return true
+                }
+
+                // 1.5 Kirurško čiščenje sledilnih parametrov (UTM, fbclid, itd.)
+                val sanitizedUrl = UrlSanitizer.sanitize(urlStr)
+                if (sanitizedUrl != urlStr) {
+                    view?.loadUrl(sanitizedUrl)
                     return true
                 }
 
@@ -555,6 +626,9 @@ class ChromiumEngineView @JvmOverloads constructor(
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val url = request?.url?.toString() ?: return null
+                if (UserScriptManager.isGoogleDomain(url) || url.contains("recaptcha") || url.contains("gstatic.com")) {
+                    return null
+                }
                 val isMainFrame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     request.isForMainFrame
                 } else {
