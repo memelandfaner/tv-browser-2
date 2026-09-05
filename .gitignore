@@ -6,5 +6,26 @@ build/
 local.properties
 xplore_auth.local.js
 tv_test/
+
+# 🔒 Privacy & Security
+*.env*
+*.key
+*.keystore
+*.jks
+keystore/
+*.token
+*secret*
+*credential*
+
+# 🧪 Test scripts, test directories & temporary benchmarks
+test_*.py
+yt_*/
+
+# 📸 Media and Screenshots
 *.png
+*.jpg
+*.jpeg
+*.mp4
+*.webm
+!res/**/*.png
 !docs/**/*.png

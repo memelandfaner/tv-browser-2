@@ -475,13 +475,26 @@ object UserScriptManager {
                 // Pospeši povezovanje z Googlovimi video strežniki (Preconnect & DNS-prefetch)
                 injectPerformanceHints: function() {
                     try {
-                        var preconnects = ['https://googlevideo.com', 'https://i.ytimg.com', 'https://yt3.ggpht.com'];
+                        var preconnects = [
+                            'https://googlevideo.com',
+                            'https://i.ytimg.com',
+                            'https://yt3.ggpht.com',
+                            'https://m.youtube.com',
+                            'https://www.youtube.com',
+                            'https://youtubei.googleapis.com',
+                            'https://jnn-pa.googleapis.com'
+                        ];
                         preconnects.forEach(function(url) {
                             var link = document.createElement('link');
                             link.rel = 'preconnect';
                             link.href = url;
                             link.crossOrigin = 'anonymous';
                             document.head.appendChild(link);
+
+                            var dnsLink = document.createElement('link');
+                            dnsLink.rel = 'dns-prefetch';
+                            dnsLink.href = url;
+                            document.head.appendChild(dnsLink);
                         });
                     } catch(e) {}
                 },
@@ -497,10 +510,12 @@ object UserScriptManager {
                         if (location.href !== this.lastHref) {
                             this.lastHref = location.href;
                             this.initialPlayDone = false;
+                            this.lastTriggerTime = 0;
                             var v = document.querySelector('video');
                             if (v) {
                                 v._safeer_user_paused = false;
                                 v.preload = 'auto';
+                                try { v.play().catch(function() {}); } catch(_) {}
                             }
                         }
 
@@ -512,7 +527,7 @@ object UserScriptManager {
 
                         // 🚀 Enkraten zagon predvajanja ob začetku nove skladbe (brez motenja predvajalnika)
                         if ((!video || (video.paused && !video._safeer_user_paused)) && !this.initialPlayDone) {
-                            if (now - this.lastTriggerTime > 600) {
+                            if (now - this.lastTriggerTime > 250) {
                                 this.lastTriggerTime = now;
                                 if (video) {
                                     try { video.play().catch(function() {}); } catch(_) {}
@@ -544,8 +559,17 @@ object UserScriptManager {
                         video.setAttribute('playsinline', 'true');
                         video.setAttribute('webkit-playsinline', 'true');
 
-                        if (!video._safeer_pause_hooked) {
-                            video._safeer_pause_hooked = true;
+                        if (!video._safeer_instant_hooks) {
+                            video._safeer_instant_hooks = true;
+                            var onMediaReady = function() {
+                                if (!video._safeer_user_paused && video.paused) {
+                                    try { video.play().catch(function() {}); } catch(_) {}
+                                }
+                            };
+                            video.addEventListener('loadstart', onMediaReady);
+                            video.addEventListener('loadedmetadata', onMediaReady);
+                            video.addEventListener('canplay', onMediaReady);
+                            video.addEventListener('canplaythrough', onMediaReady);
                             video.addEventListener('pause', function() {
                                 if (!video.ended && video.readyState >= 2 && location.href === ytAgent.lastHref) {
                                     video._safeer_user_paused = true;
@@ -673,6 +697,16 @@ object UserScriptManager {
                         self.healErrors();
                     }, 200);
 
+                    window.addEventListener('yt-navigate-start', function() {
+                        self.lastTriggerTime = 0;
+                        self.initialPlayDone = false;
+                        var v = document.querySelector('video');
+                        if (v) {
+                            v._safeer_user_paused = false;
+                            v.preload = 'auto';
+                        }
+                        self.boostPlayback();
+                    });
                     window.addEventListener('yt-navigate-finish', function() { self.boostPlayback(); });
                     window.addEventListener('yt-page-data-updated', function() { self.boostPlayback(); });
                     window.addEventListener('popstate', function() { self.boostPlayback(); });
@@ -947,6 +981,29 @@ object UserScriptManager {
             if (window._safeer_yt_tv_leanback) return;
             window._safeer_yt_tv_leanback = true;
 
+            try {
+                var preconnects = [
+                    'https://googlevideo.com',
+                    'https://i.ytimg.com',
+                    'https://yt3.ggpht.com',
+                    'https://www.youtube.com',
+                    'https://youtubei.googleapis.com',
+                    'https://jnn-pa.googleapis.com'
+                ];
+                preconnects.forEach(function(url) {
+                    var link = document.createElement('link');
+                    link.rel = 'preconnect';
+                    link.href = url;
+                    link.crossOrigin = 'anonymous';
+                    document.head.appendChild(link);
+
+                    var dnsLink = document.createElement('link');
+                    dnsLink.rel = 'dns-prefetch';
+                    dnsLink.href = url;
+                    document.head.appendChild(dnsLink);
+                });
+            } catch(e) {}
+
             function isAdNode(item) {
                 if (!item || typeof item !== 'object') return false;
                 return !!(item.adSlotRenderer || item.promotedVideoRenderer || item.inFeedAdLayoutRenderer ||
@@ -988,6 +1045,16 @@ object UserScriptManager {
                 if (obj.playerAds) obj.playerAds = [];
                 if (obj.adBreaks) obj.adBreaks = [];
                 try { delete obj.adBreakHeartbeatParams; } catch (e) {}
+                if (obj.playbackTracking && typeof obj.playbackTracking === 'object') {
+                    try {
+                        delete obj.playbackTracking.videostatsPlaybackUrl;
+                        delete obj.playbackTracking.videostatsDelayplayUrl;
+                        delete obj.playbackTracking.videostatsWatchtimeUrl;
+                        delete obj.playbackTracking.ptrackingUrl;
+                        delete obj.playbackTracking.qoeUrl;
+                        delete obj.playbackTracking.atrUrl;
+                    } catch(eTr) {}
+                }
                 var keys = Object.keys(obj);
                 for (var k = 0; k < keys.length; k++) {
                     var v = obj[keys[k]];
