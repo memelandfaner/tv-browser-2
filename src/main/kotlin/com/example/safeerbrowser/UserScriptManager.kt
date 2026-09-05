@@ -609,8 +609,8 @@ object UserScriptManager {
                                 video.volume = 1.0;
                             }
 
-                            // 🚀 Bliskovit vžig skladbe
-                            if (video.paused && !video.ended && !video._safeer_user_paused) {
+                            // 🚀 Bliskovit vžig skladbe (samo ko je naložen medpomnilnik readyState >= 3 za preprečevanje zatikanja)
+                            if (video.paused && !video.ended && !video._safeer_user_paused && video.readyState >= 3) {
                                 var playPromise = video.play();
                                 if (playPromise !== undefined) {
                                     playPromise.catch(function() {});
@@ -689,13 +689,29 @@ object UserScriptManager {
                     } catch(e) {}
                 },
 
-                // Stalni nadzorni cikel agenta
+                // Stalni prilagodljivi nadzorni cikel agenta (250ms ob oglasih, 1500ms med nemotenim predvajanjem)
                 startSupervision: function() {
                     var self = this;
-                    setInterval(function() {
+                    var _supervisorTimer = null;
+
+                    function runSupervisorCycle() {
                         self.boostPlayback();
                         self.healErrors();
-                    }, 200);
+
+                        var video = document.querySelector('video');
+                        var isAd = playerHasAd();
+                        var isSmoothPlaying = video && !video.paused && video.readyState >= 3 && !isAd;
+                        var nextInterval = (isAd || !self.initialPlayDone) ? 250 : (isSmoothPlaying ? 1500 : 350);
+                        scheduleNextCycle(nextInterval);
+                    }
+
+                    function scheduleNextCycle(intervalMs) {
+                        if (_supervisorTimer) clearTimeout(_supervisorTimer);
+                        _supervisorTimer = setTimeout(runSupervisorCycle, intervalMs);
+                    }
+                    self._scheduleNextCycle = scheduleNextCycle;
+
+                    scheduleNextCycle(250);
 
                     window.addEventListener('yt-navigate-start', function() {
                         self.lastTriggerTime = 0;
@@ -705,12 +721,12 @@ object UserScriptManager {
                             v._safeer_user_paused = false;
                             v.preload = 'auto';
                         }
-                        self.boostPlayback();
+                        scheduleNextCycle(150);
                     });
-                    window.addEventListener('yt-navigate-finish', function() { self.boostPlayback(); });
-                    window.addEventListener('yt-page-data-updated', function() { self.boostPlayback(); });
-                    window.addEventListener('popstate', function() { self.boostPlayback(); });
-                    document.addEventListener('DOMContentLoaded', function() { self.boostPlayback(); });
+                    window.addEventListener('yt-navigate-finish', function() { scheduleNextCycle(150); });
+                    window.addEventListener('yt-page-data-updated', function() { scheduleNextCycle(200); });
+                    window.addEventListener('popstate', function() { scheduleNextCycle(150); });
+                    document.addEventListener('DOMContentLoaded', function() { scheduleNextCycle(200); });
                 }
             };
 
