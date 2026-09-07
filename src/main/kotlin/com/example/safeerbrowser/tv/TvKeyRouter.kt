@@ -8,6 +8,7 @@ import org.json.JSONObject
 class TvKeyRouter(private val host: MainActivity) {
 
     private var lastDpadNavAt = 0L
+    private var overlayBackDown = false
 
     fun dispatch(event: KeyEvent): Boolean {
         if (host.isScreenOffActive()) {
@@ -41,6 +42,23 @@ class TvKeyRouter(private val host: MainActivity) {
             if (host.playback.handleNativeKey(event)) return true
         }
 
+        // Native overlays own both halves of D-pad/OK events. Page profiles must
+        // not consume ACTION_UP, otherwise focused Android buttons never click.
+        if (keyCode == KeyEvent.KEYCODE_BACK && overlayBackDown) {
+            if (event.action == KeyEvent.ACTION_UP) overlayBackDown = false
+            return true
+        }
+        if (host.tabSwitcherOverlay.visibility == View.VISIBLE || host.findInPageBar.visibility == View.VISIBLE) {
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    overlayBackDown = true
+                    host.handleBrowserBack()
+                }
+                return true
+            }
+            return host.superDispatchKey(event)
+        }
+
         if (profile === YoutubeTvSiteProfile) {
             val handled = YoutubeTvSiteProfile.handleKey(event, host)
             if (handled) return true
@@ -61,14 +79,6 @@ class TvKeyRouter(private val host: MainActivity) {
                         JSONObject().put("code", keyCode)
                     )
                 }
-                return true
-            }
-            return host.superDispatchKey(event)
-        }
-
-        if (host.tabSwitcherOverlay.visibility == View.VISIBLE || host.findInPageBar.visibility == View.VISIBLE) {
-            if (keyCode == KeyEvent.KEYCODE_BACK) {
-                host.handleBrowserBack()
                 return true
             }
             return host.superDispatchKey(event)

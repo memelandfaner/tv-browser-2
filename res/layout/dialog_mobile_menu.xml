@@ -9,7 +9,7 @@
     <!-- Top Quick Action Icons (Back, Forward, Reload, Star Bookmark, Share) -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="48dp"
         android:background="@drawable/bg_mobile_omnibox"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -85,9 +85,9 @@
 
             <!-- Nov zavihek -->
             <LinearLayout
-                android:id="@+id/rowMenuNewTab"
+                android:id="@+id/rowMenuNewTab" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -98,9 +98,9 @@
 
             <!-- Zaznamki -->
             <LinearLayout
-                android:id="@+id/rowMenuBookmarks"
+                android:id="@+id/rowMenuBookmarks" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -111,9 +111,9 @@
 
             <!-- Prenosi -->
             <LinearLayout
-                android:id="@+id/rowMenuDownloads"
+                android:id="@+id/rowMenuDownloads" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -124,9 +124,9 @@
 
             <!-- Zgodovina -->
             <LinearLayout
-                android:id="@+id/rowMenuHistory"
+                android:id="@+id/rowMenuHistory" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -137,9 +137,9 @@
 
             <!-- Najdi na strani -->
             <LinearLayout
-                android:id="@+id/rowMenuFindInPage"
+                android:id="@+id/rowMenuFindInPage" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -150,9 +150,9 @@
 
             <!-- Namizno spletno mesto (Toggle) -->
             <LinearLayout
-                android:id="@+id/rowMenuDesktopSite"
+                android:id="@+id/rowMenuDesktopSite" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -164,9 +164,9 @@
 
             <!-- Threat Shield Pregled (Feodo/URLhaus) -->
             <LinearLayout
-                android:id="@+id/rowMenuThreatStats"
+                android:id="@+id/rowMenuThreatStats" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -178,9 +178,9 @@
 
             <!-- AdBlock Ščit (Toggle) -->
             <LinearLayout
-                android:id="@+id/rowMenuAdBlock"
+                android:id="@+id/rowMenuAdBlock" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
@@ -192,9 +192,9 @@
 
             <!-- AMOLED Temni način (Toggle) -->
             <LinearLayout
-                android:id="@+id/rowMenuDarkMode"
+                android:id="@+id/rowMenuDarkMode" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="48dp"
                 android:background="@drawable/bg_mobile_icon_button"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"

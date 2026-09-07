@@ -1087,6 +1087,7 @@ class MainActivity : android.app.Activity() {
         } else {
             renderTabsGrid()
             tabSwitcherOverlay.visibility = View.VISIBLE
+            btnNewTabInSwitcher.requestFocus()
         }
     }
 
@@ -1272,6 +1273,7 @@ class MainActivity : android.app.Activity() {
         }
 
         dialog.show()
+        dialog.findViewById<View>(R.id.rowMenuNewTab)?.requestFocus()
     }
 
     private fun showThreatStatsDialog() {
@@ -1475,6 +1477,7 @@ class MainActivity : android.app.Activity() {
 
         if (tabSwitcherOverlay.visibility == View.VISIBLE) {
             tabSwitcherOverlay.visibility = View.GONE
+            btnTabCount.requestFocus()
             return
         }
 
