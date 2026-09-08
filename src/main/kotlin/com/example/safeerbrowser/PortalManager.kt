@@ -27,10 +27,8 @@ object PortalManager {
         PortalItem("🌐 Google", "https://www.google.com"),
         PortalItem("📡 Xplore TV", "https://www.xploretv.si/livetv"),
         PortalItem("📺 YouTube TV", "https://www.youtube.com/tv"),
-        PortalItem("🎬 Filmi", "https://hydrahd.ws/"),
         PortalItem("📰 24ur.com", "https://www.24ur.com"),
         PortalItem("🇸🇮 RTV SLO", "https://www.rtvslo.si"),
-        PortalItem("🎬 StreamNexus", "https://google.com/search?q=streamnexus+hd"),
         PortalItem("📖 Wikipedia", "https://sl.wikipedia.org"),
         PortalItem("🤖 ChatGPT", "https://chatgpt.com")
     )
@@ -87,7 +85,7 @@ object PortalManager {
 
         // Header
         val header = TextView(activity).apply {
-            text = "⚙️ Urejanje TV portalov in bližnjic"
+            text = UiText.get(R.string.ui_edit_portals)
             setTextColor(Color.parseColor("#00E5FF"))
             textSize = 20f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -146,7 +144,7 @@ object PortalManager {
                         savePortals(activity, portals)
                         refreshList()
                         onUpdated()
-                        Toast.makeText(activity, "Izbrisano: ${item.title}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(activity, UiText.get(R.string.ui_deleted , item.title), Toast.LENGTH_SHORT).show()
                     }
                 }
                 row.addView(delBtn)
@@ -168,7 +166,7 @@ object PortalManager {
 
         // Add New Portal Button
         val btnAdd = Button(activity).apply {
-            text = "➕ Dodaj nov portal"
+            text = UiText.get(R.string.ui_add_portal)
             setTextColor(Color.parseColor("#00E5FF"))
             textSize = 14f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -189,7 +187,7 @@ object PortalManager {
 
         // Reset Defaults Button
         val btnReset = Button(activity).apply {
-            text = "🔄 Privzeto"
+            text = "🔄 " + UiText.get(R.string.ui_defaults) + ""
             setTextColor(Color.parseColor("#94A3B8"))
             textSize = 14f
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
@@ -208,14 +206,14 @@ object PortalManager {
                 savePortals(activity, portals)
                 refreshList()
                 onUpdated()
-                Toast.makeText(activity, "Portali ponastavljeni na privzete!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, UiText.get(R.string.ui_reset_portals), Toast.LENGTH_SHORT).show()
             }
         }
         btnRow.addView(btnReset)
 
         // Close Button
         val btnClose = Button(activity).apply {
-            text = "Zapri ✕"
+            text = "" + UiText.get(R.string.ui_close) + " ✕"
             setTextColor(Color.parseColor("#F8FAFC"))
             textSize = 14f
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
@@ -252,7 +250,7 @@ object PortalManager {
         }
 
         val titleTv = TextView(activity).apply {
-            text = "➕ Dodaj novo TV bližnjico"
+            text = UiText.get(R.string.ui_new_shortcut)
             setTextColor(Color.parseColor("#00E5FF"))
             textSize = 18f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -261,7 +259,7 @@ object PortalManager {
         layout.addView(titleTv)
 
         val editName = EditText(activity).apply {
-            hint = "Ime (npr. 🎬 Netflix ali Delo)"
+            hint = UiText.get(R.string.ui_portal_name)
             setTextColor(Color.parseColor("#F8FAFC"))
             setHintTextColor(Color.parseColor("#64748B"))
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
@@ -272,7 +270,7 @@ object PortalManager {
         layout.addView(editName)
 
         val editUrl = EditText(activity).apply {
-            hint = "Spletni naslov (npr. https://delo.si)"
+            hint = UiText.get(R.string.ui_portal_url)
             setTextColor(Color.parseColor("#F8FAFC"))
             setHintTextColor(Color.parseColor("#64748B"))
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
@@ -295,7 +293,7 @@ object PortalManager {
         }
 
         val btnCancel = Button(activity).apply {
-            text = "Prekliči"
+            text = UiText.get(R.string.ui_cancel)
             setTextColor(Color.parseColor("#94A3B8"))
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
             setPadding(24, 12, 24, 12)
@@ -304,7 +302,7 @@ object PortalManager {
         bRow.addView(btnCancel)
 
         val btnSave = Button(activity).apply {
-            text = "Shrani"
+            text = UiText.get(R.string.ui_save)
             setTextColor(Color.parseColor("#00E5FF"))
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
@@ -319,7 +317,7 @@ object PortalManager {
                 val name = editName.text.toString().trim()
                 var url = editUrl.text.toString().trim()
                 if (name.isEmpty() || url.isEmpty()) {
-                    Toast.makeText(activity, "Prosimo, vnesite ime in naslov!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiText.get(R.string.ui_please_name_address), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -327,7 +325,7 @@ object PortalManager {
                 }
                 onAdded(PortalItem(name, url))
                 addDialog.dismiss()
-                Toast.makeText(activity, "Dodan portal: $name", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, UiText.get(R.string.ui_portal_added , name), Toast.LENGTH_SHORT).show()
             }
         }
         bRow.addView(btnSave)

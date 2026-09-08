@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:singleLine="true"
-            android:text="Naziv zaznamka"
+            android:text="@string/ui_bookmark_name"
             android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:textStyle="bold" />

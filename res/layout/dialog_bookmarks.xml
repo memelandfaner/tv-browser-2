@@ -17,7 +17,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="⭐ Zaznamki in Hitri Portali"
+            android:text="@string/ui_bookmarks_heading"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />

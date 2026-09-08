@@ -24,7 +24,6 @@ object HomeTilesStore {
     val DEFAULT_TILES = listOf(
         HomeTile("Xplore TV", "https://www.xploretv.si/livetv"),
         HomeTile("YouTube", "https://www.youtube.com/tv"),
-        HomeTile("Filmi", "https://hydrahd.ws/"),
         HomeTile("24ur", "https://www.24ur.com"),
         HomeTile("RTV SLO", "https://www.rtvslo.si"),
         HomeTile("Google", "https://www.google.com"),
@@ -104,7 +103,7 @@ object HomeTilesStore {
             layoutParams = ViewGroup.LayoutParams(1240, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
         root.addView(TextView(activity).apply {
-            text = "Urejanje kartic na naslovnici"
+            text = UiText.get(R.string.ui_edit_tiles)
             setTextColor(Color.parseColor("#00E5FF"))
             textSize = 20f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -168,18 +167,18 @@ object HomeTilesStore {
                         refresh()
                     })
                 }
-                row.addView(iconBtn("Uredi") {
+                row.addView(iconBtn(UiText.get(R.string.ui_edit)) {
                     showTileForm(activity, item) { updated ->
                         tiles[index] = updated
                         save(activity, tiles)
                         refresh()
                     }
                 })
-                row.addView(iconBtn("Briši") {
+                row.addView(iconBtn(UiText.get(R.string.ui_delete)) {
                     tiles.removeAt(index)
                     save(activity, tiles)
                     refresh()
-                    Toast.makeText(activity, "Odstranjeno: ${item.title}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiText.get(R.string.ui_removed , item.title), Toast.LENGTH_SHORT).show()
                 })
                 listContainer.addView(row)
             }
@@ -213,21 +212,21 @@ object HomeTilesStore {
                 setOnClickListener { onClick() }
             }
         }
-        btnRow.addView(actionBtn("Dodaj kartico", "#00E5FF") {
+        btnRow.addView(actionBtn(UiText.get(R.string.ui_add_tile), "#00E5FF") {
             showTileForm(activity, null) { created ->
                 tiles.add(created)
                 save(activity, tiles)
                 refresh()
             }
         })
-        btnRow.addView(actionBtn("Privzeto", "#94A3B8") {
+        btnRow.addView(actionBtn(UiText.get(R.string.ui_defaults), "#94A3B8") {
             tiles.clear()
             tiles.addAll(DEFAULT_TILES)
             save(activity, tiles)
             refresh()
-            Toast.makeText(activity, "Kartice so spet privzete", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, UiText.get(R.string.ui_tiles_reset), Toast.LENGTH_SHORT).show()
         })
-        btnRow.addView(actionBtn("Zapri", "#F8FAFC") { dialog.dismiss() })
+        btnRow.addView(actionBtn(UiText.get(R.string.ui_close), "#F8FAFC") { dialog.dismiss() })
         root.addView(btnRow)
         dialog.setOnDismissListener { onUpdated() }
         dialog.setContentView(root)
@@ -245,14 +244,14 @@ object HomeTilesStore {
             layoutParams = ViewGroup.LayoutParams(850, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
         layout.addView(TextView(activity).apply {
-            text = if (existing == null) "Nova kartica" else "Uredi kartico"
+            text = if (existing == null) UiText.get(R.string.ui_new_tile) else UiText.get(R.string.ui_edit_tile)
             setTextColor(Color.parseColor("#00E5FF"))
             textSize = 18f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             setPadding(0, 0, 0, 16)
         })
         val editName = EditText(activity).apply {
-            hint = "Ime (npr. YouTube)"
+            hint = UiText.get(R.string.ui_name_hint)
             setText(existing?.title ?: "")
             setTextColor(Color.parseColor("#F8FAFC"))
             setHintTextColor(Color.parseColor("#64748B"))
@@ -263,7 +262,7 @@ object HomeTilesStore {
         }
         layout.addView(editName)
         val editUrl = EditText(activity).apply {
-            hint = "Naslov (npr. youtube.com/tv)"
+            hint = UiText.get(R.string.ui_url_hint_extra)
             setText(existing?.url ?: "")
             setTextColor(Color.parseColor("#F8FAFC"))
             setHintTextColor(Color.parseColor("#64748B"))
@@ -285,14 +284,14 @@ object HomeTilesStore {
             setPadding(0, 24, 0, 0)
         }
         bRow.addView(Button(activity).apply {
-            text = "Prekliči"
+            text = UiText.get(R.string.ui_cancel)
             setTextColor(Color.parseColor("#94A3B8"))
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
             setPadding(24, 12, 24, 12)
             setOnClickListener { addDialog.dismiss() }
         })
         bRow.addView(Button(activity).apply {
-            text = "Shrani"
+            text = UiText.get(R.string.ui_save)
             setTextColor(Color.parseColor("#00E5FF"))
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             setBackgroundResource(R.drawable.bg_mobile_omnibox)
@@ -307,7 +306,7 @@ object HomeTilesStore {
                 val name = editName.text.toString().trim()
                 var url = editUrl.text.toString().trim()
                 if (name.isEmpty() || url.isEmpty()) {
-                    Toast.makeText(activity, "Vnesite ime in naslov", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, UiText.get(R.string.ui_name_address), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {

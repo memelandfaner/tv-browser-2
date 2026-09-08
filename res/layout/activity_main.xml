@@ -188,7 +188,7 @@
             android:nextFocusLeft="@+id/btnFavorite"
             android:nextFocusRight="@+id/btnAddTab"
             android:nextFocusDown="@+id/webViewContainer"
-            android:contentDescription="Virtual Pointer Mode" />
+            android:contentDescription="@string/ui_pointer" />
 
         <!-- 4. Add Tab (+) Button -->
         <Button
@@ -310,7 +310,7 @@
             android:layout_height="36dp"
             android:layout_weight="1"
             android:background="@drawable/bg_mobile_omnibox"
-            android:hint="Najdi na strani..."
+            android:hint="@string/ui_find_hint"
             android:paddingHorizontal="12dp"
             android:singleLine="true"
             android:textColor="@color/text_primary"

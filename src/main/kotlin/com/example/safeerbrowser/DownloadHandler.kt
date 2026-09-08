@@ -17,7 +17,7 @@ class DownloadHandler(private val context: Context) {
                 if (userAgent != null) {
                     addRequestHeader("User-Agent", userAgent)
                 }
-                setDescription("Prenašam datoteko...")
+                setDescription(UiText.get(R.string.ui_downloading))
                 setTitle(filename)
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
@@ -26,9 +26,9 @@ class DownloadHandler(private val context: Context) {
 
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
             dm?.enqueue(request)
-            Toast.makeText(context, "📥 Prenašam: $filename", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, UiText.get(R.string.ui_download_file , filename), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "❌ Napaka pri prenosu: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, UiText.get(R.string.ui_download_error , e.message), Toast.LENGTH_LONG).show()
         }
     }
 }

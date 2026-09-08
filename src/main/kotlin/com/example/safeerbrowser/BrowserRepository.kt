@@ -71,7 +71,6 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
             Bookmark(0, "Google Iskalnik", "https://www.google.com", "🔍"),
             Bookmark(0, "Xplore TV", "https://www.xploretv.si/livetv", "📡"),
             Bookmark(0, "YouTube", "https://www.youtube.com/tv", "📺"),
-            Bookmark(0, "StreamNexus Filmi", "https://hydrahd.ws/", "🎬"),
             Bookmark(0, "ChatGPT AI", "https://chatgpt.com", "💬"),
             Bookmark(0, "RTV Slovenija", "https://www.rtvslo.si", "📰"),
             Bookmark(0, "Wikipedia", "https://sl.wikipedia.org", "📖"),

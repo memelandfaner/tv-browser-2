@@ -322,6 +322,11 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         @android.webkit.JavascriptInterface
+        fun getUiLanguage(): String {
+            return UiText.language
+        }
+
+        @android.webkit.JavascriptInterface
         fun navigate(url: String) {
             (context as? android.app.Activity)?.runOnUiThread {
                 webView.loadUrl(url)
@@ -443,13 +448,15 @@ class ChromiumEngineView @JvmOverloads constructor(
                 origin: String?,
                 callback: GeolocationPermissions.Callback?
             ) {
-                callback?.invoke(origin, true, false)
+                callback?.invoke(origin, false, false)
             }
 
             override fun onPermissionRequest(request: PermissionRequest?) {
                 if (request == null) return
                 val origin = request.origin?.toString() ?: ""
-                val resources = request.resources ?: emptyArray()
+                val resources = request.resources.orEmpty().filter {
+                    it == PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID
+                }.toTypedArray()
                 // #region agent log
                 SafeerDbg.log(
                     "H29",
@@ -462,6 +469,10 @@ class ChromiumEngineView @JvmOverloads constructor(
                 // #endregion
                 val grantNow = Runnable {
                     try {
+                        if (resources.isEmpty()) {
+                            request.deny()
+                            return@Runnable
+                        }
                         request.grant(resources)
                         try {
                             this@ChromiumEngineView.evaluateJavascript(

@@ -150,7 +150,7 @@ class TvChrome(private val host: MainActivity) {
         }
 
         val editBtn = Button(host).apply {
-            text = "⚙️ Uredi"
+            text = "⚙️ " + UiText.get(R.string.ui_edit) + ""
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 setTextColor(host.resources.getColorStateList(R.color.color_portal_chip_text, host.theme))
             } else {
@@ -198,7 +198,7 @@ class TvChrome(private val host: MainActivity) {
 
         if (url.isEmpty() || url == "about:blank" || url.startsWith("https://www.google.com") || url.startsWith("file:///android_asset")) {
             host.editUrl.setText("")
-            host.editUrl.hint = "Iščite na Google ali vnesite naslov..."
+            host.editUrl.hint = UiText.get(R.string.ui_search_hint)
             host.tvSecurityLock.text = "🔍"
             return
         }

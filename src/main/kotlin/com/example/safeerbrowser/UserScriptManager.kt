@@ -984,11 +984,8 @@ object UserScriptManager {
     }
 
     private fun xploreAuthJs(webView: WebView): String {
-        return try {
-            assetJs(webView, "xplore_auth.js", { cachedXploreAuthJs }, { cachedXploreAuthJs = it })
-        } catch (_: Exception) {
-            "window._safeerXploreAuth = null;"
-        }
+        // Public builds never load credentials from assets or a developer device.
+        return "window._safeerXploreAuth = null;"
     }
 
     private const val YOUTUBE_TV_LEANBACK_JS = """

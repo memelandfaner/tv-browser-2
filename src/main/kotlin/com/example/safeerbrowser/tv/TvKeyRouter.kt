@@ -86,7 +86,7 @@ class TvKeyRouter(private val host: MainActivity) {
 
         if (keyCode == KeyEvent.KEYCODE_PROG_RED || keyCode == KeyEvent.KEYCODE_MENU || keyCode == 183) {
             host.chrome.showPortals()
-            Toast.makeText(host, "🔍 Hitri TV portali...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(host, UiText.get(R.string.ui_quick_sites), Toast.LENGTH_SHORT).show()
             return true
         }
 
@@ -100,7 +100,7 @@ class TvKeyRouter(private val host: MainActivity) {
             host.virtualPointerView.isPointerVisible = !host.virtualPointerView.isPointerVisible
             Toast.makeText(
                 host,
-                if (host.virtualPointerView.isPointerVisible) "🖱️ Kazalec TV vklopljen" else "🖐️ D-Pad način vklopljen",
+                if (host.virtualPointerView.isPointerVisible) UiText.get(R.string.ui_pointer_on) else UiText.get(R.string.ui_dpad_on),
                 Toast.LENGTH_SHORT
             ).show()
             return true
@@ -212,7 +212,7 @@ class TvKeyRouter(private val host: MainActivity) {
             KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_BUTTON_L1 -> {
                 if (host.tabManager.count > 1) {
                     host.tabManager.switchToPrevTab()
-                    Toast.makeText(host, "◀ Prejšnji zavihek", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(host, UiText.get(R.string.ui_previous_tab), Toast.LENGTH_SHORT).show()
                 } else {
                     host.activeWebView()?.pageUp(false)
                 }
@@ -221,7 +221,7 @@ class TvKeyRouter(private val host: MainActivity) {
             KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_BUTTON_R1 -> {
                 if (host.tabManager.count > 1) {
                     host.tabManager.switchToNextTab()
-                    Toast.makeText(host, "Naslednji zavihek ▶", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(host, UiText.get(R.string.ui_next_tab), Toast.LENGTH_SHORT).show()
                 } else {
                     host.activeWebView()?.pageDown(false)
                 }

@@ -101,25 +101,11 @@ PROP
 
 ensure_sdk
 
-install_xplore_auth() {
-    local dest="$DIR/assets/xplore_auth.js"
-    local src="$DIR/xplore_auth.local.js"
-    mkdir -p "$DIR/assets"
-    # Default: never bake Xplore login into the APK (GitHub / public download).
-    # Local TV with auto-login: INCLUDE_XPLORE_AUTH=1 ./build_tv_apk.sh
-    if [[ "${INCLUDE_XPLORE_AUTH:-}" == "1" && -f "$src" ]]; then
-        cp "$src" "$dest"
-        echo "Xplore: lokalni samodejni vstop je v TEM APK — NE nalagaj tega APK na GitHub."
-    else
-        printf '%s\n' 'window._safeerXploreAuth = null;' > "$dest"
-        echo "Xplore: javni APK, brez samodejnega vstopa."
-    fi
-}
-restore_xplore_auth() {
-    printf '%s\n' 'window._safeerXploreAuth = null;' > "$DIR/assets/xplore_auth.js"
-}
-trap restore_xplore_auth EXIT
-install_xplore_auth
+# Public builds never package developer login credentials.
+if [[ "${INCLUDE_XPLORE_AUTH:-}" == "1" ]]; then
+    echo "Private login embedding is not supported by public builds." >&2
+    exit 1
+fi
 
 # Relative path so spaces in the workspace directory do not break Gradle.
 cat > "$DIR/local.properties" <<'EOF'
@@ -133,6 +119,7 @@ mkdir -p "$DIR/.android"
 
 echo "☕ Gradle assembleRelease (Media3)..."
 cd "$DIR"
+python3 tests/check_public_package.py
 ./gradlew --no-daemon assembleRelease
 
 UNSIGNED="$(find "$DIR/build/outputs/apk" -name '*.apk' | head -n 1)"
@@ -158,12 +145,8 @@ fi
 FINAL_APK="$RELEASE_DIR/tv-browser-2-release.apk"
 cp "$SIGNED" "$FINAL_APK"
 cp "$FINAL_APK" "$DIR/TV-Browser-2.apk"
-
-WEB_TV_DIR="/home/janez/Namizje/safeer-web/assets/tv"
-if [[ -d "$WEB_TV_DIR" ]]; then
-    cp "$FINAL_APK" "$WEB_TV_DIR/TV-Browser-2.apk"
-    echo "🌐 Posodobljeno na spletni strani: $WEB_TV_DIR/TV-Browser-2.apk"
-fi
+cp "$FINAL_APK" "$DIR/Safeer-Browser.apk"
+cp "$FINAL_APK" "$RELEASE_DIR/safeer-browser-release.apk"
 
 echo "🔎 Preverjam, da je Media3 v dex..."
 VERIFY_DIR="$DIR/build/dexcheck"
@@ -183,18 +166,8 @@ fi
 echo "OK: Media3 ExoPlayer + DashMediaSource sta v dex."
 
 echo "🔎 Preverjam, da javni APK nima Xplore prijave..."
-AUTH_JS="$(unzip -p "$DIR/TV-Browser-2.apk" assets/xplore_auth.js 2>/dev/null || true)"
-if [[ "${INCLUDE_XPLORE_AUTH:-}" == "1" ]]; then
-    if [[ "$AUTH_JS" == *'window._safeerXploreAuth = null;'* ]]; then
-        echo "OPOZORILO: INCLUDE_XPLORE_AUTH=1, vendar je auth v APK še null."
-    fi
-else
-    if [[ "$AUTH_JS" != 'window._safeerXploreAuth = null;'* ]]; then
-        echo "NAPAKA: APK vsebuje Xplore prijavo. Ta datoteka ne sme iti na GitHub." >&2
-        exit 1
-    fi
-    echo "OK: xplore_auth.js v APK je null."
-fi
+python3 "$DIR/tests/check_public_package.py" "$DIR/TV-Browser-2.apk"
+echo "OK: no authentication assets in APK."
 
 echo ""
 echo "=========================================================="

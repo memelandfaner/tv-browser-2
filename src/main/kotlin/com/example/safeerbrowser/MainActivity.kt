@@ -141,6 +141,7 @@ class MainActivity : android.app.Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        UiText.init(this)
         setContentView(R.layout.activity_main)
 
         window.statusBarColor = Color.parseColor("#06090F")
@@ -183,6 +184,7 @@ class MainActivity : android.app.Activity() {
         val targetUrl = incomingBrowseUrl(intent) ?: "file:///android_asset/brave_home.html"
         tabManager.createTab(this, targetUrl, true)
 
+        if (BuildConfig.DEBUG) {
         debugJsReceiver = object : android.content.BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
@@ -225,7 +227,6 @@ class MainActivity : android.app.Activity() {
                         if (query.isNotEmpty()) {
                             val searchUrl = when (engine.lowercase()) {
                                 "youtube", "yt" -> "https://www.youtube.com/results?search_query=" + URLEncoder.encode(query, "UTF-8")
-                                "hydra", "movie", "film" -> "https://hydrahd.ws/?search=" + URLEncoder.encode(query, "UTF-8")
                                 else -> "https://www.google.com/search?q=" + URLEncoder.encode(query, "UTF-8")
                             }
                             val activeTab = tabManager.getActiveTab()
@@ -262,7 +263,8 @@ class MainActivity : android.app.Activity() {
                 registerReceiver(debugJsReceiver, debugFilter)
             }
         } catch (_: Exception) {}
-        if (intent?.getBooleanExtra("exo_smoke", false) == true) {
+        }
+        if (BuildConfig.DEBUG && intent?.getBooleanExtra("exo_smoke", false) == true) {
             webViewContainer.post { playback.playClearSmoke() }
         }
     }
@@ -344,11 +346,11 @@ class MainActivity : android.app.Activity() {
                     screenOffOverlay = overlay
                     overlay.requestFocus()
                 }
-                showTvOsd("🌙 Zvok v ozadju (Zaslon ugasnjen)", "Pritisnite katerokoli tipko za vklop slike", 4000L)
+                showTvOsd(UiText.get(R.string.ui_background_audio), UiText.get(R.string.ui_press_key), 4000L)
             } else {
                 screenOffOverlay?.let { mainRoot.removeView(it) }
                 screenOffOverlay = null
-                showTvOsd("☀️ Slika vklopljena", durationMs = 2000L)
+                showTvOsd(UiText.get(R.string.ui_screen_on), durationMs = 2000L)
             }
         }
     }
@@ -975,7 +977,7 @@ class MainActivity : android.app.Activity() {
             virtualPointerView.isPointerVisible = !virtualPointerView.isPointerVisible
             Toast.makeText(
                 this,
-                if (virtualPointerView.isPointerVisible) "🖱️ Kazalec TV vklopljen" else "🖐️ Kazalec TV izklopljen",
+                if (virtualPointerView.isPointerVisible) UiText.get(R.string.ui_pointer_on) else UiText.get(R.string.ui_pointer_off),
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -1012,20 +1014,20 @@ class MainActivity : android.app.Activity() {
         val activeTab = tabManager.getActiveTab() ?: return
         val curUrl = activeTab.url
         if (curUrl.isEmpty() || curUrl == "about:blank" || curUrl.startsWith("file:///android_asset")) {
-            Toast.makeText(this, "Te strani ni mogoče dodati med zaznamke", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, UiText.get(R.string.ui_cannot_bookmark), Toast.LENGTH_SHORT).show()
             return
         }
         val isBm = repository.isBookmarked(curUrl)
         if (isBm) {
             repository.removeBookmark(curUrl)
             updateBookmarkButton(curUrl)
-            showTvOsd("Zaznamki", getString(R.string.toast_bookmark_removed))
+            showTvOsd(UiText.get(R.string.ui_bookmarks), getString(R.string.toast_bookmark_removed))
             Toast.makeText(this, getString(R.string.toast_bookmark_removed), Toast.LENGTH_SHORT).show()
         } else {
             val title = activeTab.webView.title?.takeIf { it.isNotBlank() } ?: curUrl
             repository.addBookmark(title, curUrl)
             updateBookmarkButton(curUrl)
-            showTvOsd("Zaznamki", "⭐ $title")
+            showTvOsd(UiText.get(R.string.ui_bookmarks), "⭐ $title")
             Toast.makeText(this, getString(R.string.toast_bookmark_added), Toast.LENGTH_SHORT).show()
         }
     }
@@ -1064,10 +1066,10 @@ class MainActivity : android.app.Activity() {
                 ) {
                     if (diffX > 0) {
                         tabManager.switchToPrevTab()
-                        Toast.makeText(this@MainActivity, "◀ Prejšnji zavihek", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, UiText.get(R.string.ui_previous_tab), Toast.LENGTH_SHORT).show()
                     } else {
                         tabManager.switchToNextTab()
-                        Toast.makeText(this@MainActivity, "Naslednji zavihek ▶", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, UiText.get(R.string.ui_next_tab), Toast.LENGTH_SHORT).show()
                     }
                     return true
                 }
@@ -1111,7 +1113,7 @@ class MainActivity : android.app.Activity() {
                 val btnClose = view.findViewById<TextView>(R.id.btnTabClose)
                 val cardRoot = view.findViewById<RelativeLayout>(R.id.tabCardRoot)
 
-                tvTitle.text = tab.title.ifEmpty { "Zavihek ${position + 1}" }
+                tvTitle.text = tab.title.ifEmpty { UiText.get(R.string.ui_tab_number , position + 1) }
                 tvUrl.text = tab.url
                 
                 val isActive = (tab.id == activeId)
@@ -1177,7 +1179,7 @@ class MainActivity : android.app.Activity() {
                 updateBookmarkButton(curUrl)
                 Toast.makeText(this, getString(R.string.toast_bookmark_removed), Toast.LENGTH_SHORT).show()
             } else {
-                repository.addBookmark(wv?.title ?: "Zaznamek", curUrl)
+                repository.addBookmark(wv?.title ?: UiText.get(R.string.ui_bookmark), curUrl)
                 updateBookmarkButton(curUrl)
                 Toast.makeText(this, getString(R.string.toast_bookmark_added), Toast.LENGTH_SHORT).show()
             }
@@ -1189,7 +1191,7 @@ class MainActivity : android.app.Activity() {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, curUrl)
             }
-            startActivity(Intent.createChooser(shareIntent, "Deli stran"))
+            startActivity(Intent.createChooser(shareIntent, UiText.get(R.string.ui_share)))
             dialog.dismiss()
         }
 
@@ -1210,7 +1212,7 @@ class MainActivity : android.app.Activity() {
             try {
                 startActivity(Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS))
             } catch (_: Exception) {
-                Toast.makeText(this, "Mapa prenosov je v mapi Prenosi", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, UiText.get(R.string.ui_downloads_location), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -1248,7 +1250,7 @@ class MainActivity : android.app.Activity() {
             cbAdBlock.isChecked = AdBlockEngine.isEnabled
             Toast.makeText(
                 this,
-                if (AdBlockEngine.isEnabled) "🛡️ AdBlock vklopljen" else "⚠️ AdBlock izklopljen",
+                if (AdBlockEngine.isEnabled) UiText.get(R.string.ui_adblock_on) else UiText.get(R.string.ui_adblock_off),
                 Toast.LENGTH_SHORT
             ).show()
             wv?.reload()
@@ -1266,7 +1268,7 @@ class MainActivity : android.app.Activity() {
             }
             Toast.makeText(
                 this,
-                if (isDarkModeActive) "🌙 AMOLED Temni način vklopljen" else "☀️ Svetli način vklopljen",
+                if (isDarkModeActive) UiText.get(R.string.ui_dark_on) else UiText.get(R.string.ui_light_on),
                 Toast.LENGTH_SHORT
             ).show()
             dialog.dismiss()
@@ -1298,15 +1300,15 @@ class MainActivity : android.app.Activity() {
                 Viri: abuse.ch Feodo Tracker, URLhaus, ThreatFox, Phishing Army, StevenBlack Hosts.
                 """.trimIndent()
             )
-            .setPositiveButton("Posodobi sezname") { _, _ ->
-                Toast.makeText(this, "🔄 Posodabljam varnostne sezname...", Toast.LENGTH_SHORT).show()
+            .setPositiveButton(UiText.get(R.string.ui_update_lists)) { _, _ ->
+                Toast.makeText(this, UiText.get(R.string.ui_updating), Toast.LENGTH_SHORT).show()
                 ThreatFeedsUpdater.updateFeedsAsync(this) { added ->
                     runOnUiThread {
-                        Toast.makeText(this@MainActivity, "✅ Dodanih $added novih varnostnih pravil!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, UiText.get(R.string.ui_rules_added , added), Toast.LENGTH_LONG).show()
                     }
                 }
             }
-            .setNegativeButton("Zapri", null)
+            .setNegativeButton(UiText.get(R.string.ui_close), null)
             .show()
     }
 
@@ -1380,16 +1382,16 @@ class MainActivity : android.app.Activity() {
         val items = history.map { "${it.title}\n${it.url}" }.toTypedArray()
 
         AlertDialog.Builder(this)
-            .setTitle("🕒 Zgodovina brskanja")
+            .setTitle(UiText.get(R.string.ui_history_title))
             .setItems(items) { _, which ->
                 val selected = history[which]
                 tabManager.getActiveTab()?.webView?.loadUrl(selected.url)
             }
-            .setPositiveButton("Počisti zgodovino") { _, _ ->
+            .setPositiveButton(UiText.get(R.string.ui_clear_history)) { _, _ ->
                 repository.clearHistory()
-                Toast.makeText(this, "Zgodovina počiščena", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, UiText.get(R.string.ui_history_cleared), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Zapri", null)
+            .setNegativeButton(UiText.get(R.string.ui_close), null)
             .show()
     }
 

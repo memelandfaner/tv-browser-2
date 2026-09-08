@@ -173,7 +173,7 @@
                 android:paddingHorizontal="10dp">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🛑" android:textSize="16sp" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:text="@string/menu_threat_stats" android:textColor="@color/text_primary" android:textSize="14sp" />
-                <TextView android:id="@+id/tvThreatCountBadge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ff5555" android:textSize="12sp" android:text="Ščit aktiven" />
+                <TextView android:id="@+id/tvThreatCountBadge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ff5555" android:textSize="12sp" android:text="@string/ui_shield_active" />
             </LinearLayout>
 
             <!-- AdBlock Ščit (Toggle) -->

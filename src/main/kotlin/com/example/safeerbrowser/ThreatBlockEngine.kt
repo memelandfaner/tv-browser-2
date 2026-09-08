@@ -148,18 +148,18 @@ object ThreatBlockEngine {
      */
     fun createSecurityInterstitialHtml(blockedUrl: String, match: DomainSuffixTrie.MatchResult): String {
         val domain = match.matchedDomain
-        val category = match.category ?: "Varnostna grožnja"
-        val source = match.sourceFeed ?: "Varnostni ščit Safeer Browser"
+        val category = match.category ?: UiText.get(R.string.ui_security_threat)
+        val source = match.sourceFeed ?: UiText.get(R.string.ui_security_shield)
         val encodedUrl = Uri.encode(blockedUrl)
         val encodedDomain = Uri.encode(domain)
 
         return """
         <!DOCTYPE html>
-        <html lang="sl">
+        <html lang="${UiText.language}">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>⚠️ Varnostno opozorilo - Safeer Browser</title>
+            <title>${UiText.get(R.string.ui_security_warning)}</title>
             <style>
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 body {
@@ -270,34 +270,34 @@ object ThreatBlockEngine {
         <body>
             <div class="card">
                 <div class="icon">🛑</div>
-                <h1>Varnostna grožnja blokirana</h1>
-                <p class="desc">Safeer Browser je preprečil povezavo z nevarnim spletnim mestom, ki lahko ogrozi varnost vaše naprave ali poskuša ukrasti osebne podatke.</p>
+                <h1>${UiText.get(R.string.ui_threat_blocked)}</h1>
+                <p class="desc">${UiText.get(R.string.ui_threat_desc)}</p>
                 
                 <div class="badge-box">
                     <div class="badge-row">
-                        <span class="badge-label">Domena:</span>
+                        <span class="badge-label">${UiText.get(R.string.ui_domain)}</span>
                         <span class="badge-val">$domain</span>
                     </div>
                     <div class="badge-row">
-                        <span class="badge-label">Vrsta grožnje:</span>
+                        <span class="badge-label">${UiText.get(R.string.ui_threat_type)}</span>
                         <span class="badge-danger">$category</span>
                     </div>
                     <div class="badge-row">
-                        <span class="badge-label">Varnostni vir:</span>
+                        <span class="badge-label">${UiText.get(R.string.ui_security_source)}</span>
                         <span class="badge-val">$source</span>
                     </div>
                 </div>
 
                 <button class="btn btn-primary" onclick="if (history.length > 1) { history.back(); } else { location.href = 'about:blank'; }">
-                    ⬅ Nazaj na varno (Priporočeno)
+                    ${UiText.get(R.string.ui_back_safe)}
                 </button>
                 
                 <a class="btn btn-danger-outline" href="safeer://bypass-threat?domain=$encodedDomain&url=$encodedUrl">
-                    Nadaljuj na lastno odgovornost (Odkleni za to sejo)
+                    ${UiText.get(R.string.ui_continue_risk)}
                 </a>
 
                 <div class="footer-text">
-                    Zaščita Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox
+                    Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox
                 </div>
             </div>
         </body>

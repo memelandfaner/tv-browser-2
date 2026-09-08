@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="sl">
+
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Safeer Browser</title>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Safeer Browser</title>
+<style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         html, body {
             height: 100%;
@@ -219,44 +220,41 @@
         .hero-card.mini-add .art { background: rgba(255, 255, 255, 0.04); }
         .hero-card.mini-add .hero-label { color: #9aacbf; font-weight: 650; }
     </style>
-<link rel="stylesheet" href="safeer-home.css">
+<link href="safeer-home.css" rel="stylesheet"/>
 </head>
 <body>
 <div class="stage">
-<header class="safeer-brand"><img src="safeer-mark.png" width="56" height="56" alt=""><div><h1>Safeer</h1><p>Tvoj splet. Na velikem zaslonu.</p></div><span class="edition">TV Browser</span></header>
-    <div class="search-card">
-        <form class="search-bar-wrapper" id="searchForm" onsubmit="return handleSearch(event)">
-            <svg class="search-glyph" viewBox="0 0 24 24" fill="none" stroke="#c9d6e4" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
-            <input type="text" class="search-input" id="searchInput" placeholder="Iščite ali vnesite naslov..." autocomplete="off" autocorrect="off" tabindex="-1">
-            <button type="submit" class="search-btn" tabindex="0" aria-label="Išči">→</button>
-        </form>
-        <div class="engine-chips">
-            <div class="engine-chip active" role="button" tabindex="0" onclick="setEngine('google', this)">Google</div>
-            <div class="engine-chip" role="button" tabindex="0" onclick="setEngine('duckduckgo', this)">DuckDuckGo</div>
-            <div class="engine-chip" role="button" tabindex="0" onclick="setEngine('brave', this)">Brave Search</div>
-        </div>
-        <div style="font-size: 13px; color: rgba(148, 163, 184, 0.75); letter-spacing: 0.8px; margin-top: -4px; font-weight: 600;">🛡️ Varnejši na spletu · Safeer Browser</div>
-    </div>
-
-    <div class="section-head">
-        <div class="section-title">Moje strani</div>
-        <div class="edit-chip" role="button" tabindex="0" onclick="editTiles()">Uredi</div>
-    </div>
-    <div class="hero-row" id="heroRow"></div>
-
-    <div class="section-head">
-        <div class="section-title">Več strani</div>
-        <div class="edit-chip" role="button" tabindex="0" onclick="addTile()">Dodaj</div>
-    </div>
-    <div class="more-row" id="favoritesGrid"></div>
-<footer class="remote-help"><span><b>OK</b> Odpri</span><span><b>Nazaj</b> Vrni se</span><span><i class="remote-red"></i> Hitre strani</span><span><i class="remote-green"></i> Kazalec</span></footer>
+<header class="safeer-brand"><img alt="" height="56" src="safeer-mark.svg" width="56"/><div><h1>Safeer</h1><p><span data-home-text="home_tagline">Your web. On the big screen.</span></p></div><span class="edition">TV Browser</span></header>
+<div class="search-card">
+<form class="search-bar-wrapper" id="searchForm" onsubmit="return handleSearch(event)">
+<svg class="search-glyph" fill="none" stroke="#c9d6e4" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.2-3.2"></path></svg>
+<input autocomplete="off" autocorrect="off" class="search-input" data-home-placeholder="home_search" id="searchInput" placeholder="Search or enter an address..." tabindex="-1" type="text"/>
+<button aria-label="Search" class="search-btn" data-home-label="search" tabindex="0" type="submit">→</button>
+</form>
+<div class="engine-chips">
+<div class="engine-chip active" onclick="setEngine('google', this)" role="button" tabindex="0">Google</div>
+<div class="engine-chip" onclick="setEngine('duckduckgo', this)" role="button" tabindex="0">DuckDuckGo</div>
+<div class="engine-chip" onclick="setEngine('brave', this)" role="button" tabindex="0">Brave Search</div>
 </div>
-<script>
+<div style="font-size: 13px; color: rgba(148, 163, 184, 0.75); letter-spacing: 0.8px; margin-top: -4px; font-weight: 600;"><span data-home-text="safer">🛡️ Safer browsing · Safeer Browser</span></div>
+</div>
+<div class="section-head">
+<div class="section-title"><span data-home-text="my_sites">My websites</span></div>
+<div class="edit-chip" onclick="editTiles()" role="button" tabindex="0"><span data-home-text="edit">Edit</span></div>
+</div>
+<div class="hero-row" id="heroRow"></div>
+<div class="section-head">
+<div class="section-title"><span data-home-text="more_sites">More websites</span></div>
+<div class="edit-chip" onclick="addTile()" role="button" tabindex="0"><span data-home-text="add">Add</span></div>
+</div>
+<div class="more-row" id="favoritesGrid"></div>
+<footer class="remote-help"><span><b>OK</b><span data-home-text="open">Open</span></span><span><b><span data-home-text="back">Back</span></b><span data-home-text="return">Go back</span></span><span><i class="remote-red"></i><span data-home-text="sites">Quick sites</span></span><span><i class="remote-green"></i><span data-home-text="pointer">Pointer</span></span></footer>
+</div>
+<script src="home-language.js"></script><script>
     var currentEngine = 'google';
     var DEFAULT_TILES = [
         { title: 'Xplore TV', url: 'https://www.xploretv.si/livetv' },
         { title: 'YouTube', url: 'https://www.youtube.com/tv' },
-        { title: 'Filmi', url: 'https://hydrahd.ws/' },
         { title: '24ur', url: 'https://www.24ur.com' },
         { title: 'RTV SLO', url: 'https://www.rtvslo.si' },
         { title: 'Google', url: 'https://www.google.com' },
@@ -305,7 +303,7 @@
             art.textContent = isAdd ? '+' : letterMark(tile.title);
             var lab = document.createElement('div');
             lab.className = 'hero-label';
-            lab.textContent = isAdd ? 'Dodaj' : tile.title;
+            lab.textContent = isAdd ? homeText('add') : tile.title;
             el.appendChild(art);
             el.appendChild(lab);
             if (isAdd) el.addEventListener('click', addTile);
@@ -314,7 +312,7 @@
         }
 
         for (var i = 0; i < heroes.length; i++) addHero(heroes[i], i, false);
-        if (heroes.length < 4) addHero({ title: 'Dodaj', url: '' }, 0, true);
+        if (heroes.length < 4) addHero({ title: homeText('add'), url: '' }, 0, true);
 
         function addMini(tile, isAdd) {
             var el = document.createElement('div');
@@ -329,7 +327,7 @@
             wrap.style.color = '#dbe6f2';
             var name = document.createElement('div');
             name.className = 'tile-name';
-            name.textContent = isAdd ? 'Dodaj' : tile.title;
+            name.textContent = isAdd ? homeText('add') : tile.title;
             el.appendChild(wrap);
             el.appendChild(name);
             if (isAdd) el.addEventListener('click', addTile);
@@ -338,7 +336,7 @@
         }
 
         for (var j = 0; j < rest.length; j++) addMini(rest[j], false);
-        addMini({ title: 'Dodaj', url: '' }, true);
+        addMini({ title: homeText('add'), url: '' }, true);
     }
 
     function editTiles() {
@@ -353,9 +351,9 @@
         document.querySelectorAll('.engine-chip').forEach(function(c) { c.classList.remove('active'); });
         if (el) el.classList.add('active');
         var input = document.getElementById('searchInput');
-        if (engine === 'duckduckgo') input.placeholder = 'Zasebno iskanje DuckDuckGo...';
-        else if (engine === 'brave') input.placeholder = 'Iskanje z Brave...';
-        else input.placeholder = 'Iščite ali vnesite naslov...';
+        if (engine === 'duckduckgo') input.placeholder = homeText('private_search');
+        else if (engine === 'brave') input.placeholder = homeText('brave_search');
+        else input.placeholder = homeText('home_search');
         try { input.blur(); } catch (e) {}
     }
 

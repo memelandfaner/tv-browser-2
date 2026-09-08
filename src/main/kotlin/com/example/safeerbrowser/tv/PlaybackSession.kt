@@ -450,7 +450,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
             if (s != null && codecRetry < 1 && isVideoCodecError(error)) {
                 codecRetry = 1
                 spinner?.visibility = View.VISIBLE
-                setStatus("Druga kakovost (H.264) …")
+                setStatus(UiText.get(R.string.ui_quality_fallback))
                 SafeerDbg.log(
                     "H341",
                     "ExoPlayerSession.kt:retry",
@@ -461,7 +461,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
                 return
             }
             spinner?.visibility = View.GONE
-            setStatus("Predvajanje ni uspelo. NAZAJ za spored.")
+            setStatus(UiText.get(R.string.ui_play_failed))
         }
 
         override fun onRenderedFirstFrame() {
@@ -469,7 +469,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
             if (playingChannel == SMOKE_CHANNEL) {
                 setStatus("Media3 DASH OK (brez DRM)")
             } else {
-                setStatus(playingChannel.ifEmpty { "Predvajanje" }, 3000L)
+                setStatus(playingChannel.ifEmpty { UiText.get(R.string.ui_playback) }, 3000L)
                 try {
                     host.activeWebView()?.evaluateJavascript(pauseVideosJs, null)
                 } catch (_: Exception) {}
@@ -807,7 +807,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
             main.removeCallbacks(holdWebView)
             main.postDelayed(holdWebView, 4000L)
             spinner?.visibility = View.VISIBLE
-            setStatus("Program $oneBased")
+            setStatus(UiText.get(R.string.ui_channel , oneBased))
         }
         SafeerDbg.log(
             "H340",
@@ -821,7 +821,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
                 val name = parseZapName(raw)
                 if (name.startsWith("!")) {
                     val have = name.drop(1)
-                    setStatus("Ni programa $oneBased (spored $have)", 3000L)
+                    setStatus(UiText.get(R.string.ui_missing_channel , oneBased, have), 3000L)
                 } else if (name.isNotEmpty()) {
                     setStatus("$oneBased | $name", 3500L)
                 }
@@ -839,7 +839,7 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         main.removeCallbacks(holdWebView)
         main.postDelayed(holdWebView, 4000L)
         spinner?.visibility = View.VISIBLE
-        setStatus("Preklop …")
+        setStatus(UiText.get(R.string.ui_switching))
         SafeerDbg.log(
             "H339",
             "ExoPlayerSession.kt:zap",
@@ -865,10 +865,10 @@ class ExoPlayerSession(private val host: MainActivity) : PlaybackSession {
         val p = player ?: return
         if (p.isPlaying) {
             p.pause()
-            showOsd("⏸ Pavza", playingChannel.ifEmpty { null }, 2500L)
+            showOsd(UiText.get(R.string.ui_pause), playingChannel.ifEmpty { null }, 2500L)
         } else {
             p.play()
-            showOsd("▶ Predvajanje", playingChannel.ifEmpty { null }, 2500L)
+            showOsd(UiText.get(R.string.ui_playing), playingChannel.ifEmpty { null }, 2500L)
         }
     }
 

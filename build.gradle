@@ -12,8 +12,8 @@ android {
         applicationId 'com.example.safeerbrowser'
         minSdk 28
         targetSdk 34
-        versionCode 190
-        versionName '2.1.81'
+        versionCode 191
+        versionName '2.1.82'
     }
 
     sourceSets {
@@ -23,6 +23,7 @@ android {
             kotlin.srcDirs = ['src/main/kotlin']
             res.srcDirs = ['res']
             assets.srcDirs = ['assets']
+            assets.exclude '**/*.local.*', '**/*auth*', '**/*.png', '**/*.jpg'
         }
     }
 
@@ -36,11 +37,22 @@ android {
         freeCompilerArgs += ['-opt-in=androidx.media3.common.util.UnstableApi']
     }
 
+    signingConfigs {
+        storeRelease {
+            if (System.getenv('RELEASE_KEYSTORE')) {
+                storeFile file(System.getenv('RELEASE_KEYSTORE'))
+                storePassword System.getenv('RELEASE_KEY_PASS')
+                keyAlias System.getenv('RELEASE_KEY_ALIAS') ?: 'safeer-browser'
+                keyPassword System.getenv('RELEASE_KEY_PASS')
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig null
+            signingConfig System.getenv('RELEASE_KEYSTORE') ? signingConfigs.storeRelease : null
         }
         debug {
             minifyEnabled false
