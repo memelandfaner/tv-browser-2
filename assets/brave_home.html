@@ -219,9 +219,11 @@
         .hero-card.mini-add .art { background: rgba(255, 255, 255, 0.04); }
         .hero-card.mini-add .hero-label { color: #9aacbf; font-weight: 650; }
     </style>
+<link rel="stylesheet" href="safeer-home.css">
 </head>
 <body>
 <div class="stage">
+<header class="safeer-brand"><img src="safeer-mark.png" width="56" height="56" alt=""><div><h1>Safeer</h1><p>Tvoj splet. Na velikem zaslonu.</p></div><span class="edition">TV Browser</span></header>
     <div class="search-card">
         <form class="search-bar-wrapper" id="searchForm" onsubmit="return handleSearch(event)">
             <svg class="search-glyph" viewBox="0 0 24 24" fill="none" stroke="#c9d6e4" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
@@ -247,6 +249,7 @@
         <div class="edit-chip" role="button" tabindex="0" onclick="addTile()">Dodaj</div>
     </div>
     <div class="more-row" id="favoritesGrid"></div>
+<footer class="remote-help"><span><b>OK</b> Odpri</span><span><b>Nazaj</b> Vrni se</span><span><i class="remote-red"></i> Hitre strani</span><span><i class="remote-green"></i> Kazalec</span></footer>
 </div>
 <script>
     var currentEngine = 'google';

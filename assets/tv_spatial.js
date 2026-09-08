@@ -267,6 +267,29 @@
                 }
                 return out;
             }
+function hydraRevealPoster(el) {
+    var row = el && el.closest && el.closest('.swiper-container-featured');
+    var swiper = row && row.swiper;
+    if (!swiper || swiper.destroyed) return;
+    // Focus must not invoke the site's two-card paging policy.
+    if (swiper.params.a11y) swiper.params.a11y.scrollOnFocus = false;
+    if (swiper.params.slidesPerGroup !== 1) {
+        swiper.params.slidesPerGroup = 1;
+        swiper.updateSlides();
+    }
+    var r = el.getBoundingClientRect(), rr = row.getBoundingClientRect();
+    var left = Math.max(0, rr.left) + 8;
+    var right = Math.min(window.innerWidth, rr.right) - 8;
+    var idx = Array.prototype.indexOf.call(row.querySelectorAll('a.hthis'), el);
+    var target = swiper.activeIndex;
+    if (r.left < left) target = idx;
+    else if (r.right > right) {
+        var step = r.width + (Number(swiper.params.spaceBetween) || 0);
+        target += Math.max(1, Math.ceil((r.right - right) / Math.max(step, 1)));
+    }
+    if (idx >= 0 && target !== swiper.activeIndex) swiper.slideTo(Math.max(0, target), 0, false);
+}
+
             function hydraMovePoster(direction, current) {
                 var poster = hydraPosterOf(current);
                 if (!poster) return null;
@@ -280,13 +303,7 @@
                 if (direction === 'RIGHT' && list[idx + 1]) next = list[idx + 1];
                 if (direction === 'LEFT' && list[idx - 1]) next = list[idx - 1];
                 if (!next) return null;
-                try {
-                    var nr = hydraLayoutRect(next);
-                    var winW = window.innerWidth || 1920;
-                    if (nr.left > winW - 80 || nr.right < 80) {
-                        next.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
-                    }
-                } catch (_) {}
+                hydraRevealPoster(next);
                 return next;
             }
             function hydraMoveTab(direction, current) {
@@ -1496,6 +1513,13 @@
                 return null;
             };
 
+            if (isHydraHost() || location.protocol === 'file:') {
+                var calmFocus = document.createElement('style');
+                calmFocus.id = 'safeer-calm-focus';
+                calmFocus.textContent = '.safeer-active-card{transform:none!important;transition:none!important;outline:3px solid #b5eb8d!important;outline-offset:3px!important;box-shadow:0 0 0 2px #101814!important;background-color:transparent!important}:focus,:focus-visible{outline-color:#b5eb8d!important;box-shadow:none!important}#safeer-focus-target-ring{display:none!important}.safeer-focus-badge{display:none!important}';
+                (document.head || document.documentElement).appendChild(calmFocus);
+            }
+
             function getOrCreateFocusRing() {
                 var ring = document.getElementById('safeer-focus-target-ring');
                 if (!ring) {
@@ -1508,6 +1532,8 @@
             }
 
             function updateFocusRing(el) {
+                // The outline follows the element without a second animated DOM overlay.
+                if (isHydraHost() || location.protocol === 'file:') return;
                 try {
                     var ring = getOrCreateFocusRing();
                     if (document.documentElement.classList.contains('safeer-xplore-fs')) {
@@ -1547,6 +1573,7 @@
                 clearActive();
                 if (!el) return;
                 window._safeer_xplore_did_focus = true;
+                if (isHydraHost() && hydraPosterOf(el)) hydraRevealPoster(el);
                 el.classList.add('safeer-active-card');
                 try { if (((el.className || '') + '').indexOf('item--event') !== -1) el.tabIndex = 0; } catch (_) {}
                 var tag = (el.tagName || '').toUpperCase();
@@ -2035,6 +2062,8 @@
                             highlightElement(hPosterMove);
                             return 1;
                         }
+                        // Stay in the row at its ends, instead of jumping to another shelf.
+                        if (hydraPosterOf(current)) return 1;
                     }
 
                     if (direction === 'DOWN' && isHydraHost() && current) {

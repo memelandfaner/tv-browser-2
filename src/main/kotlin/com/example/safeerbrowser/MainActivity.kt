@@ -695,7 +695,7 @@ class MainActivity : android.app.Activity() {
             if (tabManager.getActiveTab()?.id == tab.id) {
                 val url = tab.url
                 if (url.startsWith("file://") || url.startsWith("about:") || url.isEmpty()) {
-                    tvSecurityLock.text = "🦁"
+                    tvSecurityLock.text = "S"
                     tvSecurityLock.setTextColor(Color.parseColor("#10B981"))
                 } else {
                     tvSecurityLock.text = if (isSecure) "🔒" else "⚠️"
