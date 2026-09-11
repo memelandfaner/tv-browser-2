@@ -90,4 +90,17 @@
   <string name="ui_continue_risk">Nadaljuj na lastno odgovornost (Odkleni za to sejo)</string>
   <string name="ui_security_threat">Varnostna grožnja</string>
   <string name="ui_security_shield">Varnostni ščit Safeer Browser</string>
+  <string name="ui_zero_bypass">Pravilo ničelnega obvoza: to spletno mesto je potrjen botnet C2 ali strežnik zlonamerne kode, zato ga ni mogoče odkleniti.</string>
+  <string name="ui_signed_intel_waiting">Safeer Threat Intelligence: čaka na objavo podpisanega seznama</string>
+  <string name="ui_signed_intel_not_downloaded">Safeer Threat Intelligence: seznam še ni prenesen</string>
+  <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s preverjenih pravil (različica %2$s)</string>
+  <string name="ui_signed_intel_updated">✅ Preverjen seznam Safeer Threat Intelligence posodobljen</string>
+  <string name="ui_fake_bank_title">Lažna spletna banka</string>
+  <string name="ui_fake_bank_desc">Ta stran ni prava spletna banka. Na njej ne vpisujte uporabniškega imena, gesla, kode SMS ali podatkov kartice. Do banke vedno dostopajte z vpisom uradnega naslova ali prek uradne aplikacije.</string>
+  <string name="ui_fake_bank_open_real">Odpri pravo stran: %1$s</string>
+  <string name="ui_fake_bank_type">Lažna banka (phishing)</string>
+  <string name="ui_lists_status">Seznami groženj: %1$s pravil (%2$s od %3$s virov)</string>
+  <string name="ui_lists_first_download">Seznami groženj: prvi prenos poteka v ozadju</string>
+  <string name="ui_lists_checked">✅ Seznami preverjeni: %1$s varnostnih pravil v uporabi</string>
+  <string name="ui_bankguard_status">Zaščita pred lažnimi spletnimi bankami: prave banke delujejo nemoteno</string>
 </resources>

@@ -1,102 +1,66 @@
 package com.example.safeerbrowser
 
 import android.content.Context
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
-import java.net.URL
-import java.security.MessageDigest
+import com.safeer.threatfeed.PlainListSource
+import com.safeer.threatfeed.ThreatListAgent
+import java.io.File
 
 /**
- * 🔄 ThreatFeedsUpdater
- * Avtomatiziran prenos in posodabljanje varnostnih seznamov s preverjanjem SHA-256 integritete.
+ * 🔄 ThreatFeedsUpdater – agent za sezname nevarnih strani (Feodo Tracker, URLhaus, Phishing Army).
+ *
+ * Ob vsakem zagonu brskalnika:
+ *  1. takoj v ozadju (nizka prioriteta) naloži sezname, shranjene ob prejšnjem zagonu (preverjeni s SHA-256),
+ *  2. približno 12 sekund po zagonu preveri nove sezname (pogojni prenos: nespremenjen seznam je ena majhna
+ *     zahteva) in jih zamenja naenkrat, brez prekinitve brskanja,
+ *  3. med delovanjem preverja vsakih 6 ur.
+ * Prej so se seznami ob vsakem zagonu v celoti prenašali in sproti vstavljali v aktivno drevo.
  */
 object ThreatFeedsUpdater {
 
-    data class ThreatFeed(
-        val name: String,
-        val url: String,
-        val category: String,
-        val expectedSha256: String? = null // Če je naveden, preveri točen hash
-    )
-
-    private val FEEDS = listOf(
-        ThreatFeed(
-            name = "abuse.ch Feodo Tracker",
-            url = "https://feodotracker.abuse.ch/downloads/ipblocklist.txt",
-            category = "Botnet C2 Server"
+    private val SOURCES = listOf(
+        PlainListSource(
+            id = "feodo", name = "abuse.ch Feodo Tracker", url = "https://feodotracker.abuse.ch/downloads/ipblocklist.txt",
+            category = "Botnet C2 Server", marker = "feodo", minEntries = 0, ipv4 = true,
         ),
-        ThreatFeed(
-            name = "abuse.ch URLhaus",
-            url = "https://urlhaus.abuse.ch/downloads/hostfile/",
-            category = "Zlonamerna koda (Malware)"
+        PlainListSource(
+            id = "urlhaus", name = "abuse.ch URLhaus", url = "https://urlhaus.abuse.ch/downloads/hostfile/",
+            category = "Zlonamerna koda (Malware)", marker = "urlhaus",
         ),
-        ThreatFeed(
-            name = "Phishing Army Extended",
+        PlainListSource(
+            id = "phishing-army", name = "Phishing Army Extended",
             url = "https://phishing.army/download/phishing_army_blocklist_extended.txt",
-            category = "Spletno ribarjenje (Phishing)"
-        )
+            category = "Spletno ribarjenje (Phishing)", marker = "phishing",
+        ),
     )
 
-    /**
-     * Izračuna SHA-256 kontrolno vsoto vsebine.
-     */
-    fun computeSha256(bytes: ByteArray): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(bytes)
-        return hash.joinToString("") { "%02x".format(it) }
+    @Volatile
+    private var agent: ThreatListAgent? = null
+
+    @Volatile
+    var ruleCount: Int = 0
+        private set
+
+    /** Zažene agenta (enkrat na proces). Vrne takoj; vse delo poteka v ozadju. */
+    @Synchronized
+    fun start(context: Context) {
+        if (agent != null) return
+        val listAgent = ThreatListAgent(File(context.applicationContext.filesDir, "threat-lists"), SOURCES) { lists ->
+            ruleCount = ThreatBlockEngine.rebuildFromLists(lists)
+        }
+        agent = listAgent
+        listAgent.start()
     }
 
-    /**
-     * Prenese in posodobi varnostne sezname v ozadju.
-     */
-    fun updateFeedsAsync(context: Context, onComplete: ((totalAdded: Int) -> Unit)? = null) {
-        Thread {
-            var totalAdded = 0
-            for (feed in FEEDS) {
-                try {
-                    val conn = (URL(feed.url).openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 8000
-                        readTimeout = 12000
-                        requestMethod = "GET"
-                        setRequestProperty("User-Agent", "SafeerBrowser-SecurityShield/1.0")
-                    }
+    /** Takojšnje preverjanje (gumb "Posodobi sezname"); [onComplete] dobi število pravil v uporabi. */
+    fun updateFeedsAsync(context: Context, onComplete: ((totalRules: Int) -> Unit)? = null) {
+        start(context)
+        val requested = agent?.requestUpdate { onComplete?.invoke(ruleCount) } ?: false
+        if (!requested) onComplete?.invoke(ruleCount)
+    }
 
-                    if (conn.responseCode == 200) {
-                        val bytes = conn.inputStream.readBytes()
-                        
-                        // Preveri SHA-256, če je zahtevan
-                        if (feed.expectedSha256 != null) {
-                            val computed = computeSha256(bytes)
-                            if (!computed.equals(feed.expectedSha256, ignoreCase = true)) {
-                                continue // Zavrni poškodovan ali spremenjen seznam
-                            }
-                        }
-
-                        val reader = BufferedReader(InputStreamReader(bytes.inputStream(), Charsets.UTF_8))
-                        var line: String?
-                        while (reader.readLine().also { line = it } != null) {
-                            val l = line?.trim() ?: continue
-                            if (l.isEmpty() || l.startsWith("#") || l.startsWith(";")) continue
-
-                            // Razčleni gostitelja (npr. "127.0.0.1 badhost.com" ali "badhost.com")
-                            val parts = l.split("\\s+".toRegex())
-                            val domain = if (parts.size >= 2 && (parts[0] == "127.0.0.1" || parts[0] == "0.0.0.0")) {
-                                parts[1]
-                            } else {
-                                parts[0]
-                            }
-
-                            if (domain.contains(".") && !domain.startsWith("localhost") && !domain.startsWith("127.0.0.1")) {
-                                ThreatBlockEngine.addThreat(domain, feed.category, feed.name)
-                                totalAdded++
-                            }
-                        }
-                    }
-                    conn.disconnect()
-                } catch (_: Exception) {}
-            }
-            onComplete?.invoke(totalAdded)
-        }.start()
+    fun statusLine(): String {
+        val lists = agent?.lists.orEmpty()
+        if (lists.isEmpty()) return UiText.get(R.string.ui_lists_first_download)
+        return UiText.get(R.string.ui_lists_status, lists.sumOf { it.entries.size }, lists.size, SOURCES.size)
     }
 }

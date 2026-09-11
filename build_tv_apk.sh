@@ -7,6 +7,13 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_DIR="/home/janez/Namizje/Neimenovana mapa/streamN-TV2/android_tv/.tools"
+
+# 🧪 Testni podpisni ključ Safeer Threat Intelligence se ne sme znajti v objavljeni različici
+if grep -rqs '"safeer-test-' "$DIR/src/main/kotlin" --include=SignedThreatIntel.kt && [ "${SAFEER_ALLOW_TEST_KEY:-}" != "1" ]; then
+    echo "❌ SignedThreatIntel.kt vsebuje TESTNI ključ (safeer-test-*). To je testna gradnja."
+    echo "👉 Za testno gradnjo: SAFEER_ALLOW_TEST_KEY=1 $0   (take različice ne objavljaj)"
+    exit 1
+fi
 # Keep SDK inside the project. Quote every use — sdkmanager cannot live under a spaced path,
 # so we unpack official platform/build-tools zips instead of running sdkmanager.
 SDK_DIR="${ANDROID_SDK_ROOT:-$DIR/.android-sdk}"

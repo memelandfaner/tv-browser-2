@@ -90,4 +90,17 @@
   <string name="ui_continue_risk">Auf eigenes Risiko fortfahren (für diese Sitzung erlauben)</string>
   <string name="ui_security_threat">Sicherheitsbedrohung</string>
   <string name="ui_security_shield">Safeer Browser Sicherheitsschutz</string>
+  <string name="ui_zero_bypass">Keine Umgehung möglich: Diese Website ist ein bestätigter Botnet-C2- oder Malware-Server und kann nicht freigegeben werden.</string>
+  <string name="ui_signed_intel_waiting">Safeer Threat Intelligence: wartet auf die Veröffentlichung der signierten Liste</string>
+  <string name="ui_signed_intel_not_downloaded">Safeer Threat Intelligence: Liste noch nicht heruntergeladen</string>
+  <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s geprüfte Regeln (Version %2$s)</string>
+  <string name="ui_signed_intel_updated">✅ Geprüfte Safeer-Threat-Intelligence-Liste aktualisiert</string>
+  <string name="ui_fake_bank_title">Gefälschtes Online-Banking</string>
+  <string name="ui_fake_bank_desc">Dies ist nicht die Website Ihrer Bank. Geben Sie hier weder Benutzernamen, Passwort, SMS-Code noch Kartendaten ein. Öffnen Sie Ihre Bank immer über die offizielle Adresse oder die offizielle App.</string>
+  <string name="ui_fake_bank_open_real">Echte Seite öffnen: %1$s</string>
+  <string name="ui_fake_bank_type">Gefälschte Bank (Phishing)</string>
+  <string name="ui_lists_status">Bedrohungslisten: %1$s Regeln (%2$s von %3$s Quellen)</string>
+  <string name="ui_lists_first_download">Bedrohungslisten: erster Download läuft im Hintergrund</string>
+  <string name="ui_lists_checked">✅ Listen geprüft: %1$s Sicherheitsregeln aktiv</string>
+  <string name="ui_bankguard_status">Schutz vor gefälschten Online-Banken: echte Banken funktionieren normal</string>
 </resources>

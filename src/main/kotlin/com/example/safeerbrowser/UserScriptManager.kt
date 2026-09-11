@@ -1532,6 +1532,8 @@ object UserScriptManager {
         val home = isBrowserHome(pageUrl) || isBrowserHome(webView.url)
         val news24 = is24urUrl(pageUrl) || is24urUrl(webView.url)
         val hydra = isHydraUrl(pageUrl) || isHydraUrl(webView.url)
+        // Prave banke: brez kozmetičnih filtrov in zaščite pred pojavnimi okni (daljinsko upravljanje ostane)
+        val bank = isRealBankPage(target)
         if (xplore) {
             injectCss(webView, XPLORE_DARK_CSS, "tv-remote-xplore-dark")
             webView.evaluateJavascript(
@@ -1546,7 +1548,7 @@ object UserScriptManager {
             return
         }
         if (!home && !news24 && !hydra) {
-            injectCss(webView, CosmeticFilterEngine.buildCosmeticCss(), "safeer-cosmetic-filter")
+            if (!bank) injectCss(webView, CosmeticFilterEngine.buildCosmeticCss(), "safeer-cosmetic-filter")
             if (isDarkMode) {
                 injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
             } else if (finished) {
@@ -1561,7 +1563,7 @@ object UserScriptManager {
             webView.evaluateJavascript(FORCE_UNMUTE_JS, null)
         }
         webView.evaluateJavascript(GPC_AND_DNT_JS, null)
-        webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
+        if (!bank) webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
         webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
@@ -1571,6 +1573,12 @@ object UserScriptManager {
             if (!news24) webView.evaluateJavascript(MOBILE_MEDIA_AUDIO_JS, null)
             webView.evaluateJavascript("try{if(window._safeerSiteAgent)window._safeerSiteAgent.onPageReady()}catch(e){}", null)
         }
+    }
+
+    fun isRealBankPage(url: String?): Boolean {
+        if (url.isNullOrEmpty()) return false
+        val host = try { Uri.parse(url).host ?: "" } catch (_: Exception) { "" }
+        return host.isNotEmpty() && ThreatBlockEngine.isRealBankHost(host)
     }
 
     fun injectEarlyScript(webView: WebView, pageUrl: String? = null) {

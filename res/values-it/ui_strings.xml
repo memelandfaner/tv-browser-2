@@ -90,4 +90,17 @@
   <string name="ui_continue_risk">Continua a tuo rischio (consenti per questa sessione)</string>
   <string name="ui_security_threat">Minaccia di sicurezza</string>
   <string name="ui_security_shield">Protezione di sicurezza Safeer Browser</string>
+  <string name="ui_zero_bypass">Nessuna eccezione: questo sito è un server C2 di botnet o di malware confermato e non può essere sbloccato.</string>
+  <string name="ui_signed_intel_waiting">Safeer Threat Intelligence: in attesa della pubblicazione dell\'elenco firmato</string>
+  <string name="ui_signed_intel_not_downloaded">Safeer Threat Intelligence: elenco non ancora scaricato</string>
+  <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s regole verificate (versione %2$s)</string>
+  <string name="ui_signed_intel_updated">✅ Elenco verificato di Safeer Threat Intelligence aggiornato</string>
+  <string name="ui_fake_bank_title">Falsa banca online</string>
+  <string name="ui_fake_bank_desc">Questo non è il sito della tua banca. Non inserire qui nome utente, password, codice SMS o dati della carta. Accedi sempre alla banca digitando l’indirizzo ufficiale o tramite l’app ufficiale.</string>
+  <string name="ui_fake_bank_open_real">Apri il sito vero: %1$s</string>
+  <string name="ui_fake_bank_type">Banca falsa (phishing)</string>
+  <string name="ui_lists_status">Elenchi di minacce: %1$s regole (%2$s di %3$s fonti)</string>
+  <string name="ui_lists_first_download">Elenchi di minacce: primo download in background</string>
+  <string name="ui_lists_checked">✅ Elenchi verificati: %1$s regole di sicurezza attive</string>
+  <string name="ui_bankguard_status">Protezione dalle false banche online: le banche vere funzionano normalmente</string>
 </resources>

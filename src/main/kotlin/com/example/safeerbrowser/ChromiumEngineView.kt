@@ -560,13 +560,13 @@ class ChromiumEngineView @JvmOverloads constructor(
 
                 // 1. Odklep nevarne domene na lastno odgovornost (iz varnostnega opozorila)
                 if (urlStr.startsWith("safeer://bypass-threat", ignoreCase = true)) {
-                    val domainToBypass = uri.getQueryParameter("domain")
-                    val targetUrl = uri.getQueryParameter("url")
-                    if (!domainToBypass.isNullOrEmpty()) {
-                        ThreatBlockEngine.allowForSession(domainToBypass)
-                    }
-                    if (!targetUrl.isNullOrEmpty()) {
-                        view?.loadUrl(targetUrl)
+                    // Enokratni žeton iz varnostnega opozorila; stran ne more sama odkleniti domene.
+                    val bypass = ThreatBlockEngine.consumeBypassToken(uri.getQueryParameter("token") ?: "")
+                    if (bypass != null) {
+                        ThreatBlockEngine.allowForSession(bypass.domain)
+                        view?.loadUrl(bypass.targetUrl)
+                    } else {
+                        android.util.Log.w("SafeerSecurity", "Zavrnjen neveljaven ali potekel bypass token.")
                     }
                     return true
                 }
@@ -637,13 +637,18 @@ class ChromiumEngineView @JvmOverloads constructor(
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val url = request?.url?.toString() ?: return null
-                if (UserScriptManager.isGoogleDomain(url) || url.contains("recaptcha") || url.contains("gstatic.com")) {
-                    return null
-                }
                 val isMainFrame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     request.isForMainFrame
                 } else {
                     false
+                }
+                // Threat Shield pred vsemi izjemami: besedilo v URL-ju (npr. ".mpd", "recaptcha") ne sme obiti preverjanja.
+                val threatResponse = ThreatBlockEngine.handleThreatIntercept(url, isMainFrame)
+                if (threatResponse != null) {
+                    return threatResponse
+                }
+                if (UserScriptManager.isGoogleDomain(url) || url.contains("recaptcha") || url.contains("gstatic.com")) {
+                    return null
                 }
                 val method = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     request.method ?: "GET"
@@ -696,15 +701,12 @@ class ChromiumEngineView @JvmOverloads constructor(
                     return null
                 }
 
-                val threatResponse = ThreatBlockEngine.handleThreatIntercept(url, isMainFrame)
-                if (threatResponse != null) {
-                    return threatResponse
-                }
                 return AdBlockEngine.handleIntercept(url)
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                bankCheckGeneration++ // prekliči preverjanje prejšnje strani
                 scriptNavGen++
                 earlyScriptNavGen = -1
                 finishedScriptNavGen = -1
@@ -729,6 +731,7 @@ class ChromiumEngineView @JvmOverloads constructor(
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 url?.let {
+                    view?.let { wv -> scheduleFakeBankCheck(wv, it) }
                     onUrlChanged?.invoke(it)
                     onSecurityChanged?.invoke(it.startsWith("https://", ignoreCase = true))
                     val pageTitle = title ?: ""
@@ -744,10 +747,60 @@ class ChromiumEngineView @JvmOverloads constructor(
 
             override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
                 onSecurityChanged?.invoke(false)
+                // Prave banke: neveljaven certifikat lahko pomeni lažno banko na pravem naslovu (napad v omrežju).
+                val sslHost = try { Uri.parse(error?.url ?: "").host ?: "" } catch (_: Exception) { "" }
+                val pageHost = try { Uri.parse(view?.url ?: "").host ?: "" } catch (_: Exception) { "" }
+                // tudi skripte in slike, ki jih naloži stran prave banke (drugače bi napadalec podtaknil kodo v pravo banko)
+                if ((sslHost.isNotEmpty() && ThreatBlockEngine.isRealBankHost(sslHost)) ||
+                    (pageHost.isNotEmpty() && ThreatBlockEngine.isRealBankHost(pageHost))) {
+                    handler?.cancel()
+                    return
+                }
                 handler?.proceed()
             }
         }
     }
+
+    // 🏦 BankGuard: preverjanje naložene strani (lokalno, po naložitvi, brez vpliva na hitrost nalaganja)
+    private var bankCheckGeneration = 0
+
+    private fun scheduleFakeBankCheck(wv: WebView, url: String) {
+        if (!ThreatBlockEngine.isEnabled) return
+        if (!url.startsWith("https://", ignoreCase = true) && !url.startsWith("http://", ignoreCase = true)) return
+        val host = try { Uri.parse(url).host } catch (_: Exception) { null } ?: return
+        if (ThreatBlockEngine.isRealBankHost(host)) return
+        if (returnedFromFakeBankWarning(wv, host)) {
+            wv.goBack() // "Nazaj" z opozorila preskoči lažno stran, namesto da bi znova opozorilo
+            return
+        }
+        val generation = ++bankCheckGeneration
+        val check = Runnable {
+            if (generation != bankCheckGeneration || !sameHost(wv.url, host)) return@Runnable
+            wv.evaluateJavascript(com.safeer.threatfeed.BankGuard.PAGE_SCRIPT) { json ->
+                if (generation != bankCheckGeneration || !sameHost(wv.url, host)) return@evaluateJavascript
+                val match = ThreatBlockEngine.checkFakeBankPage(url, json) ?: return@evaluateJavascript
+                bankCheckGeneration++ // eno opozorilo na stran
+                ThreatBlockEngine.recordBlock(match)
+                ThreatBlockEngine.onThreatBlocked?.invoke(match.matchedDomain, match.category ?: "", match.sourceFeed ?: "", true)
+                val html = ThreatBlockEngine.createSecurityInterstitialHtml(url, match, afterPageLoad = true)
+                wv.stopLoading()
+                wv.loadDataWithBaseURL("https://$host", html, "text/html", "UTF-8", ThreatBlockEngine.FAKE_BANK_HISTORY_URL)
+            }
+        }
+        wv.post(check)
+        wv.postDelayed(check, 2500L) // strani, ki obrazec za prijavo narišejo pozneje
+    }
+
+    private fun returnedFromFakeBankWarning(wv: WebView, host: String): Boolean = try {
+        val list = wv.copyBackForwardList()
+        val next = if (list.currentIndex + 1 < list.size) list.getItemAtIndex(list.currentIndex + 1) else null
+        next?.url == ThreatBlockEngine.FAKE_BANK_HISTORY_URL && wv.canGoBack() && !ThreatBlockEngine.isAllowedForSession(host)
+    } catch (_: Exception) {
+        false
+    }
+
+    private fun sameHost(current: String?, host: String): Boolean =
+        try { Uri.parse(current ?: "").host.equals(host, ignoreCase = true) } catch (_: Exception) { false }
 
     fun isFullscreenVideoActive(): Boolean = customView != null
 

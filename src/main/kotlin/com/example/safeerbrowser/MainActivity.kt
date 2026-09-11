@@ -178,8 +178,12 @@ class MainActivity : android.app.Activity() {
         setupTouchGestures()
         setupFindInPage()
 
-        // Zaženi posodobitev varnostnih seznamov (Feodo, URLhaus, Phishing Army) v ozadju
-        ThreatFeedsUpdater.updateFeedsAsync(this)
+        // Agent za sezname groženj (Feodo, URLhaus, Phishing Army): shranjeni seznami takoj v ozadju,
+        // preverjanje novih ~12 s po zagonu. Zagona in nalaganja strani ne upočasni.
+        ThreatFeedsUpdater.start(this)
+        // Dodatna plast: preverjen, podpisan seznam Safeer Threat Intelligence (izklopljen brez ključa)
+        SignedThreatIntel.start(this)
+        installServiceWorkerThreatShield()
 
         val targetUrl = incomingBrowseUrl(intent) ?: "file:///android_asset/brave_home.html"
         tabManager.createTab(this, targetUrl, true)
@@ -1278,6 +1282,21 @@ class MainActivity : android.app.Activity() {
         dialog.findViewById<View>(R.id.rowMenuNewTab)?.requestFocus()
     }
 
+    /**
+     * Zahteve service workerjev ne gredo skozi WebViewClient; brez tega bi kompromitirana stran lahko
+     * iz service workerja kontaktirala C2 strežnik. (WebSocket povezav WebView ne izpostavi.)
+     */
+    private fun installServiceWorkerThreatShield() {
+        try {
+            android.webkit.ServiceWorkerController.getInstance().setServiceWorkerClient(object : android.webkit.ServiceWorkerClient() {
+                override fun shouldInterceptRequest(request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? =
+                    ThreatBlockEngine.handleThreatIntercept(request.url.toString(), false)
+            })
+        } catch (e: Exception) {
+            android.util.Log.w("SafeerSecurity", "Service worker Threat Shield ni na voljo: ${e.message}")
+        }
+    }
+
     private fun showThreatStatsDialog() {
         val totalThreats = ThreatBlockEngine.totalBlockedThreats.get()
         val c2 = ThreatBlockEngine.blockedC2Count.get()
@@ -1298,13 +1317,19 @@ class MainActivity : android.app.Activity() {
                 • Blokiranih oglasov in sledilcev: $totalAds
                 
                 Viri: abuse.ch Feodo Tracker, URLhaus, ThreatFox, Phishing Army, StevenBlack Hosts.
-                """.trimIndent()
+                """.trimIndent() + "\n" + UiText.get(R.string.ui_bankguard_status) + "\n" +
+                    ThreatFeedsUpdater.statusLine() + "\n" + SignedThreatIntel.statusLine()
             )
             .setPositiveButton(UiText.get(R.string.ui_update_lists)) { _, _ ->
                 Toast.makeText(this, UiText.get(R.string.ui_updating), Toast.LENGTH_SHORT).show()
                 ThreatFeedsUpdater.updateFeedsAsync(this) { added ->
                     runOnUiThread {
-                        Toast.makeText(this@MainActivity, UiText.get(R.string.ui_rules_added , added), Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, UiText.get(R.string.ui_lists_checked, added), Toast.LENGTH_LONG).show()
+                    }
+                }
+                SignedThreatIntel.requestUpdate { installed ->
+                    if (installed) runOnUiThread {
+                        Toast.makeText(this@MainActivity, UiText.get(R.string.ui_signed_intel_updated), Toast.LENGTH_LONG).show()
                     }
                 }
             }

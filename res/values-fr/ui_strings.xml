@@ -90,4 +90,17 @@
   <string name="ui_continue_risk">Continuer à vos risques (autoriser pour cette session)</string>
   <string name="ui_security_threat">Menace de sécurité</string>
   <string name="ui_security_shield">Protection de sécurité Safeer Browser</string>
+  <string name="ui_zero_bypass">Aucun contournement : ce site est un serveur C2 de botnet ou de logiciels malveillants confirmé et ne peut pas être débloqué.</string>
+  <string name="ui_signed_intel_waiting">Safeer Threat Intelligence : en attente de la publication de la liste signée</string>
+  <string name="ui_signed_intel_not_downloaded">Safeer Threat Intelligence : liste pas encore téléchargée</string>
+  <string name="ui_signed_intel_rules">Safeer Threat Intelligence : %1$s règles vérifiées (version %2$s)</string>
+  <string name="ui_signed_intel_updated">✅ Liste vérifiée Safeer Threat Intelligence mise à jour</string>
+  <string name="ui_fake_bank_title">Fausse banque en ligne</string>
+  <string name="ui_fake_bank_desc">Ce site n’est pas celui de votre banque. N’y saisissez ni identifiant, ni mot de passe, ni code SMS, ni données de carte. Accédez toujours à votre banque en tapant son adresse officielle ou via son application officielle.</string>
+  <string name="ui_fake_bank_open_real">Ouvrir le vrai site : %1$s</string>
+  <string name="ui_fake_bank_type">Fausse banque (hameçonnage)</string>
+  <string name="ui_lists_status">Listes de menaces : %1$s règles (%2$s sur %3$s sources)</string>
+  <string name="ui_lists_first_download">Listes de menaces : premier téléchargement en arrière-plan</string>
+  <string name="ui_lists_checked">✅ Listes vérifiées : %1$s règles de sécurité actives</string>
+  <string name="ui_bankguard_status">Protection contre les fausses banques en ligne : les vraies banques fonctionnent normalement</string>
 </resources>

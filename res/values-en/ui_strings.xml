@@ -90,4 +90,17 @@
   <string name="ui_continue_risk">Continue at your own risk (allow for this session)</string>
   <string name="ui_security_threat">Security threat</string>
   <string name="ui_security_shield">Safeer Browser security shield</string>
+  <string name="ui_zero_bypass">Zero-bypass rule: this site is a confirmed botnet C2 or malware server and cannot be unlocked.</string>
+  <string name="ui_signed_intel_waiting">Safeer Threat Intelligence: waiting for the signed list to be published</string>
+  <string name="ui_signed_intel_not_downloaded">Safeer Threat Intelligence: list not downloaded yet</string>
+  <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s verified rules (version %2$s)</string>
+  <string name="ui_signed_intel_updated">✅ Verified Safeer Threat Intelligence list updated</string>
+  <string name="ui_fake_bank_title">Fake online bank</string>
+  <string name="ui_fake_bank_desc">This is not your bank’s website. Do not enter your user name, password, SMS code or card details here. Always open your bank by typing its official address or use its official app.</string>
+  <string name="ui_fake_bank_open_real">Open the real site: %1$s</string>
+  <string name="ui_fake_bank_type">Fake bank (phishing)</string>
+  <string name="ui_lists_status">Threat lists: %1$s rules (%2$s of %3$s sources)</string>
+  <string name="ui_lists_first_download">Threat lists: first download running in the background</string>
+  <string name="ui_lists_checked">✅ Lists checked: %1$s security rules in use</string>
+  <string name="ui_bankguard_status">Fake online bank protection: real banks work normally</string>
 </resources>

@@ -12,8 +12,8 @@ android {
         applicationId 'com.example.safeerbrowser'
         minSdk 28
         targetSdk 34
-        versionCode 191
-        versionName '2.1.82'
+        versionCode 194
+        versionName '2.1.85'
     }
 
     sourceSets {
@@ -81,6 +81,8 @@ dependencies {
     implementation 'androidx.media3:media3-datasource:1.4.1'
     implementation 'androidx.webkit:webkit:1.11.0'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+    // Ed25519 verification for the signed Safeer Threat Intelligence feed (see libs/README.md)
+    implementation files('libs/bcprov-ed25519-1.78.1.jar')
 }
 
 tasks.withType(JavaCompile).configureEach {

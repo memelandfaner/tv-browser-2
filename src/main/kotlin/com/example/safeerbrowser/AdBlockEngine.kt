@@ -142,6 +142,8 @@ object AdBlockEngine {
             val host = uri.host?.lowercase()?.trim() ?: ""
 
             if (host.isNotEmpty()) {
+                // Prave banke in plačilna infrastruktura (katalog BankGuard) delujejo brez posegov
+                if (ThreatBlockEngine.isRealBankHost(host)) return false
                 if (blockedTrie.matches(host)) {
                     return true
                 }
