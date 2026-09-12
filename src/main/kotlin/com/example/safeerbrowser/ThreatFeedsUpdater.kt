@@ -31,6 +31,16 @@ object ThreatFeedsUpdater {
             url = "https://phishing.army/download/phishing_army_blocklist_extended.txt",
             category = "Spletno ribarjenje (Phishing)", marker = "phishing",
         ),
+        PlainListSource(
+            id = "hagezi-tif", name = "HaGeZi Threat Intelligence Feeds (mini)",
+            url = "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/tif.mini-onlydomains.txt",
+            category = "Nevarne strani (grožnje, ribarjenje, prevare)", marker = "hagezi",
+        ),
+        PlainListSource(
+            id = "hagezi-fake", name = "HaGeZi Fake (lažne trgovine in prevare)",
+            url = "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/fake-onlydomains.txt",
+            category = "Lažne trgovine in prevare", marker = "hagezi",
+        ),
     )
 
     @Volatile

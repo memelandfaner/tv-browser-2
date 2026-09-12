@@ -469,7 +469,7 @@ object ThreatBlockEngine {
                 $bypassActionHtml
 
                 <div class="footer-text">
-                    Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox
+                    Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox • Phishing Army • HaGeZi
                 </div>
             </div>
         </body>

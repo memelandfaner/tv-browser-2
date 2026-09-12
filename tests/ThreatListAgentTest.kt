@@ -116,6 +116,18 @@ fun main() {
             } catch (e: ListRejectedException) { /* expected */ }
         }
     }
+    test("parser: HaGeZi plain domain lists (header comments, one domain per line)") {
+        val text = "# Title: HaGeZi's Threat Intelligence Feeds - mini version (best for browser/mobile ad blockers)\n" +
+            "# Expires: 8 hours\n# Syntax: Domains (without subdomains)\n# Number of entries: 3\n#\n" +
+            "evil-shop.example\nscam-stream.example\n\nfake-store.example\n"
+        val source = PlainListSource("hagezi-fake", "HaGeZi Fake", "", "prevare", marker = "hagezi", minEntries = 3)
+        val entries = PlainListParser.parse(text.toByteArray(), source)
+        check(entries == listOf("evil-shop.example", "scam-stream.example", "fake-store.example")) { entries.toString() }
+        try {
+            PlainListParser.parse(("# Title: Some other list\n" + "x.example\n".repeat(5)).toByteArray(), source)
+            throw AssertionError("accepted a list without the HaGeZi marker")
+        } catch (e: ListRejectedException) { /* expected */ }
+    }
     test("parser: IPv4 lists") {
         val entries = PlainListParser.parse("# Feodo Tracker\n1.2.3.4\n256.1.1.1\n10.0.0.1 # c2\nhost.example\n".toByteArray(),
             PlainListSource("feodo", "Feodo", "", "botnet_c2", marker = "feodo", minEntries = 0, ipv4 = true))
