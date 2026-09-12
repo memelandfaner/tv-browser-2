@@ -96,8 +96,11 @@
   <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s geprüfte Regeln (Version %2$s)</string>
   <string name="ui_signed_intel_updated">✅ Geprüfte Safeer-Threat-Intelligence-Liste aktualisiert</string>
   <string name="ui_fake_bank_title">Gefälschtes Online-Banking</string>
-  <string name="ui_fake_bank_desc">Dies ist nicht die Website Ihrer Bank. Geben Sie hier weder Benutzernamen, Passwort, SMS-Code noch Kartendaten ein. Öffnen Sie Ihre Bank immer über die offizielle Adresse oder die offizielle App.</string>
+  <string name="ui_fake_bank_desc">Dies ist nicht die Website Ihrer Bank. Geben Sie hier weder Benutzernamen, Passwort, SMS-Code, Steuernummer, PIN noch Kartendaten ein. Öffnen Sie Ihre Bank immer über die offizielle Adresse oder die offizielle App. Ihre Bank ruft Sie nie an, um einen Code oder eine PIN zu verlangen, und verlangt nie die Installation von Fernwartungssoftware (AnyDesk, TeamViewer).</string>
   <string name="ui_fake_bank_open_real">Echte Seite öffnen: %1$s</string>
+  <string name="ui_fake_bank_lure">Die Seite verlangt Kartendaten unter dem Vorwand „%1$s“; Polizei, Finanzamt und Paketdienste kassieren Bußgelder oder Porto nie über solche Seiten</string>
+  <string name="ui_fake_bank_local">Eine aus einem Anhang oder Download geöffnete Datei gibt sich als %1$s aus; die echte Seite ist %2$s</string>
+  <string name="ui_fake_bank_page">Die Seite gibt sich als %1$s aus; die echte Seite ist %2$s</string>
   <string name="ui_fake_bank_type">Gefälschte Bank (Phishing)</string>
   <string name="ui_lists_status">Bedrohungslisten: %1$s Regeln (%2$s von %3$s Quellen)</string>
   <string name="ui_lists_first_download">Bedrohungslisten: erster Download läuft im Hintergrund</string>

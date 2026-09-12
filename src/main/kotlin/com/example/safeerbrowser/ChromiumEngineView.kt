@@ -766,7 +766,9 @@ class ChromiumEngineView @JvmOverloads constructor(
 
     private fun scheduleFakeBankCheck(wv: WebView, url: String) {
         if (!ThreatBlockEngine.isEnabled) return
-        if (!url.startsWith("https://", ignoreCase = true) && !url.startsWith("http://", ignoreCase = true)) return
+        val scheme = try { Uri.parse(url).scheme?.lowercase() } catch (_: Exception) { null } ?: return
+        if (scheme in ThreatBlockEngine.LOCAL_PAGE_SCHEMES) { scheduleLocalPageBankCheck(wv, url); return }
+        if (scheme != "https" && scheme != "http") return
         val host = try { Uri.parse(url).host } catch (_: Exception) { null } ?: return
         if (ThreatBlockEngine.isRealBankHost(host)) return
         if (returnedFromFakeBankWarning(wv, host)) {
@@ -789,6 +791,26 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
         wv.post(check)
         wv.postDelayed(check, 2500L) // strani, ki obrazec za prijavo narišejo pozneje
+    }
+
+    /** Priponka HTML (file:, content:), ki se predstavlja kot banka (SI-CERT TZ009): preverjanje po vsebini, brez gostitelja. */
+    private fun scheduleLocalPageBankCheck(wv: WebView, url: String) {
+        val generation = ++bankCheckGeneration
+        val check = Runnable {
+            if (generation != bankCheckGeneration || wv.url != url) return@Runnable
+            wv.evaluateJavascript(com.safeer.threatfeed.BankGuard.PAGE_SCRIPT) { json ->
+                if (generation != bankCheckGeneration || wv.url != url) return@evaluateJavascript
+                val match = ThreatBlockEngine.checkFakeBankPage(url, json) ?: return@evaluateJavascript
+                bankCheckGeneration++
+                ThreatBlockEngine.recordBlock(match)
+                ThreatBlockEngine.onThreatBlocked?.invoke(match.matchedDomain, match.category ?: "", match.sourceFeed ?: "", true)
+                val html = ThreatBlockEngine.createSecurityInterstitialHtml(url, match, afterPageLoad = true)
+                wv.stopLoading()
+                wv.loadDataWithBaseURL("safeer://security-interstitial", html, "text/html", "UTF-8", ThreatBlockEngine.FAKE_BANK_HISTORY_URL)
+            }
+        }
+        wv.post(check)
+        wv.postDelayed(check, 2500L)
     }
 
     private fun returnedFromFakeBankWarning(wv: WebView, host: String): Boolean = try {

@@ -26,6 +26,9 @@ data class PageSignals(
     val password: Boolean = false,
     val otp: Boolean = false,
     val card: Boolean = false,
+    /** Slovenian tax number (davčna številka) or card PIN field: real banks never ask for these on a login page. */
+    val taxid: Boolean = false,
+    val pin: Boolean = false,
     val title: String = "",
     val site: String = "",
     val headings: String = "",
@@ -45,6 +48,7 @@ object BankGuard {
         for (bank in banks) for (domain in bank.official) putIfAbsent(domain.substringBefore('.').replace("-", ""), bank)
     }
     private val paymentPhrases = BankGuardData.PAYMENT_PHRASES.map { fold(it) }
+    private val lurePatterns = BankGuardData.LURE_PHRASES.map { lurePattern(fold(it)) }
     private val embeddedContext = listOf("klik", "banka", "bank", "hranilnica")
     private val separators = Regex("[.\\-_]")
     private val numericHost = Regex("[0-9.:]+")
@@ -137,16 +141,25 @@ object BankGuard {
     }
 
     fun pageVerdict(signals: PageSignals?): BankVerdict? {
-        if (signals == null || !(signals.password || signals.otp || signals.card)) return null
+        if (signals == null || !(signals.password || signals.otp || signals.card || signals.taxid || signals.pin)) return null
         val host = cleanHost(signals.host)
-        if ((signals.scheme != "http" && signals.scheme != "https") || host.isEmpty() || isTrusted(host)) return null
-        if (under(host, BankGuardData.PAGE_CHECK_SKIP)) return null // brand pages on large platforms
+        // An HTML attachment opened from mail (file:, content:) has no host, so no domain list can help.
+        val local = signals.scheme in BankGuardData.LOCAL_SCHEMES
+        if (!local && ((signals.scheme != "http" && signals.scheme != "https") || host.isEmpty() || isTrusted(host))) return null
+        if (!local && under(host, BankGuardData.PAGE_CHECK_SKIP)) return null // brand pages on large platforms
         if (signals.article) return null
         val pageText = fold(listOf(signals.title, signals.site, signals.headings, signals.logos, signals.text).joinToString(" "))
         if (paymentPhrases.any { phraseIn(it, pageText) }) return null
         val prominent = fold(listOf(signals.title, signals.site, signals.headings, signals.logos).joinToString(" "))
         for (bank in banks) for (name in bank.names) {
-            if (phraseIn(fold(name), prominent)) return verdict(bank, "page", name)
+            if (phraseIn(fold(name), prominent)) return verdict(bank, if (local) "local" else "page", name)
+        }
+        // A card form dressed up as a fine, tax or parcel payment (police, FURS, delivery): no bank name needed.
+        if (signals.card) {
+            for (pattern in lurePatterns) {
+                val found = pattern.find(pageText) ?: continue
+                return BankVerdict("card", "Plačilna kartica", "", "lure", found.value)
+            }
         }
         return null
     }
@@ -164,6 +177,7 @@ object BankGuard {
         fun flag(key: String) = map[key] == true
         return PageSignals(
             host = text("host", 253), scheme = text("scheme", 16), password = flag("password"), otp = flag("otp"), card = flag("card"),
+            taxid = flag("taxid"), pin = flag("pin"),
             title = text("title", 200), site = text("site", 200), headings = text("headings", 250), logos = text("logos", 1100),
             text = text("text", 3000), article = flag("article"),
         )
@@ -184,6 +198,14 @@ object BankGuard {
     }
 
     private fun Char.isAsciiLetterOrDigit() = this in 'a'..'z' || this in '0'..'9'
+
+    /** Whole words; a trailing '*' in the catalogue lets a word start with the stem (kazn*, policij*). */
+    private fun lurePattern(phrase: String): Regex {
+        val parts = phrase.split(" ").map { word ->
+            if (word.endsWith("*")) Regex.escape(word.dropLast(1)) else Regex.escape(word) + "(?![a-z0-9])"
+        }
+        return Regex("(?<![a-z0-9])" + parts.joinToString("\\s+"))
+    }
 
     internal fun damerauOne(a: String, b: String): Boolean {
         if (a == b || kotlin.math.abs(a.length - b.length) > 1) return false

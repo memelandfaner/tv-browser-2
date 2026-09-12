@@ -96,8 +96,11 @@
   <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s preverjenih pravil (različica %2$s)</string>
   <string name="ui_signed_intel_updated">✅ Preverjen seznam Safeer Threat Intelligence posodobljen</string>
   <string name="ui_fake_bank_title">Lažna spletna banka</string>
-  <string name="ui_fake_bank_desc">Ta stran ni prava spletna banka. Na njej ne vpisujte uporabniškega imena, gesla, kode SMS ali podatkov kartice. Do banke vedno dostopajte z vpisom uradnega naslova ali prek uradne aplikacije.</string>
+  <string name="ui_fake_bank_desc">Ta stran ni prava spletna banka. Na njej ne vpisujte uporabniškega imena, gesla, kode SMS, davčne številke, PIN-a ali podatkov kartice. Do banke vedno dostopajte z vpisom uradnega naslova ali prek uradne aplikacije. Banka vas nikoli ne pokliče, da bi zahtevala kodo ali PIN, in nikoli ne zahteva namestitve programov za oddaljeni dostop (AnyDesk, TeamViewer).</string>
   <string name="ui_fake_bank_open_real">Odpri pravo stran: %1$s</string>
+  <string name="ui_fake_bank_lure">Stran zahteva podatke plačilne kartice pod pretvezo »%1$s«; policija, FURS in dostavne službe kazni in poštnine ne pobirajo prek takih strani</string>
+  <string name="ui_fake_bank_local">Datoteka, odprta iz priponke ali prenosa, se predstavlja kot %1$s; prava stran je %2$s</string>
+  <string name="ui_fake_bank_page">Stran se predstavlja kot %1$s; prava stran je %2$s</string>
   <string name="ui_fake_bank_type">Lažna banka (phishing)</string>
   <string name="ui_lists_status">Seznami groženj: %1$s pravil (%2$s od %3$s virov)</string>
   <string name="ui_lists_first_download">Seznami groženj: prvi prenos poteka v ozadju</string>

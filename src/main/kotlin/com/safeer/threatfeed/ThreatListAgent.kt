@@ -43,6 +43,11 @@ data class PlainListSource(
     val maxBytes: Int = 32 * 1024 * 1024,
     /** Lists of IPv4 addresses (for example Feodo Tracker) instead of host names. */
     val ipv4: Boolean = false,
+    /**
+     * CSV lists of the form `timestamp,domain` (for example the SI-CERT phishing domain list). These files have
+     * no header, so instead of [marker] the file must contain at least [minEntries] lines of that shape.
+     */
+    val csv: Boolean = false,
 ) {
     init {
         require(id.length in 1..40 && id.all { it in 'a'..'z' || it in '0'..'9' || it == '-' }) { "invalid list id" }
@@ -109,22 +114,29 @@ object PlainListParser {
     private val hostLabel = Regex("[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?")
     private val ipv4 = Regex("(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}")
     private val sinkAddresses = setOf("0.0.0.0", "127.0.0.1", "::", "::1")
+    /** `2026-09-12T08:47:04+01:00`, `2026-09-12 08:47:04` or `2026-09-12` at the start of a CSV line. */
+    private val csvTimestamp = Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}([T ][0-9]{2}:[0-9]{2}(:[0-9]{2})?(\\.[0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?)?")
 
     /** Normalized, de-duplicated entries; throws [ListRejectedException] for files that are not this list. */
     fun parse(bytes: ByteArray, source: PlainListSource): List<String> {
         val head = String(bytes, 0, minOf(bytes.size, 4096), Charsets.UTF_8).lowercase()
-        if (!head.contains(source.marker.lowercase())) throw ListRejectedException("marker '${source.marker}' missing")
+        if (!source.csv && !head.contains(source.marker.lowercase())) throw ListRejectedException("marker '${source.marker}' missing")
         if (head.contains("<html") || head.contains("<!doctype")) throw ListRejectedException("HTML instead of a list")
         val seen = LinkedHashSet<String>()
+        var csvLines = 0
         String(bytes, Charsets.UTF_8).lineSequence().forEach { raw ->
             val line = raw.substringBefore('#').trim()
             if (line.isEmpty() || line.startsWith(";") || line.startsWith("!")) return@forEach
-            val parts = line.split(' ', '\t').filter { it.isNotEmpty() }
+            val fields = if (source.csv) line.split(',', ';').map { it.trim() } else emptyList()
+            val text = if (fields.size >= 2 && csvTimestamp.matches(fields[0])) { csvLines++; fields[1] } else line
+            val parts = text.split(' ', '\t').filter { it.isNotEmpty() }
+            if (parts.isEmpty()) return@forEach
             val candidate = (if (parts.size >= 2 && parts[0] in sinkAddresses) parts[1] else parts[0])
-                .lowercase().trimEnd('.').removePrefix("||").removeSuffix("^")
+                .lowercase().trimEnd('.').removePrefix("||").removeSuffix("^").removePrefix("*.")
             val entry = if (source.ipv4) candidate.takeIf { ipv4.matches(it) } else candidate.takeIf { isHostName(it) }
             if (entry != null) seen.add(entry)
         }
+        if (source.csv && csvLines < source.minEntries) throw ListRejectedException("only $csvLines timestamp,domain lines")
         if (seen.size < source.minEntries) throw ListRejectedException("only ${seen.size} entries")
         return ArrayList(seen)
     }

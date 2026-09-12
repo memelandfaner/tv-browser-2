@@ -33,7 +33,7 @@ fun main(args: Array<String>) {
         val s = case["signals"] as Map<String, Any?>
         val signals = PageSignals(
             host = s["host"] as String, scheme = s["scheme"] as? String ?: "https",
-            password = s["password"] == true, otp = s["otp"] == true, card = s["card"] == true,
+            password = s["password"] == true, otp = s["otp"] == true, card = s["card"] == true, taxid = s["taxid"] == true, pin = s["pin"] == true,
             title = s["title"] as? String ?: "", site = s["site"] as? String ?: "", headings = s["headings"] as? String ?: "",
             logos = s["logos"] as? String ?: "", text = s["text"] as? String ?: "", article = s["article"] == true,
         )

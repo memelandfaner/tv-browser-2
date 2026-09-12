@@ -96,8 +96,11 @@
   <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s reglas verificadas (versión %2$s)</string>
   <string name="ui_signed_intel_updated">✅ Lista verificada de Safeer Threat Intelligence actualizada</string>
   <string name="ui_fake_bank_title">Banca online falsa</string>
-  <string name="ui_fake_bank_desc">Este no es el sitio web de su banco. No introduzca aquí su usuario, contraseña, código SMS ni datos de tarjeta. Acceda siempre a su banco escribiendo su dirección oficial o con su aplicación oficial.</string>
+  <string name="ui_fake_bank_desc">Este no es el sitio web de su banco. No introduzca aquí su usuario, contraseña, código SMS, número fiscal, PIN ni datos de tarjeta. Acceda siempre a su banco escribiendo su dirección oficial o con su aplicación oficial. Su banco nunca le llama para pedir un código o PIN y nunca le pide instalar programas de acceso remoto (AnyDesk, TeamViewer).</string>
   <string name="ui_fake_bank_open_real">Abrir el sitio real: %1$s</string>
+  <string name="ui_fake_bank_lure">La página pide los datos de la tarjeta con el pretexto de «%1$s»; la policía, hacienda y los servicios de reparto nunca cobran multas ni portes por páginas así</string>
+  <string name="ui_fake_bank_local">Un archivo abierto desde un adjunto o una descarga se hace pasar por %1$s; el sitio real es %2$s</string>
+  <string name="ui_fake_bank_page">La página se hace pasar por %1$s; el sitio real es %2$s</string>
   <string name="ui_fake_bank_type">Banco falso (phishing)</string>
   <string name="ui_lists_status">Listas de amenazas: %1$s reglas (%2$s de %3$s fuentes)</string>
   <string name="ui_lists_first_download">Listas de amenazas: primera descarga en segundo plano</string>

@@ -93,6 +93,21 @@ fun main() {
     check(ThreatBlockEngine.checkFakeBankPage("https://www.facebook.com/nlb", pageJson.replace("secure-login.example", "www.facebook.com")) == null)
     check(ThreatBlockEngine.checkFakeBankPage("https://secure-login.example/", "null") == null)
 
+    // HTML attachment opened locally (SI-CERT TZ009): checked by content, no host
+    val localJson = """{"host":"","scheme":"content","password":true,"title":"NLB Klik - prijava"}"""
+    val localMatch = ThreatBlockEngine.checkFakeBankPage("content://com.android.providers.downloads.documents/document/1", localJson)
+    check(localMatch?.category == fake && localMatch!!.matchedDomain == ThreatBlockEngine.LOCAL_PAGE_KEY && localMatch.sourceFeed!!.contains("ui_fake_bank_local")) { "local attachment: $localMatch" }
+    check(ThreatBlockEngine.checkFakeBankPage("https://secure-login.example/", localJson) == null) { "scheme of the answer must match the page" }
+    check(ThreatBlockEngine.checkFakeBankPage("file:///sdcard/Download/racun.html", localJson.replace("NLB Klik - prijava", "Moj racun")) == null)
+    ThreatBlockEngine.allowForSession(ThreatBlockEngine.LOCAL_PAGE_KEY)
+    check(ThreatBlockEngine.checkFakeBankPage("content://x/y", localJson) == null) { "session bypass for local pages" }
+
+    // Card form dressed up as a police fine (SI-CERT, May 2026): no bank, no official-site button
+    val lureJson = """{"host":"kazen-placilo.example","scheme":"https","card":true,"title":"Placilo kazni","headings":"Policija - prekrsek","text":"Kazen 39 EUR placajte s kartico"}"""
+    val lureMatch = ThreatBlockEngine.checkFakeBankPage("https://kazen-placilo.example/pay", lureJson)
+    check(lureMatch?.category == fake && lureMatch!!.sourceFeed!!.contains("ui_fake_bank_lure")) { "lure: $lureMatch" }
+    check(!ThreatBlockEngine.createSecurityInterstitialHtml("https://kazen-placilo.example/pay", lureMatch!!, afterPageLoad = true).contains("ui_fake_bank_open_real"))
+
     val urlhaus = PlainListSource("urlhaus", "abuse.ch URLhaus", "https://urlhaus.abuse.ch/downloads/hostfile/", "Zlonamerna koda (Malware)", "urlhaus")
     val feodo = PlainListSource("feodo", "abuse.ch Feodo Tracker", "https://feodotracker.abuse.ch/", "Botnet C2 Server", "feodo", minEntries = 0, ipv4 = true)
     val added = ThreatBlockEngine.rebuildFromLists(listOf(

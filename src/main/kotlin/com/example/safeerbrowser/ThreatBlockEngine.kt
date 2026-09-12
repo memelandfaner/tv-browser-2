@@ -123,14 +123,25 @@ object ThreatBlockEngine {
     /** Prave banke (uradne domene, bančne skupine, plačilna in identitetna infrastruktura). */
     fun isRealBankHost(host: String): Boolean = try { BankGuard.isTrusted(host) } catch (e: Exception) { false }
 
+    /** Ključ za lokalno odprto datoteko (priponka iz pošte), ki nima gostitelja. */
+    const val LOCAL_PAGE_KEY = "lokalna-datoteka"
+    /** Sheme lokalno odprtih strani (priponke HTML), ki jih BankGuard preveri po vsebini. */
+    val LOCAL_PAGE_SCHEMES = setOf("file", "content")
+
     private fun fakeBankMatch(host: String, verdict: BankVerdict): DomainSuffixTrie.MatchResult {
         if (fakeBankOfficialDomains.size > 256) fakeBankOfficialDomains.clear()
-        fakeBankOfficialDomains[host] = verdict.officialDomain
+        if (verdict.officialDomain.isNotEmpty()) fakeBankOfficialDomains[host] = verdict.officialDomain
+        val explanation = when (verdict.reason) {
+            "lure" -> UiText.get(R.string.ui_fake_bank_lure, verdict.detail)
+            "local" -> UiText.get(R.string.ui_fake_bank_local, verdict.bankName, verdict.officialDomain)
+            "page" -> UiText.get(R.string.ui_fake_bank_page, verdict.bankName, verdict.officialDomain)
+            else -> "${verdict.bankName} → ${verdict.officialDomain}"
+        }
         return DomainSuffixTrie.MatchResult(
             isMatched = true,
             matchedDomain = host,
             category = FAKE_BANK_CATEGORY,
-            sourceFeed = "Safeer Threat Shield · ${verdict.bankName} → ${verdict.officialDomain}",
+            sourceFeed = "Safeer Threat Shield · $explanation",
         )
     }
 
@@ -139,6 +150,13 @@ object ThreatBlockEngine {
         if (!isEnabled) return null
         return try {
             val signals = BankGuard.signalsFromJson(signalsJson) ?: return null
+            val pageScheme = Uri.parse(pageUrl).scheme?.lowercase() ?: return null
+            if (pageScheme in LOCAL_PAGE_SCHEMES) {
+                // Priponka HTML (file:, content:) nima gostitelja; zadostuje, da se strinjata shemi.
+                if (signals.scheme != pageScheme || sessionBypassedDomains.contains(LOCAL_PAGE_KEY)) return null
+                val verdict = BankGuard.pageVerdict(signals) ?: return null
+                return fakeBankMatch(LOCAL_PAGE_KEY, verdict)
+            }
             val pageHost = Uri.parse(pageUrl).host?.lowercase()?.trim()?.trimEnd('.') ?: return null
             val host = signals.host.lowercase().trim().trimEnd('.')
             if (host.isEmpty() || host != pageHost) return null // odgovor prejšnje strani
@@ -469,7 +487,7 @@ object ThreatBlockEngine {
                 $bypassActionHtml
 
                 <div class="footer-text">
-                    Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox • Phishing Army • HaGeZi
+                    Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox • Phishing Army • HaGeZi • SI-CERT
                 </div>
             </div>
         </body>

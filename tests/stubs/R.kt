@@ -25,5 +25,8 @@ object R {
         const val ui_lists_first_download = 35
         const val ui_lists_checked = 36
         const val ui_bankguard_status = 37
+        const val ui_fake_bank_lure = 38
+        const val ui_fake_bank_local = 39
+        const val ui_fake_bank_page = 40
     }
 }

@@ -1316,7 +1316,7 @@ class MainActivity : android.app.Activity() {
                 • Skupaj preprečenih groženj: $totalThreats
                 • Blokiranih oglasov in sledilcev: $totalAds
                 
-                Viri: abuse.ch Feodo Tracker, URLhaus, ThreatFox, Phishing Army, HaGeZi TIF in Fake, StevenBlack Hosts.
+                Viri: abuse.ch Feodo Tracker, URLhaus, ThreatFox, Phishing Army, HaGeZi TIF in Fake, SI-CERT, StevenBlack Hosts.
                 """.trimIndent() + "\n" + UiText.get(R.string.ui_bankguard_status) + "\n" +
                     ThreatFeedsUpdater.statusLine() + "\n" + SignedThreatIntel.statusLine()
             )

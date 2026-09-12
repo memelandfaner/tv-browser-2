@@ -128,6 +128,19 @@ fun main() {
             throw AssertionError("accepted a list without the HaGeZi marker")
         } catch (e: ListRejectedException) { /* expected */ }
     }
+    test("parser: SI-CERT CSV lists (timestamp,domain without a header)") {
+        val source = PlainListSource("si-cert", "SI-CERT", "", "phishing", marker = "", minEntries = 3, csv = true)
+        val text = "2026-09-11T08:47:04+01:00,fake-bank-login.example\n2026-09-11 09:00:00,Posta-Paket.example.\n" +
+            "2026-09-12,nkbm-varnost.example\n2026-09-12T10:00:00Z,*.wild.example\nnot-a-date,skip.example\n\n"
+        val entries = PlainListParser.parse(text.toByteArray(), source)
+        check(entries == listOf("fake-bank-login.example", "posta-paket.example", "nkbm-varnost.example", "wild.example")) { entries.toString() }
+        for (bad in listOf("<html>2026-01-01,x.example</html>\n".repeat(3), "a.example\nb.example\nc.example\nd.example\n", "Error 503\n")) {
+            try {
+                PlainListParser.parse(bad.toByteArray(), source)
+                throw AssertionError("accepted: ${bad.take(30)}")
+            } catch (e: ListRejectedException) { /* expected */ }
+        }
+    }
     test("parser: IPv4 lists") {
         val entries = PlainListParser.parse("# Feodo Tracker\n1.2.3.4\n256.1.1.1\n10.0.0.1 # c2\nhost.example\n".toByteArray(),
             PlainListSource("feodo", "Feodo", "", "botnet_c2", marker = "feodo", minEntries = 0, ipv4 = true))

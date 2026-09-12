@@ -96,8 +96,11 @@
   <string name="ui_signed_intel_rules">Safeer Threat Intelligence: %1$s verified rules (version %2$s)</string>
   <string name="ui_signed_intel_updated">✅ Verified Safeer Threat Intelligence list updated</string>
   <string name="ui_fake_bank_title">Fake online bank</string>
-  <string name="ui_fake_bank_desc">This is not your bank’s website. Do not enter your user name, password, SMS code or card details here. Always open your bank by typing its official address or use its official app.</string>
+  <string name="ui_fake_bank_desc">This is not your bank’s website. Do not enter your user name, password, SMS code, tax number, PIN or card details here. Always open your bank by typing its official address or use its official app. Your bank never calls you to ask for a code or PIN and never asks you to install remote-access software (AnyDesk, TeamViewer).</string>
   <string name="ui_fake_bank_open_real">Open the real site: %1$s</string>
+  <string name="ui_fake_bank_lure">The page asks for payment card details under the pretext of “%1$s”; the police, tax office and delivery services never collect fines or postage through pages like this</string>
+  <string name="ui_fake_bank_local">A file opened from an attachment or download poses as %1$s; the real site is %2$s</string>
+  <string name="ui_fake_bank_page">The page poses as %1$s; the real site is %2$s</string>
   <string name="ui_fake_bank_type">Fake bank (phishing)</string>
   <string name="ui_lists_status">Threat lists: %1$s rules (%2$s of %3$s sources)</string>
   <string name="ui_lists_first_download">Threat lists: first download running in the background</string>

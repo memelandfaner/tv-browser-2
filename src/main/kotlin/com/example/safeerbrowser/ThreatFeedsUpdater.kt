@@ -41,6 +41,11 @@ object ThreatFeedsUpdater {
             url = "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/fake-onlydomains.txt",
             category = "Lažne trgovine in prevare", marker = "hagezi",
         ),
+        PlainListSource(
+            id = "si-cert", name = "SI-CERT phishing domene (Slovenija)",
+            url = "https://www.cert.si/misp/rpz/last.txt",
+            category = "Spletno ribarjenje (Phishing) – potrdil SI-CERT", marker = "", csv = true,
+        ),
     )
 
     @Volatile
