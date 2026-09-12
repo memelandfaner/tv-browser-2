@@ -1,4 +1,4 @@
-package com.example.safeerbrowser
+package si.safeer.tv
 // Test stub: resource ids used by ThreatBlockEngine.
 object R {
     object string {

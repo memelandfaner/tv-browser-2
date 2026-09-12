@@ -1,4 +1,4 @@
-package com.example.safeerbrowser
+package si.safeer.tv
 // Test stub: returns the resource name so tests can assert which text is shown.
 object UiText {
     val language = "sl"

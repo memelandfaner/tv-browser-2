@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    namespace 'com.example.safeerbrowser'
+    namespace 'si.safeer.tv'
     compileSdk 34
     buildToolsVersion '34.0.0'
 
     defaultConfig {
-        applicationId 'com.example.safeerbrowser'
+        applicationId 'si.safeer.tv'
         minSdk 28
         targetSdk 34
         versionCode 194

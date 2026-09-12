@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.safeerbrowser"
+    package="si.safeer.tv"
     android:versionCode="194"
     android:versionName="2.1.85">
 
@@ -41,7 +41,7 @@
         android:supportsRtl="true">
 
         <activity
-            android:name="com.example.safeerbrowser.MainActivity"
+            android:name="si.safeer.tv.MainActivity"
             android:label="@string/app_name"
             android:icon="@mipmap/ic_launcher"
             android:banner="@drawable/safeer_tv_banner"
@@ -78,8 +78,8 @@
         </activity>
 
         <provider
-            android:name="com.example.safeerbrowser.MobileFileProvider"
-            android:authorities="com.example.safeerbrowser.fileprovider"
+            android:name="si.safeer.tv.MobileFileProvider"
+            android:authorities="si.safeer.tv.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

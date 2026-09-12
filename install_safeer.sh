@@ -29,7 +29,7 @@ if command -v adb >/dev/null 2>&1; then
         echo "📲 Nameščam Safeer Browser..."
         adb -s "$DEVICE" install -r "$TEMP_APK"
         echo "🚀 Zaganjam Safeer Browser..."
-        adb -s "$DEVICE" shell am start -n "com.example.safeerbrowser/.MainActivity"
+        adb -s "$DEVICE" shell am start -n "si.safeer.tv/.MainActivity"
         echo "=========================================================="
         echo "🎉 SAFEER BROWSER JE USPEŠNO NAMEŠČEN IN ZAGNAN!"
         echo "=========================================================="

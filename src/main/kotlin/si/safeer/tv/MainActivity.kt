@@ -1,4 +1,4 @@
-package com.example.safeerbrowser
+package si.safeer.tv
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
@@ -192,15 +192,15 @@ class MainActivity : android.app.Activity() {
         debugJsReceiver = object : android.content.BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
-                    "com.example.safeerbrowser.EVAL_JS" -> {
+                    "si.safeer.tv.EVAL_JS" -> {
                         val cmd = intent.getStringExtra("cmd") ?: return
                         tabManager.getActiveTab()?.webView?.evaluateJavascript(cmd, null)
                     }
-                    "com.example.safeerbrowser.EXO_SMOKE" -> {
+                    "si.safeer.tv.EXO_SMOKE" -> {
                         SafeerDbg.log("H337", "MainActivity.kt:smoke", "broadcast smoke", JSONObject())
                         playback.playClearSmoke()
                     }
-                    "com.example.safeerbrowser.ACTION_OPEN_URL" -> {
+                    "si.safeer.tv.ACTION_OPEN_URL" -> {
                         val url = intent.getStringExtra("url") ?: return
                         val newTab = intent.getBooleanExtra("new_tab", false)
                         val activeTab = tabManager.getActiveTab()
@@ -211,21 +211,21 @@ class MainActivity : android.app.Activity() {
                         }
                         showTvOsd("🌐 Povezava na TV", url.take(50))
                     }
-                    "com.example.safeerbrowser.ACTION_CHANNEL_TUNE" -> {
+                    "si.safeer.tv.ACTION_CHANNEL_TUNE" -> {
                         val ch = intent.getIntExtra("channel", -1)
                         if (ch > 0) {
                             playback.tuneLiveChannel(ch)
                             showTvOsd("📺 Preklop na kanal", "Kanal $ch")
                         }
                     }
-                    "com.example.safeerbrowser.ACTION_PLAY_PAUSE" -> {
+                    "si.safeer.tv.ACTION_PLAY_PAUSE" -> {
                         playback.togglePlayPause()
                     }
-                    "com.example.safeerbrowser.ACTION_SEEK" -> {
+                    "si.safeer.tv.ACTION_SEEK" -> {
                         val delta = intent.getIntExtra("seconds", 10)
                         playback.seekBy(delta)
                     }
-                    "com.example.safeerbrowser.ACTION_SEARCH" -> {
+                    "si.safeer.tv.ACTION_SEARCH" -> {
                         val query = intent.getStringExtra("query") ?: ""
                         val engine = intent.getStringExtra("engine") ?: "google"
                         if (query.isNotEmpty()) {
@@ -242,7 +242,7 @@ class MainActivity : android.app.Activity() {
                             showTvOsd("🔍 Iskanje ($engine)", query)
                         }
                     }
-                    "com.example.safeerbrowser.ACTION_SCREEN_OFF_AUDIO" -> {
+                    "si.safeer.tv.ACTION_SCREEN_OFF_AUDIO" -> {
                         val enable = intent.getBooleanExtra("enable", true)
                         toggleScreenOffAudio(enable)
                     }
@@ -250,14 +250,14 @@ class MainActivity : android.app.Activity() {
             }
         }
         val debugFilter = android.content.IntentFilter().apply {
-            addAction("com.example.safeerbrowser.EVAL_JS")
-            addAction("com.example.safeerbrowser.EXO_SMOKE")
-            addAction("com.example.safeerbrowser.ACTION_OPEN_URL")
-            addAction("com.example.safeerbrowser.ACTION_CHANNEL_TUNE")
-            addAction("com.example.safeerbrowser.ACTION_PLAY_PAUSE")
-            addAction("com.example.safeerbrowser.ACTION_SEEK")
-            addAction("com.example.safeerbrowser.ACTION_SEARCH")
-            addAction("com.example.safeerbrowser.ACTION_SCREEN_OFF_AUDIO")
+            addAction("si.safeer.tv.EVAL_JS")
+            addAction("si.safeer.tv.EXO_SMOKE")
+            addAction("si.safeer.tv.ACTION_OPEN_URL")
+            addAction("si.safeer.tv.ACTION_CHANNEL_TUNE")
+            addAction("si.safeer.tv.ACTION_PLAY_PAUSE")
+            addAction("si.safeer.tv.ACTION_SEEK")
+            addAction("si.safeer.tv.ACTION_SEARCH")
+            addAction("si.safeer.tv.ACTION_SCREEN_OFF_AUDIO")
         }
         try {
             if (Build.VERSION.SDK_INT >= 33) {

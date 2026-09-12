@@ -13,7 +13,7 @@ Xplore (`xploretv.si`) catalog, login, D-Pad and EPG stay in **WebView**. Video 
 ## Project facts
 
 - **Folder**: `tv-browser-2/` (not `streamN-TV/`, not `freenet-browser/`)
-- **Package**: `com.example.safeerbrowser`
+- **Package**: `si.safeer.tv`
 - **APK**: `tv-browser-2/TV-Browser-2.apk` via `tv-browser-2/build_tv_apk.sh` (**Gradle + Media3**, then uber-apk-signer)
 - **GitHub**: `https://github.com/memelandfaner/tv-browser-2`
 - **Download APK**: `https://github.com/memelandfaner/tv-browser-2/raw/main/TV-Browser-2.apk` — short: `https://tinyurl.com/27w3uxob` / `https://da.gd/8fziT`

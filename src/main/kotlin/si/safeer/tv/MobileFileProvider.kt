@@ -1,4 +1,4 @@
-package com.example.safeerbrowser
+package si.safeer.tv
 
 import android.content.ContentProvider
 import android.content.ContentValues

@@ -4,7 +4,7 @@ import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-source = ROOT / 'src/main/kotlin/com/example/safeerbrowser'
+source = ROOT / 'src/main/kotlin/si/safeer/tv'
 for asset in (ROOT / 'assets').rglob('*'):
     if asset.is_file():
         assert not any(part in asset.name.lower() for part in ['auth', '.local.', '.jks', '.keystore']), asset.name

@@ -1,4 +1,4 @@
-package com.example.safeerbrowser
+package si.safeer.tv
 
 import android.view.KeyEvent
 import org.json.JSONObject

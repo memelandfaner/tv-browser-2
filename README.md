@@ -16,7 +16,7 @@ Na TV dovoli namestitev iz neznanih virov, nato odpri preneseni `TV-Browser-2.ap
 
 Ista datoteka je tudi v `Release/Artifacts/tv-browser-2-release.apk`.
 
-Paket: `com.example.safeerbrowser`. Gradnja: `./build_tv_apk.sh`.
+Paket: `si.safeer.tv` (do različice 2.1.85 `com.example.safeerbrowser` iz predloge; sprememba imena pomeni, da je treba starejšo različico odstraniti in novo namestiti na novo – nastavitve in zaznamki iz stare različice se ne prenesejo). Gradnja: `./build_tv_apk.sh`; APK podpiše produkcijski ključ `keystore/safeer-tv-release.jks` (geslo v `RELEASE_KEY_PASS` ali `keystore/.release_pass`; mapa je v `.gitignore` in ključ nikoli ne zapusti računalnika).
 
 ```bash
 adb install -r TV-Browser-2.apk

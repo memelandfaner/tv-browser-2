@@ -446,7 +446,7 @@
     </RelativeLayout>
 
     <!-- TV Remote Virtual Pointer Overlay Layer -->
-    <com.example.safeerbrowser.VirtualPointerView
+    <si.safeer.tv.VirtualPointerView
         android:id="@+id/virtualPointerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

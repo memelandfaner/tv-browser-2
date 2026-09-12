@@ -38,15 +38,15 @@ echo "☕ 2/5: Prevajam Kotlin izvorno kodo (kotlinc)..."
 "$KOTLINC" -cp "$TOOLS_DIR/android.jar:$BUILD_DIR/gen" \
     -d "$BUILD_DIR/classes" \
     -jvm-target 1.8 \
-    "$DIR/src/main/kotlin/com/example/safeerbrowser/"*.kt \
-    "$BUILD_DIR/gen/com/example/safeerbrowser/R.java"
+    "$DIR/src/main/kotlin/si/safeer/tv/"*.kt \
+    "$BUILD_DIR/gen/si/safeer/tv/R.java"
 
 echo "⚡ 3/5: Prevajam v Dalvik Executable (D8)..."
 java -cp "$TOOLS_DIR/r8.jar" com.android.tools.r8.D8 \
     --min-api 28 \
     --output "$BUILD_DIR/dex" \
     --lib "$TOOLS_DIR/android.jar" \
-    "$BUILD_DIR/classes/com/example/safeerbrowser/"*.class \
+    "$BUILD_DIR/classes/si/safeer/tv/"*.class \
     "$KOTLIN_LIB"
 
 echo "📦 4/5: Sestavljam APK paket..."

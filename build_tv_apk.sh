@@ -135,12 +135,43 @@ if [[ -z "$UNSIGNED" || ! -f "$UNSIGNED" ]]; then
     exit 1
 fi
 
-echo "✍️  Podpisujem z uber-apk-signer (ista debug identiteta kot prej)..."
+echo "✍️  Podpisujem s produkcijskim ključem za TV (keystore/safeer-tv-release.jks)..."
+# Google Android Developer Console (obvezno preverjanje razvijalcev, 2027 tudi v Sloveniji) veže ime paketa na
+# podpisni ključ: TV ima svoj ključ, ki nikoli ne zapusti tega računalnika (keystore/ je v .gitignore).
+KEYSTORE_DIR="$DIR/keystore"
+DEFAULT_KEYSTORE="$KEYSTORE_DIR/safeer-tv-release.jks"
+RELEASE_KEYSTORE="${RELEASE_KEYSTORE:-$DEFAULT_KEYSTORE}"
+RELEASE_KEY_ALIAS="${RELEASE_KEY_ALIAS:-safeer-tv}"
+if [ -z "${RELEASE_KEY_PASS:-}" ] && [ -f "$KEYSTORE_DIR/.release_pass" ]; then
+    RELEASE_KEY_PASS="$(cat "$KEYSTORE_DIR/.release_pass")"
+fi
+if [ -z "${RELEASE_KEY_PASS:-}" ]; then
+    echo "❌ Geslo produkcijskega ključa (RELEASE_KEY_PASS) ni nastavljeno." >&2
+    echo "👉 export RELEASE_KEY_PASS=\"...\"  ali geslo shrani v $KEYSTORE_DIR/.release_pass (v .gitignore)" >&2
+    exit 1
+fi
+if [ ! -f "$RELEASE_KEYSTORE" ]; then
+    echo "🔑 Ustvarjam produkcijski keystore za TV ($RELEASE_KEYSTORE) – shrani varnostno kopijo na USB!"
+    mkdir -p "$KEYSTORE_DIR"
+    keytool -genkeypair -v \
+        -keystore "$RELEASE_KEYSTORE" \
+        -alias "$RELEASE_KEY_ALIAS" \
+        -keyalg RSA \
+        -keysize 4096 \
+        -validity 10000 \
+        -storepass "$RELEASE_KEY_PASS" \
+        -keypass "$RELEASE_KEY_PASS" \
+        -dname "CN=Safeer Browser for Android TV, OU=Safeer Security, O=Safeer, L=Ljubljana, ST=Slovenia, C=SI"
+fi
 rm -rf "$DIR/build/signed"
 mkdir -p "$DIR/build/signed"
 java -jar "$TOOLS_DIR/uber-apk-signer.jar" \
     --apks "$UNSIGNED" \
     --out "$DIR/build/signed" \
+    --ks "$RELEASE_KEYSTORE" \
+    --ksAlias "$RELEASE_KEY_ALIAS" \
+    --ksPass "$RELEASE_KEY_PASS" \
+    --ksKeyPass "$RELEASE_KEY_PASS" \
     --allowResign
 
 SIGNED="$(find "$DIR/build/signed" -name '*.apk' | head -n 1)"

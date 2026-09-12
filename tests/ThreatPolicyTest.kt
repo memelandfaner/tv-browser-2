@@ -1,4 +1,4 @@
-package com.example.safeerbrowser
+package si.safeer.tv
 
 import com.safeer.threatfeed.FeedMatch
 import com.safeer.threatfeed.FeedSource
