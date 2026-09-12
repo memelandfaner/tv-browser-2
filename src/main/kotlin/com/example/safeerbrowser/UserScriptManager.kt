@@ -1567,12 +1567,21 @@ object UserScriptManager {
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
         webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
         webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
+        if (isYouTubeUrl(target) && SponsorBlockSettings.isEnabled(webView.context)) {
+            webView.evaluateJavascript(com.safeer.threatfeed.SponsorBlock.RUNTIME_JS, null)
+        }
         webView.evaluateJavascript(siteAgentJs(webView), null)
         webView.evaluateJavascript(tvSpatialJs(webView) + "\n" + siteHydraJs(webView) + "\n" + site24urJs(webView), null)
         if (finished) {
             if (!news24) webView.evaluateJavascript(MOBILE_MEDIA_AUDIO_JS, null)
             webView.evaluateJavascript("try{if(window._safeerSiteAgent)window._safeerSiteAgent.onPageReady()}catch(e){}", null)
         }
+    }
+
+    fun isYouTubeUrl(url: String?): Boolean {
+        if (url.isNullOrEmpty()) return false
+        val host = try { Uri.parse(url).host?.lowercase()?.trim() ?: "" } catch (_: Exception) { "" }
+        return host == "youtube.com" || host.endsWith(".youtube.com") || host == "youtu.be"
     }
 
     fun isRealBankPage(url: String?): Boolean {

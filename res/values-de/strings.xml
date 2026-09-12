@@ -16,6 +16,7 @@
     <string name="menu_history">Verlauf</string>
     <string name="menu_desktop_site">Desktop-Website</string>
     <string name="menu_dark_mode">AMOLED Dunkelmodus</string>
+    <string name="menu_sponsorblock">SponsorBlock: Sponsoren auf YouTube überspringen</string>
     <string name="menu_adblock">Integrierter AdBlock &amp; Botnetz-Schutz</string>
     <string name="menu_threat_stats">Sicherheitsschild (Feodo/URLhaus)</string>
     <string name="menu_share">Seite teilen</string>

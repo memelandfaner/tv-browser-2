@@ -20,3 +20,6 @@ java -cp "$OUT/threat.jar:$BC_JAR" com.example.safeerbrowser.ThreatPolicyTestKt
 java -cp "$OUT/bank-guard.jar" com.safeer.threatfeed.BankGuardTestKt "$TEST_DIR/bank-guard-cases.json"
 "$KOTLINC" "$SRC/com/safeer/threatfeed/ThreatListAgent.kt" "$TEST_DIR/ThreatListAgentTest.kt" -include-runtime -d "$OUT/list-agent.jar"
 java -cp "$OUT/list-agent.jar" com.safeer.threatfeed.ThreatListAgentTestKt
+"$KOTLINC" "$SRC/com/safeer/threatfeed/SponsorBlock.kt" "$SRC/com/safeer/threatfeed/BankGuard.kt" "$SRC/com/safeer/threatfeed/BankGuardData.kt" \
+    "$TEST_DIR/SponsorBlockTest.kt" -include-runtime -d "$OUT/sponsorblock.jar"
+java -cp "$OUT/sponsorblock.jar" com.safeer.threatfeed.SponsorBlockTestKt

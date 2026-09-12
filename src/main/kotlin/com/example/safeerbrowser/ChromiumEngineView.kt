@@ -288,6 +288,27 @@ class ChromiumEngineView @JvmOverloads constructor(
         var onScrollCallback: ((Int, Int) -> Unit)? = null
         var onChromeHidden: ((Boolean) -> Unit)? = null
 
+        /**
+         * ⏭ SponsorBlock: stran YouTube sporoči ID videa, aplikacija v ozadju poišče sponzorske odseke (po
+         * predponi zgoščene vrednosti, brez ID-ja) in jih vrne strani. Deluje samo za stran YouTube v tem zavihku.
+         */
+        @android.webkit.JavascriptInterface
+        fun sponsorSegments(videoId: String) {
+            if (!SponsorBlockSettings.isEnabled(context)) return
+            val id = videoId.trim()
+            if (!Regex("[A-Za-z0-9_-]{11}").matches(id)) return
+            webView.post {
+                if (!UserScriptManager.isYouTubeUrl(webView.url)) return@post
+                com.safeer.threatfeed.SponsorBlock.fetchAsync(id) { segments ->
+                    webView.post {
+                        if (UserScriptManager.isYouTubeUrl(webView.url)) {
+                            webView.evaluateJavascript(com.safeer.threatfeed.SponsorBlock.applyScript(id, segments), null)
+                        }
+                    }
+                }
+            }
+        }
+
         @android.webkit.JavascriptInterface
         fun onScrollChanged(direction: Int, scrollY: Int) {
             (context as? android.app.Activity)?.runOnUiThread {

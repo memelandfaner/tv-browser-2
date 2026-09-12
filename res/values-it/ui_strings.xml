@@ -101,6 +101,8 @@
   <string name="ui_fake_bank_lure">La pagina chiede i dati della carta con il pretesto di «%1$s»; polizia, fisco e corrieri non incassano mai multe o spese di spedizione tramite pagine simili</string>
   <string name="ui_fake_bank_local">Un file aperto da un allegato o da un download si spaccia per %1$s; il sito vero è %2$s</string>
   <string name="ui_fake_bank_page">La pagina si spaccia per %1$s; il sito vero è %2$s</string>
+  <string name="ui_sponsorblock_on">⏭ SponsorBlock attivo: i segmenti sponsorizzati vengono saltati</string>
+  <string name="ui_sponsorblock_off">⏭ SponsorBlock disattivato</string>
   <string name="ui_fake_bank_type">Banca falsa (phishing)</string>
   <string name="ui_lists_status">Elenchi di minacce: %1$s regole (%2$s di %3$s fonti)</string>
   <string name="ui_lists_first_download">Elenchi di minacce: primo download in background</string>

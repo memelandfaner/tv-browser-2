@@ -28,5 +28,7 @@ object R {
         const val ui_fake_bank_lure = 38
         const val ui_fake_bank_local = 39
         const val ui_fake_bank_page = 40
+        const val ui_sponsorblock_on = 41
+        const val ui_sponsorblock_off = 42
     }
 }

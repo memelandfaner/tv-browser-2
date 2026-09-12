@@ -16,6 +16,7 @@
     <string name="menu_history">History</string>
     <string name="menu_desktop_site">Desktop Site</string>
     <string name="menu_dark_mode">AMOLED Dark Mode</string>
+    <string name="menu_sponsorblock">SponsorBlock: skip sponsors on YouTube</string>
     <string name="menu_adblock">Built-in AdBlock &amp; Botnet Shield</string>
     <string name="menu_threat_stats">Security Shield (Feodo/URLhaus)</string>
     <string name="menu_share">Share Page</string>

@@ -1261,6 +1261,21 @@ class MainActivity : android.app.Activity() {
             dialog.dismiss()
         }
 
+        val cbSponsorBlock = dialog.findViewById<CheckBox>(R.id.cbSponsorBlock)
+        cbSponsorBlock.isChecked = SponsorBlockSettings.isEnabled(this)
+        dialog.findViewById<LinearLayout>(R.id.rowMenuSponsorBlock).setOnClickListener {
+            val enabled = !SponsorBlockSettings.isEnabled(this)
+            SponsorBlockSettings.setEnabled(this, enabled)
+            cbSponsorBlock.isChecked = enabled
+            Toast.makeText(
+                this,
+                if (enabled) UiText.get(R.string.ui_sponsorblock_on) else UiText.get(R.string.ui_sponsorblock_off),
+                Toast.LENGTH_SHORT
+            ).show()
+            wv?.reload()
+            dialog.dismiss()
+        }
+
         val cbDark = dialog.findViewById<CheckBox>(R.id.cbDarkMode)
         cbDark.isChecked = isDarkModeActive
         dialog.findViewById<LinearLayout>(R.id.rowMenuDarkMode).setOnClickListener {

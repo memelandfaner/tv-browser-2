@@ -18,6 +18,7 @@
     <string name="menu_history">Zgodovina</string>
     <string name="menu_desktop_site">Namizno spletno mesto</string>
     <string name="menu_dark_mode">AMOLED Temni način</string>
+    <string name="menu_sponsorblock">SponsorBlock: preskoči sponzorje na YouTubu</string>
     <string name="menu_adblock">Vgrajeni AdBlock &amp; Botnet Ščit</string>
     <string name="menu_threat_stats">Varnostni ščit (Feodo/URLhaus)</string>
     <string name="menu_share">Deli stran</string>

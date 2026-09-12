@@ -101,6 +101,8 @@
   <string name="ui_fake_bank_lure">The page asks for payment card details under the pretext of “%1$s”; the police, tax office and delivery services never collect fines or postage through pages like this</string>
   <string name="ui_fake_bank_local">A file opened from an attachment or download poses as %1$s; the real site is %2$s</string>
   <string name="ui_fake_bank_page">The page poses as %1$s; the real site is %2$s</string>
+  <string name="ui_sponsorblock_on">⏭ SponsorBlock on: sponsor segments are skipped</string>
+  <string name="ui_sponsorblock_off">⏭ SponsorBlock off</string>
   <string name="ui_fake_bank_type">Fake bank (phishing)</string>
   <string name="ui_lists_status">Threat lists: %1$s rules (%2$s of %3$s sources)</string>
   <string name="ui_lists_first_download">Threat lists: first download running in the background</string>

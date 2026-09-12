@@ -101,6 +101,8 @@
   <string name="ui_fake_bank_lure">Stran zahteva podatke plačilne kartice pod pretvezo »%1$s«; policija, FURS in dostavne službe kazni in poštnine ne pobirajo prek takih strani</string>
   <string name="ui_fake_bank_local">Datoteka, odprta iz priponke ali prenosa, se predstavlja kot %1$s; prava stran je %2$s</string>
   <string name="ui_fake_bank_page">Stran se predstavlja kot %1$s; prava stran je %2$s</string>
+  <string name="ui_sponsorblock_on">⏭ SponsorBlock vklopljen: sponzorski odseki se preskočijo</string>
+  <string name="ui_sponsorblock_off">⏭ SponsorBlock izklopljen</string>
   <string name="ui_fake_bank_type">Lažna banka (phishing)</string>
   <string name="ui_lists_status">Seznami groženj: %1$s pravil (%2$s od %3$s virov)</string>
   <string name="ui_lists_first_download">Seznami groženj: prvi prenos poteka v ozadju</string>
