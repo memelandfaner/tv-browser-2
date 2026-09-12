@@ -244,6 +244,7 @@ object AdBlockEngine {
 
         if (shouldBlockUrl(url) || (!isMainFrame && !isTrustedForFilterLists(url) && filterListBlocks(url, pageUrl, accept, isMainFrame))) {
             blockedAdsCount.incrementAndGet()
+            android.util.Log.d("SafeerAdBlock", "blokirano: ${url.take(120)}")
             onAdBlocked?.invoke()
 
             val isJson = lower.endsWith(".json") || lower.contains("json") ||
