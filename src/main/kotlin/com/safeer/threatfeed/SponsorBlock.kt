@@ -42,6 +42,8 @@ object SponsorBlock {
         Thread(runnable, "safeer-sponsorblock").apply { isDaemon = true; priority = Thread.MIN_PRIORITY }
     }
     @Volatile var fetcher: SponsorFetcher = HttpsSponsorFetcher()
+    /** Why the last lookup delivered nothing (network error, HTTP status), for diagnostics; empty when it succeeded. */
+    @Volatile var lastError: String = ""
 
     /** YouTube video ID from a watch, embed, shorts or youtu.be address (also inside the #fragment of youtube.com/tv). */
     fun videoIdFromUrl(url: String?): String? {
@@ -96,10 +98,19 @@ object SponsorBlock {
         if (!videoIdPattern.matches(videoId)) return emptyList()
         synchronized(cache) { cache[videoId]?.let { return it } }
         val segments = try {
-            parse(fetcher.fetch(apiUrl(videoId)), videoId)
+            val body = fetcher.fetch(apiUrl(videoId))
+            val parsed = parse(body, videoId)
+            lastError = when {
+                body == null -> "HTTP 404 (za to predpono ni odsekov)"
+                parsed.isEmpty() && !body.contains(videoId) -> "v odgovoru (${body.length} B) ni tega videa"
+                else -> ""
+            }
+            parsed
         } catch (e: IOException) {
+            lastError = "IOException: ${e.message}"
             return emptyList()
         } catch (e: RuntimeException) {
+            lastError = "${e.javaClass.simpleName}: ${e.message}"
             return emptyList()
         }
         synchronized(cache) { cache[videoId] = segments }
