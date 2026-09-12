@@ -48,7 +48,7 @@ object ThreatFeedsUpdater {
         PlainListSource(
             id = "si-cert", name = "SI-CERT phishing domene (Slovenija)",
             url = "https://www.cert.si/misp/rpz/last.txt",
-            category = "Spletno ribarjenje (Phishing) – potrdil SI-CERT", marker = "", csv = true,
+            category = "Spletno ribarjenje (Phishing) – potrdil SI-CERT", marker = "", headerless = true,
         ),
     )
 

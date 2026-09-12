@@ -44,10 +44,11 @@ data class PlainListSource(
     /** Lists of IPv4 addresses (for example Feodo Tracker) instead of host names. */
     val ipv4: Boolean = false,
     /**
-     * CSV lists of the form `timestamp,domain` (for example the SI-CERT phishing domain list). These files have
-     * no header, so instead of [marker] the file must contain at least [minEntries] lines of that shape.
+     * Lists without a header (for example the SI-CERT phishing domain list): one domain per line, or
+     * `timestamp,domain`. There is no [marker] to check, so instead nearly every non-empty line must be a valid
+     * entry and there must be at least [minEntries] of them; error pages and captive portals fail that test.
      */
-    val csv: Boolean = false,
+    val headerless: Boolean = false,
     /**
      * Filter lists in Adblock Plus syntax (EasyList): every non-comment line is kept verbatim for
      * FilterListEngine instead of being read as a host name. The threat engine ignores raw lists.
@@ -125,7 +126,7 @@ object PlainListParser {
     /** Normalized, de-duplicated entries; throws [ListRejectedException] for files that are not this list. */
     fun parse(bytes: ByteArray, source: PlainListSource): List<String> {
         val head = String(bytes, 0, minOf(bytes.size, 4096), Charsets.UTF_8).lowercase()
-        if (!source.csv && !head.contains(source.marker.lowercase())) throw ListRejectedException("marker '${source.marker}' missing")
+        if (!source.headerless && !head.contains(source.marker.lowercase())) throw ListRejectedException("marker '${source.marker}' missing")
         if (head.contains("<html") || head.contains("<!doctype")) throw ListRejectedException("HTML instead of a list")
         val seen = LinkedHashSet<String>()
         if (source.raw) {
@@ -137,20 +138,22 @@ object PlainListParser {
             if (seen.size < source.minEntries) throw ListRejectedException("only ${seen.size} rules")
             return ArrayList(seen)
         }
-        var csvLines = 0
+        var dataLines = 0
+        var validLines = 0
         String(bytes, Charsets.UTF_8).lineSequence().forEach { raw ->
             val line = raw.substringBefore('#').trim()
             if (line.isEmpty() || line.startsWith(";") || line.startsWith("!")) return@forEach
-            val fields = if (source.csv) line.split(',', ';').map { it.trim() } else emptyList()
-            val text = if (fields.size >= 2 && csvTimestamp.matches(fields[0])) { csvLines++; fields[1] } else line
+            dataLines++
+            val fields = if (source.headerless) line.split(',', ';').map { it.trim() } else emptyList()
+            val text = if (fields.size >= 2 && csvTimestamp.matches(fields[0])) fields[1] else line
             val parts = text.split(' ', '\t').filter { it.isNotEmpty() }
             if (parts.isEmpty()) return@forEach
             val candidate = (if (parts.size >= 2 && parts[0] in sinkAddresses) parts[1] else parts[0])
                 .lowercase().trimEnd('.').removePrefix("||").removeSuffix("^").removePrefix("*.")
             val entry = if (source.ipv4) candidate.takeIf { ipv4.matches(it) } else candidate.takeIf { isHostName(it) }
-            if (entry != null) seen.add(entry)
+            if (entry != null) { validLines++; seen.add(entry) }
         }
-        if (source.csv && csvLines < source.minEntries) throw ListRejectedException("only $csvLines timestamp,domain lines")
+        if (source.headerless && validLines * 10 < dataLines * 9) throw ListRejectedException("only $validLines of $dataLines lines are entries")
         if (seen.size < source.minEntries) throw ListRejectedException("only ${seen.size} entries")
         return ArrayList(seen)
     }

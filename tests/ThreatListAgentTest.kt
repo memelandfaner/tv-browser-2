@@ -128,16 +128,25 @@ fun main() {
             throw AssertionError("accepted a list without the HaGeZi marker")
         } catch (e: ListRejectedException) { /* expected */ }
     }
-    test("parser: SI-CERT CSV lists (timestamp,domain without a header)") {
-        val source = PlainListSource("si-cert", "SI-CERT", "", "phishing", marker = "", minEntries = 3, csv = true)
-        val text = "2026-09-11T08:47:04+01:00,fake-bank-login.example\n2026-09-11 09:00:00,Posta-Paket.example.\n" +
-            "2026-09-12,nkbm-varnost.example\n2026-09-12T10:00:00Z,*.wild.example\nnot-a-date,skip.example\n\n"
-        val entries = PlainListParser.parse(text.toByteArray(), source)
+    test("parser: SI-CERT lists without a header (plain domains or timestamp,domain)") {
+        val source = PlainListSource("si-cert", "SI-CERT", "", "phishing", marker = "", minEntries = 3, headerless = true)
+        // the real cert.si/misp/rpz/last.txt: one domain per line, nothing else
+        val plain = "an-posta.example\nximuyt.example\nsagmoonmagic.example\ngls.863171.example\n\n"
+        check(PlainListParser.parse(plain.toByteArray(), source) == listOf("an-posta.example", "ximuyt.example", "sagmoonmagic.example", "gls.863171.example"))
+        val csv = "2026-09-11T08:47:04+01:00,fake-bank-login.example\n2026-09-11 09:00:00,Posta-Paket.example.\n" +
+            "2026-09-12,nkbm-varnost.example\n2026-09-12T10:00:00Z,*.wild.example\n\n"
+        val entries = PlainListParser.parse(csv.toByteArray(), source)
         check(entries == listOf("fake-bank-login.example", "posta-paket.example", "nkbm-varnost.example", "wild.example")) { entries.toString() }
-        for (bad in listOf("<html>2026-01-01,x.example</html>\n".repeat(3), "a.example\nb.example\nc.example\nd.example\n", "Error 503\n")) {
+        val bad = listOf(
+            "<html>2026-01-01,x.example</html>\n".repeat(3),
+            "Error 503\n",
+            "Welcome to the hotel wifi\nplease log in\nterms apply\na.example\nb.example\nc.example\n",  // captive portal text
+            "a.example\nb.example\n",  // fewer than minEntries
+        )
+        for (text in bad) {
             try {
-                PlainListParser.parse(bad.toByteArray(), source)
-                throw AssertionError("accepted: ${bad.take(30)}")
+                PlainListParser.parse(text.toByteArray(), source)
+                throw AssertionError("accepted: ${text.take(30)}")
             } catch (e: ListRejectedException) { /* expected */ }
         }
     }
