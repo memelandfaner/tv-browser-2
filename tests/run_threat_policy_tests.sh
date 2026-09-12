@@ -10,7 +10,8 @@ BC_JAR="$PROJECT_DIR/libs/bcprov-ed25519-1.78.1.jar"
 OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 "$KOTLINC" -cp "$BC_JAR" "$TEST_DIR"/stubs/*.kt "$SRC/com/example/safeerbrowser/DomainSuffixTrie.kt" \
-    "$SRC/com/example/safeerbrowser/ThreatBlockEngine.kt" "$SRC/com/example/safeerbrowser/SignedThreatIntel.kt" \
+    "$SRC/com/example/safeerbrowser/ThreatBlockEngine.kt" "$SRC/com/example/safeerbrowser/AdBlockEngine.kt" "$SRC/com/example/safeerbrowser/SignedThreatIntel.kt" \
+    "$SRC/com/safeer/threatfeed/FilterListEngine.kt" \
     "$SRC/com/safeer/threatfeed/SignedThreatFeed.kt" "$SRC/com/safeer/threatfeed/BankGuard.kt" \
     "$SRC/com/safeer/threatfeed/BankGuardData.kt" "$SRC/com/safeer/threatfeed/ThreatListAgent.kt" \
     "$TEST_DIR/ThreatPolicyTest.kt" -include-runtime -d "$OUT/threat.jar"
@@ -23,3 +24,5 @@ java -cp "$OUT/list-agent.jar" com.safeer.threatfeed.ThreatListAgentTestKt
 "$KOTLINC" "$SRC/com/safeer/threatfeed/SponsorBlock.kt" "$SRC/com/safeer/threatfeed/BankGuard.kt" "$SRC/com/safeer/threatfeed/BankGuardData.kt" \
     "$TEST_DIR/SponsorBlockTest.kt" -include-runtime -d "$OUT/sponsorblock.jar"
 java -cp "$OUT/sponsorblock.jar" com.safeer.threatfeed.SponsorBlockTestKt
+"$KOTLINC" "$SRC/com/safeer/threatfeed/FilterListEngine.kt" "$TEST_DIR/FilterListEngineTest.kt" -include-runtime -d "$OUT/filter-list.jar"
+java -cp "$OUT/filter-list.jar" com.safeer.threatfeed.FilterListEngineTestKt

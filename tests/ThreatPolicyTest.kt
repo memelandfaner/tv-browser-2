@@ -122,4 +122,19 @@ fun main() {
     check(!ThreatBlockEngine.isThreat("https://www.nlb.si/") && !ThreatBlockEngine.isThreat("https://www.paypal.com/"))
     check(ThreatBlockEngine.isThreat("https://payload-delivery.cc/")) { "built-in list kept" }
     println("PASS: BankGuard hosts and pages, real banks untouched, agent lists")
+
+    // EasyList rules: raw lists go to the ad blocker, never into the threat tree; real banks and the allowlist stay untouched
+    val easylist = PlainListSource("easylist", "EasyList", "https://easylist.to/easylist/easylist.txt", "Oglasi (EasyList)", "easylist", minEntries = 1, raw = true)
+    val rules = listOf("||adnetwork.example^", "/ads/banners/*\$image", "@@||adnetwork.example/ok.js\$script", "@@||allowed-site.example^\$document", "||nlb.si/ads/")
+    check(ThreatBlockEngine.rebuildFromLists(listOf(PlainList(easylist, rules, 0))) == 0) { "raw lists must not become threats" }
+    check(AdBlockEngine.installFilterLists(listOf(PlainList(easylist, rules, 0))) == 5 && AdBlockEngine.filterRuleCount == 5)
+    check(AdBlockEngine.handleIntercept("https://adnetwork.example/a.js", "https://news.example/", "*/*", false) != null) { "easylist host rule" }
+    check(AdBlockEngine.handleIntercept("https://adnetwork.example/ok.js", "https://news.example/", "*/*", false) == null) { "easylist exception" }
+    check(AdBlockEngine.handleIntercept("https://site.example/ads/banners/x.png", "https://news.example/", "image/*", false) != null)
+    check(AdBlockEngine.handleIntercept("https://site.example/ads/banners/x.js", "https://news.example/", "*/*", false) == null) { "type option" }
+    check(AdBlockEngine.handleIntercept("https://adnetwork.example/", "https://news.example/", "text/html", true) == null) { "main frame is never blocked by lists" }
+    check(AdBlockEngine.handleIntercept("https://adnetwork.example/a.js", "https://allowed-site.example/page", "*/*", false) == null) { "\$document exception" }
+    check(AdBlockEngine.handleIntercept("https://www.nlb.si/ads/x.js", "https://news.example/", "*/*", false) == null) { "real banks are never touched by lists" }
+    check(AdBlockEngine.installFilterLists(emptyList()) == 0 && AdBlockEngine.handleIntercept("https://adnetwork.example/a.js", "https://news.example/", "*/*", false) == null)
+    println("PASS: EasyList rules through the ad blocker")
 }

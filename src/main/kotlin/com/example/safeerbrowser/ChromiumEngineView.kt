@@ -722,11 +722,12 @@ class ChromiumEngineView @JvmOverloads constructor(
                     return null
                 }
 
-                return AdBlockEngine.handleIntercept(url)
+                return AdBlockEngine.handleIntercept(url, interceptPageUrl, request.requestHeaders?.get("Accept"), isMainFrame)
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                url?.let { interceptPageUrl = it }
                 bankCheckGeneration++ // prekliči preverjanje prejšnje strani
                 scriptNavGen++
                 earlyScriptNavGen = -1
@@ -784,6 +785,10 @@ class ChromiumEngineView @JvmOverloads constructor(
 
     // 🏦 BankGuard: preverjanje naložene strani (lokalno, po naložitvi, brez vpliva na hitrost nalaganja)
     private var bankCheckGeneration = 0
+
+    // Naslov strani za pravila EasyList (shouldInterceptRequest teče na drugi niti, WebView.url tam ni dovoljen)
+    @Volatile
+    private var interceptPageUrl: String = ""
 
     private fun scheduleFakeBankCheck(wv: WebView, url: String) {
         if (!ThreatBlockEngine.isEnabled) return

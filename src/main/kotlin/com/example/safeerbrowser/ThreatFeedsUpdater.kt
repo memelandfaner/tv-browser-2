@@ -42,6 +42,10 @@ object ThreatFeedsUpdater {
             category = "Lažne trgovine in prevare", marker = "hagezi",
         ),
         PlainListSource(
+            id = "easylist", name = "EasyList (pravila za oglase)", url = "https://easylist.to/easylist/easylist.txt",
+            category = "Oglasi (EasyList)", marker = "easylist", minEntries = 1000, raw = true,
+        ),
+        PlainListSource(
             id = "si-cert", name = "SI-CERT phishing domene (Slovenija)",
             url = "https://www.cert.si/misp/rpz/last.txt",
             category = "Spletno ribarjenje (Phishing) – potrdil SI-CERT", marker = "", csv = true,
@@ -55,12 +59,18 @@ object ThreatFeedsUpdater {
     var ruleCount: Int = 0
         private set
 
+    /** Število prevedenih pravil EasyList v uporabi. */
+    @Volatile
+    var filterRuleCount: Int = 0
+        private set
+
     /** Zažene agenta (enkrat na proces). Vrne takoj; vse delo poteka v ozadju. */
     @Synchronized
     fun start(context: Context) {
         if (agent != null) return
         val listAgent = ThreatListAgent(File(context.applicationContext.filesDir, "threat-lists"), SOURCES) { lists ->
-            ruleCount = ThreatBlockEngine.rebuildFromLists(lists)
+            ruleCount = ThreatBlockEngine.rebuildFromLists(lists.filter { !it.source.raw })
+            filterRuleCount = AdBlockEngine.installFilterLists(lists.filter { it.source.raw })
         }
         agent = listAgent
         listAgent.start()
@@ -76,6 +86,7 @@ object ThreatFeedsUpdater {
     fun statusLine(): String {
         val lists = agent?.lists.orEmpty()
         if (lists.isEmpty()) return UiText.get(R.string.ui_lists_first_download)
-        return UiText.get(R.string.ui_lists_status, lists.sumOf { it.entries.size }, lists.size, SOURCES.size)
+        return UiText.get(R.string.ui_lists_status, lists.filter { !it.source.raw }.sumOf { it.entries.size }, lists.size, SOURCES.size) +
+            " · EasyList: $filterRuleCount"
     }
 }

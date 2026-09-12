@@ -177,6 +177,7 @@ object ThreatBlockEngine {
         loadSeedThreatDatabase(newTrie)
         var added = 0
         for (list in lists) {
+            if (list.source.raw) continue // pravila EasyList spadajo v AdBlockEngine, ne v drevo groženj
             // Real bank domains are taken over only as confirmed C2/malware (a compromised server), never as phishing.
             val critical = isCriticalThreat(list.source.category)
             for (entry in list.entries) {
@@ -487,7 +488,7 @@ object ThreatBlockEngine {
                 $bypassActionHtml
 
                 <div class="footer-text">
-                    Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox • Phishing Army • HaGeZi • SI-CERT
+                    Safeer Threat Shield • abuse.ch Feodo / URLhaus / ThreatFox • Phishing Army • HaGeZi • SI-CERT • EasyList
                 </div>
             </div>
         </body>

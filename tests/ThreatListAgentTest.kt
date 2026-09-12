@@ -141,6 +141,13 @@ fun main() {
             } catch (e: ListRejectedException) { /* expected */ }
         }
     }
+    test("parser: raw filter lists (EasyList) keep rules verbatim and drop comments") {
+        val source = PlainListSource("easylist", "EasyList", "", "ads", marker = "easylist", minEntries = 2, raw = true)
+        val text = "[Adblock Plus 2.0]\n! Title: EasyList\n||ads.example^\n@@||ok.example^\$document\n\n/ads/banner.\$image\nsite.example##.ad\n"
+        val entries = PlainListParser.parse(text.toByteArray(), source)
+        check(entries == listOf("||ads.example^", "@@||ok.example^\$document", "/ads/banner.\$image", "site.example##.ad")) { entries.toString() }
+        try { PlainListParser.parse("<html>easylist</html>\n||a^\n||b^\n".toByteArray(), source); throw AssertionError("HTML accepted") } catch (e: ListRejectedException) { /* expected */ }
+    }
     test("parser: IPv4 lists") {
         val entries = PlainListParser.parse("# Feodo Tracker\n1.2.3.4\n256.1.1.1\n10.0.0.1 # c2\nhost.example\n".toByteArray(),
             PlainListSource("feodo", "Feodo", "", "botnet_c2", marker = "feodo", minEntries = 0, ipv4 = true))

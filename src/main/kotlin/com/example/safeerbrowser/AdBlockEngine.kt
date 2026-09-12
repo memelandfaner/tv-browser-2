@@ -2,6 +2,11 @@ package com.example.safeerbrowser
 
 import android.net.Uri
 import android.webkit.WebResourceResponse
+import com.safeer.threatfeed.FilterListEngine
+import com.safeer.threatfeed.FilterRequest
+import com.safeer.threatfeed.FilterSet
+import com.safeer.threatfeed.PlainList
+import com.safeer.threatfeed.ResourceType
 import java.io.ByteArrayInputStream
 import java.util.concurrent.atomic.AtomicLong
 
@@ -22,6 +27,50 @@ object AdBlockEngine {
 
     // Suffix Trie za strogo preverjene varne domene (Bela lista)
     private val whitelistTrie = DomainSuffixTrie()
+
+    // 📜 Pravila EasyList (agent za sezname jih prenese, FilterListEngine jih prevede); zamenjava je atomska
+    @Volatile
+    private var filterSet: FilterSet = FilterSet.EMPTY
+    val filterRuleCount: Int get() = filterSet.size
+    private val pageAllowances = object : LinkedHashMap<String, Boolean>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?): Boolean = size > 32
+    }
+
+    /** Prevede surove sezname pravil (raw) iz agenta; kliče se v ozadju, ob vsakem zagonu in po posodobitvi. */
+    fun installFilterLists(lists: List<PlainList>): Int {
+        val rules = ArrayList<String>()
+        for (list in lists) if (list.source.raw) rules.addAll(list.entries)
+        val compiled = if (rules.isEmpty()) FilterSet.EMPTY else FilterListEngine.compile(rules)
+        filterSet = compiled
+        synchronized(pageAllowances) { pageAllowances.clear() }
+        return compiled.size
+    }
+
+    private fun isPageAllowed(pageUrl: String): Boolean {
+        val set = filterSet
+        if (set.size == 0) return false
+        synchronized(pageAllowances) { pageAllowances[pageUrl]?.let { return it } }
+        val allowed = try { set.isPageAllowed(pageUrl) } catch (e: RuntimeException) { false }
+        synchronized(pageAllowances) { pageAllowances[pageUrl] = allowed }
+        return allowed
+    }
+
+    /** Odločitev pravil EasyList za en zahtevek: true = blokiraj. Prave banke in bela lista so že izločene prej. */
+    fun filterListBlocks(url: String, pageUrl: String?, accept: String?, isMainFrame: Boolean): Boolean {
+        val set = filterSet
+        if (set.size == 0 || isMainFrame) return false
+        val page = pageUrl?.takeIf { it.startsWith("http", ignoreCase = true) }
+        if (page != null && isPageAllowed(page)) return false
+        val type = ResourceType.guess(url, accept, false)
+        return try { set.decide(FilterRequest(url, page, type))?.block == true } catch (e: RuntimeException) { false }
+    }
+
+    /** Bela lista, prave banke in Xplore veljajo tudi za pravila EasyList. */
+    private fun isTrustedForFilterLists(url: String): Boolean {
+        val lower = url.lowercase()
+        val host = try { Uri.parse(lower).host?.lowercase()?.trim() ?: "" } catch (_: Exception) { "" }
+        return host.isEmpty() || ThreatBlockEngine.isRealBankHost(host) || whitelistTrie.matches(host) || isXploreRelated(host, lower)
+    }
 
     // Vzorci oglasnih, sledilnih in analitičnih poti (Path Rules)
     // Ne uporabljaj splošnih imen kot /watch.js — to pobije predvajalnike (Xplore TV).
@@ -186,11 +235,14 @@ object AdBlockEngine {
     /**
      * Prestrezanje oglasnih zahtevkov in vračanje veljavnih praznih odgovorov.
      */
-    fun handleIntercept(url: String): WebResourceResponse? {
+    fun handleIntercept(url: String): WebResourceResponse? = handleIntercept(url, null, null, false)
+
+    /** Prestrezanje z vsem, kar WebView o zahtevku ve: vgrajena pravila, nato pravila EasyList. */
+    fun handleIntercept(url: String, pageUrl: String?, accept: String?, isMainFrame: Boolean): WebResourceResponse? {
         if (!isEnabled) return null
         val lower = url.lowercase()
 
-        if (shouldBlockUrl(url)) {
+        if (shouldBlockUrl(url) || (!isMainFrame && !isTrustedForFilterLists(url) && filterListBlocks(url, pageUrl, accept, isMainFrame))) {
             blockedAdsCount.incrementAndGet()
             onAdBlocked?.invoke()
 

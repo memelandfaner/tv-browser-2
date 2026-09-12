@@ -48,6 +48,11 @@ data class PlainListSource(
      * no header, so instead of [marker] the file must contain at least [minEntries] lines of that shape.
      */
     val csv: Boolean = false,
+    /**
+     * Filter lists in Adblock Plus syntax (EasyList): every non-comment line is kept verbatim for
+     * FilterListEngine instead of being read as a host name. The threat engine ignores raw lists.
+     */
+    val raw: Boolean = false,
 ) {
     init {
         require(id.length in 1..40 && id.all { it in 'a'..'z' || it in '0'..'9' || it == '-' }) { "invalid list id" }
@@ -123,6 +128,15 @@ object PlainListParser {
         if (!source.csv && !head.contains(source.marker.lowercase())) throw ListRejectedException("marker '${source.marker}' missing")
         if (head.contains("<html") || head.contains("<!doctype")) throw ListRejectedException("HTML instead of a list")
         val seen = LinkedHashSet<String>()
+        if (source.raw) {
+            String(bytes, Charsets.UTF_8).lineSequence().forEach { raw ->
+                val line = raw.trim()
+                if (line.isEmpty() || line.startsWith("!") || line.startsWith("[")) return@forEach
+                if (line.length <= 4096) seen.add(line)
+            }
+            if (seen.size < source.minEntries) throw ListRejectedException("only ${seen.size} rules")
+            return ArrayList(seen)
+        }
         var csvLines = 0
         String(bytes, Charsets.UTF_8).lineSequence().forEach { raw ->
             val line = raw.substringBefore('#').trim()
