@@ -23,7 +23,7 @@ import android.widget.*
 import org.json.JSONObject
 import java.net.URLEncoder
 
-class MainActivity : android.app.Activity() {
+class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverService.CastMediaController {
 
     internal lateinit var mainRoot: RelativeLayout
     internal lateinit var mobileTopBar: LinearLayout
@@ -177,6 +177,9 @@ class MainActivity : android.app.Activity() {
         setupTopButtons()
         setupTouchGestures()
         setupFindInPage()
+
+        // Safeer Cast: sprejemnik povezav s telefona in računalnika (vozlišče v domačem omrežju).
+        startCastReceiver()
 
         // Agent za sezname groženj (Feodo, URLhaus, Phishing Army): shranjeni seznami takoj v ozadju,
         // preverjanje novih ~12 s po zagonu. Zagona in nalaganja strani ne upočasni.
@@ -511,12 +514,15 @@ class MainActivity : android.app.Activity() {
     }
 
     override fun onPause() {
+        si.safeer.tv.cast.CastReceiverService.krmilnikVOspredju = false
         silenceBackgroundMedia("onPause")
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
+        si.safeer.tv.cast.CastReceiverService.krmilnikVOspredju = true
+        obravnavajCastNamero(intent)
         resumeBackgroundMedia()
     }
 
@@ -549,9 +555,24 @@ class MainActivity : android.app.Activity() {
         return null
     }
 
+    /**
+     * Namera, s katero nas prebudi sprejemnik Safeer Cast. Dodatek porabimo takoj, da se
+     * naslov ob naslednjem onResume ne nalozi se enkrat.
+     */
+    private fun obravnavajCastNamero(namera: Intent?): Boolean {
+        val url = namera?.getStringExtra(si.safeer.tv.cast.CastReceiverService.EXTRA_CAST_URL)
+        if (url.isNullOrEmpty()) return false
+        namera.removeExtra(si.safeer.tv.cast.CastReceiverService.EXTRA_CAST_URL)
+        val naslov = namera.getStringExtra(si.safeer.tv.cast.CastReceiverService.EXTRA_CAST_TITLE)
+        val mesto = namera.getDoubleExtra(si.safeer.tv.cast.CastReceiverService.EXTRA_CAST_POSITION, 0.0)
+        onCastUrlReceived(url, naslov, mesto)
+        return true
+    }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent != null) setIntent(intent)
+        if (obravnavajCastNamero(intent)) return
         val url = incomingBrowseUrl(intent)
         if (intent?.getBooleanExtra("exo_smoke", false) == true) {
             playback.playClearSmoke()
@@ -575,6 +596,125 @@ class MainActivity : android.app.Activity() {
             // #endregion
             showBrowserStartPage()
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Safeer Cast — sprejemnik povezav iz domačega omrežja
+    // ------------------------------------------------------------------
+
+    /** Zadnje znano stanje predvajanja; pošiljatelju ga javimo ob vsaki spremembi. */
+    private var castState: String = "idle"
+    private var castPosition: Double = 0.0
+    private var castDuration: Double = 0.0
+    private var castPollRunning = false
+
+    private fun startCastReceiver() {
+        try {
+            si.safeer.tv.cast.CastReceiverService.mediaController = this
+            si.safeer.tv.cast.CastReceiverService.start(
+                this,
+                null,
+                getString(R.string.app_name) + " (" + android.os.Build.MODEL + ")"
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("SafeerCast", "Sprejemnika ni bilo mogoce zagnati: " + e.message)
+        }
+    }
+
+    /** JavaScript za vse predvajalnike v strani (video in audio). */
+    private fun castJs(telo: String) {
+        val js = "(function(){try{var m=document.querySelectorAll('video,audio');" +
+            "for(var i=0;i<m.length;i++){var v=m[i];" + telo + "}}catch(e){}})()"
+        runOnUiThread {
+            try { activeWebView()?.evaluateJavascript(js, null) } catch (_: Exception) {}
+        }
+    }
+
+    /** Naslov s telefona: odpremo ga v dejavnem zavihku in povemo, da smo ga sprejeli. */
+    override fun onCastUrlReceived(url: String, title: String?, startPosition: Double) {
+        runOnUiThread {
+            try {
+                val activeTab = tabManager.getActiveTab()
+                if (activeTab != null) {
+                    activeTab.webView.loadUrl(url)
+                } else {
+                    tabManager.createTab(this, url, true)
+                }
+                showTvOsd("📲 Povezava s telefona", (title ?: url).take(60))
+                if (startPosition > 0.5) {
+                    // Počakamo, da se predvajalnik postavi, nato skočimo na zapomnjeno mesto.
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        castJs("v.currentTime=" + startPosition + ";")
+                    }, 4000)
+                }
+                castState = "buffering"
+                castPosition = startPosition
+                startCastStatusPolling()
+                sendCastStatus()
+            } catch (e: Exception) {
+                android.util.Log.w("SafeerCast", "Naslova ni bilo mogoce odpreti: " + e.message)
+            }
+        }
+    }
+
+    /** Ukazi predvajalnika s telefona. */
+    override fun onCastControl(action: String, position: Double?, volume: Double?) {
+        when (action) {
+            "play" -> { castJs("v.play();"); castState = "playing" }
+            "pause" -> { castJs("v.pause();"); castState = "paused" }
+            "stop" -> { castJs("v.pause();v.currentTime=0;"); castState = "stopped" }
+            "seek" -> position?.let { castJs("v.currentTime=" + it + ";"); castPosition = it }
+            "volume" -> volume?.let { castJs("v.volume=" + it + ";v.muted=false;") }
+            "mute" -> castJs("v.muted=true;")
+            "unmute" -> castJs("v.muted=false;")
+            else -> android.util.Log.w("SafeerCast", "Neznan ukaz: " + action)
+        }
+        sendCastStatus()
+    }
+
+    /** Trenutno stanje predvajanja (zadnje izmerjeno; osvežuje ga startCastStatusPolling). */
+    override fun getCurrentPlaybackState(): Map<String, Any?> = mapOf(
+        "state" to castState,
+        "current_url" to activeUrl(),
+        "title" to (tabManager.getActiveTab()?.webView?.title ?: ""),
+        "position" to castPosition,
+        "duration" to castDuration
+    )
+
+    /** Vsakih pet sekund preberemo, kje je predvajanje, in to javimo pošiljatelju. */
+    private fun startCastStatusPolling() {
+        if (castPollRunning) return
+        castPollRunning = true
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val naloga = object : Runnable {
+            override fun run() {
+                try {
+                    val js = "(function(){var v=document.querySelector('video,audio');" +
+                        "if(!v)return '';return (v.paused?'paused':'playing')+'|'+v.currentTime+'|'+(v.duration||0);})()"
+                    activeWebView()?.evaluateJavascript(js) { odgovor ->
+                        val ocisceno = odgovor?.trim('"') ?: ""
+                        val deli = ocisceno.split("|")
+                        if (deli.size == 3) {
+                            castState = deli[0]
+                            castPosition = deli[1].toDoubleOrNull() ?: castPosition
+                            castDuration = deli[2].toDoubleOrNull() ?: castDuration
+                            sendCastStatus()
+                        }
+                    }
+                } catch (_: Exception) {}
+                if (castPollRunning) handler.postDelayed(this, 5000)
+            }
+        }
+        handler.postDelayed(naloga, 5000)
+    }
+
+    private fun sendCastStatus() {
+        try {
+            si.safeer.tv.cast.CastReceiverService.instance?.broadcastStatus(
+                castState, activeUrl(), tabManager.getActiveTab()?.webView?.title,
+                castPosition, castDuration
+            )
+        } catch (_: Exception) {}
     }
 
     private fun showBrowserStartPage() {

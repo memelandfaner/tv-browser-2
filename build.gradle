@@ -83,6 +83,9 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
     // Ed25519 verification for the signed Safeer Threat Intelligence feed (see libs/README.md)
     implementation files('libs/bcprov-ed25519-1.78.1.jar')
+    // WebSocket povezava sprejemnika Safeer Cast (knjiznici sta v libs/, gradnja ne rabi omrezja)
+    implementation files('libs/okhttp-4.12.0.jar')
+    implementation files('libs/okio-jvm-3.6.0.jar')
 }
 
 tasks.withType(JavaCompile).configureEach {

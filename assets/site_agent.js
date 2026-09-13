@@ -1,3 +1,212 @@
+/* Safeer: keep YouTube and YouTube Music playing without the idle prompt
+   ("Video paused. Continue watching?" / "Predvajanje videoposnetka je začasno zaustavljeno"). */
+(function () {
+    var host = (location.hostname || '').toLowerCase();
+    if (!(host === 'youtube.com' || host.slice(-12) === '.youtube.com')) return;
+    if (window.top !== window || window.__safeerKeepWatching) return;
+    window.__safeerKeepWatching = true;
+
+    // YouTube and YouTube Music show the idle prompt only when Date.now() - window._lact
+    // (time of the last user activity) exceeds the limit sent by the server. A getter keeps the
+    // value current without timers, which browsers delay for minutes in hidden or minimized windows.
+    function markActive() {
+        try { window._lact = Date.now(); } catch (e) {}
+    }
+    try {
+        Object.defineProperty(window, '_lact', {
+            configurable: true,
+            get: function () { return Date.now(); },
+            set: function () {}
+        });
+    } catch (e) {
+        markActive();
+        setInterval(markActive, 30000);
+    }
+
+    var lastUserInput = 0;
+    var lastAutoPause = 0;
+    var autoPausedVideo = null;
+    ['pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(function (type) {
+        window.addEventListener(type, function (ev) {
+            if (ev.isTrusted) lastUserInput = Date.now();
+        }, true);
+    });
+    // A pause without user input is how the idle prompt stops playback.
+    document.addEventListener('pause', function (ev) {
+        var v = ev.target;
+        if (!v || v.tagName !== 'VIDEO' || v.ended) return;
+        if (Date.now() - lastUserInput > 2000) {
+            lastAutoPause = Date.now();
+            autoPausedVideo = v;
+            scanSoon();
+        }
+    }, true);
+    // YouTube announces its dialogs; react in a microtask instead of waiting for a (throttled) timer.
+    document.addEventListener('yt-popup-opened', function () { scanSoon(); }, true);
+
+    var PROMPTS = 'ytmusic-you-there-renderer, ytd-you-there-renderer, ytm-you-there-renderer, yt-confirm-dialog-renderer';
+    // In priority order: querySelector with a selector list would return the outer wrapper first.
+    var BUTTONS = ['#confirm-button button', '#confirm-button tp-yt-paper-button', 'yt-button-renderer button',
+        'button', 'tp-yt-paper-button', '[role="button"]', '#confirm-button'];
+
+    function isShown(el) {
+        if (!el || !el.isConnected) return false;
+        var r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) return false;
+        var s = window.getComputedStyle(el);
+        return s.visibility !== 'hidden' && s.display !== 'none';
+    }
+
+    function mainVideo() {
+        if (autoPausedVideo && autoPausedVideo.isConnected) return autoPausedVideo;
+        return document.querySelector('#movie_player video, ytmusic-player video, video.html5-main-video, video');
+    }
+
+    function isIdlePrompt(el) {
+        if (/YOU-THERE|STILL-WATCHING/.test(el.tagName)) return true;
+        // The generic confirm dialog is also used for real questions; accept it only when
+        // YouTube paused the video by itself and the user has not just interacted.
+        var v = mainVideo();
+        return !!v && v.paused && !v.ended &&
+            Date.now() - lastAutoPause < 10000 && Date.now() - lastUserInput > 5000;
+    }
+
+    function resume() {
+        var v = mainVideo();
+        if (v && v.paused && !v.ended) {
+            try {
+                var p = v.play();
+                if (p && p.catch) p.catch(function () {});
+            } catch (e) {}
+        }
+        markActive();
+    }
+
+    function findPrompts() {
+        var found = Array.prototype.slice.call(document.querySelectorAll(PROMPTS));
+        // YouTube for TV (youtube.com/tv) uses its own renderer names; look for them only
+        // shortly after an unexplained pause so normal pages are not walked every second.
+        if (!found.length && Date.now() - lastAutoPause < 15000 && document.body) {
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
+            for (var n = walker.nextNode(), count = 0; n && count < 20000; n = walker.nextNode(), count++) {
+                if (/YOU-THERE|STILL-WATCHING/.test(n.tagName)) found.push(n);
+            }
+        }
+        return found;
+    }
+
+    function pressEnter(el) {
+        var target = el.querySelector('[tabindex], [role="button"], button') || el;
+        try { target.focus(); } catch (e) {}
+        ['keydown', 'keyup'].forEach(function (type) {
+            var ev = new KeyboardEvent(type, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true });
+            (document.activeElement || target).dispatchEvent(ev);
+        });
+    }
+
+    function scan() {
+        var prompts = findPrompts();
+        for (var i = 0; i < prompts.length; i++) {
+            var el = prompts[i];
+            if (!isShown(el) || !isIdlePrompt(el)) continue;
+            if (el.__safeerConfirmedAt && Date.now() - el.__safeerConfirmedAt < 3000) continue;
+            el.__safeerConfirmedAt = Date.now();
+            var clicked = false;
+            for (var b = 0; b < BUTTONS.length; b++) {
+                var button = el.querySelector(BUTTONS[b]);
+                if (button) { button.click(); clicked = true; break; }
+            }
+            // Resume at once as well: the timer below can be delayed in a hidden window.
+            if (clicked) scanSoonResume();
+            (function (prompt, wasClicked) {
+                setTimeout(function () {
+                    // TV layouts react to the remote's Enter key rather than to click().
+                    if (!wasClicked || isShown(prompt)) pressEnter(prompt);
+                    resume();
+                }, 300);
+            })(el, clicked);
+        }
+    }
+
+    function scanSoon() {
+        try { Promise.resolve().then(scan); } catch (e) {}
+    }
+
+    function scanSoonResume() {
+        try { Promise.resolve().then(resume); } catch (e) {}
+    }
+
+    var queued = false;
+    function queueScan() {
+        if (queued) return;
+        queued = true;
+        setTimeout(function () { queued = false; scan(); }, 250);
+    }
+    function start() {
+        try {
+            new MutationObserver(queueScan).observe(document.documentElement, { childList: true, subtree: true });
+        } catch (e) {}
+        setInterval(scan, 1000);
+    }
+    if (document.documentElement) start();
+    else document.addEventListener('DOMContentLoaded', start);
+})();
+/* Safeer: remove empty ad inserts and the "Please disable adblock or subscribe" placeholders
+   on Hookshot Media sites (Push Square, Nintendo Life, Pure Xbox, Time Extension). */
+(function () {
+    var host = (location.hostname || '').toLowerCase();
+    var sites = ['pushsquare.com', 'nintendolife.com', 'purexbox.com', 'timeextension.com', 'digitalfoundry.net'];
+    var match = false;
+    for (var i = 0; i < sites.length; i++) {
+        if (host === sites[i] || host.slice(-(sites[i].length + 1)) === '.' + sites[i]) match = true;
+    }
+    if (!match || window.__safeerHookshotInserts) return;
+    window.__safeerHookshotInserts = true;
+
+    var CSS = '.insert, .insert-label, .item-insert, .for-mobile.below-article, [style*="min-height:250px;"]' +
+        '{display:none !important;height:0 !important;min-height:0 !important;margin:0 !important;padding:0 !important}';
+
+    function addStyle() {
+        if (document.getElementById('safeer-hookshot-inserts')) return;
+        var style = document.createElement('style');
+        style.id = 'safeer-hookshot-inserts';
+        style.textContent = CSS;
+        var parent = document.head || document.documentElement;
+        if (parent) parent.appendChild(style);
+    }
+
+    var NOTICE = /disable\s+ad\s*block|or\s+subscribe/i;
+    function hideNotices() {
+        var labels = document.querySelectorAll('span, p, div, strong, small');
+        for (var i = 0; i < labels.length; i++) {
+            var el = labels[i];
+            if (el.__safeerChecked || el.children.length > 2) continue;
+            var text = el.textContent || '';
+            if (text.length > 80 || !NOTICE.test(text)) continue;
+            el.__safeerChecked = true;
+            // Hide the whole insert (label plus the reserved subscription box), never the article.
+            var box = el.closest('.insert, .item-insert, [class*="insert"], aside, figure') || el.parentElement;
+            if (!box || box === document.body || box.tagName === 'ARTICLE' || box.tagName === 'MAIN') box = el;
+            box.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    function run() { addStyle(); hideNotices(); }
+    var queued = false;
+    var observing = false;
+    function start() {
+        run();
+        if (observing || !document.documentElement) return;
+        observing = true;
+        new MutationObserver(function () {
+            if (queued) return;
+            queued = true;
+            setTimeout(function () { queued = false; run(); }, 300);
+        }).observe(document.documentElement, { childList: true, subtree: true });
+    }
+    if (document.documentElement) start();
+    document.addEventListener('DOMContentLoaded', start);
+})();
 (function () {
     if (window._safeerSiteAgent) return;
 

@@ -145,6 +145,10 @@ RELEASE_KEY_ALIAS="${RELEASE_KEY_ALIAS:-safeer-tv}"
 if [ -z "${RELEASE_KEY_PASS:-}" ] && [ -f "$KEYSTORE_DIR/.release_pass" ]; then
     RELEASE_KEY_PASS="$(cat "$KEYSTORE_DIR/.release_pass")"
 fi
+if [ -z "${RELEASE_STORE_PASS:-}" ] && [ -f "$KEYSTORE_DIR/.store_pass" ]; then
+    RELEASE_STORE_PASS="$(cat "$KEYSTORE_DIR/.store_pass")"
+fi
+RELEASE_STORE_PASS="${RELEASE_STORE_PASS:-${RELEASE_KEY_PASS:-}}"
 if [ -z "${RELEASE_KEY_PASS:-}" ]; then
     echo "❌ Geslo produkcijskega ključa (RELEASE_KEY_PASS) ni nastavljeno." >&2
     echo "👉 export RELEASE_KEY_PASS=\"...\"  ali geslo shrani v $KEYSTORE_DIR/.release_pass (v .gitignore)" >&2
@@ -170,7 +174,7 @@ java -jar "$TOOLS_DIR/uber-apk-signer.jar" \
     --out "$DIR/build/signed" \
     --ks "$RELEASE_KEYSTORE" \
     --ksAlias "$RELEASE_KEY_ALIAS" \
-    --ksPass "$RELEASE_KEY_PASS" \
+    --ksPass "$RELEASE_STORE_PASS" \
     --ksKeyPass "$RELEASE_KEY_PASS" \
     --allowResign
 
