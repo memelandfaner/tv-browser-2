@@ -308,3 +308,20 @@ button:focus, .seznam li:focus {
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
+
+
+/* Vklop in izklop stojita drug ob drugem: obe moznosti sta vidni hkrati, da ni treba
+   iskati, kje se stvar ugasne. */
+.stikaloVrstica {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.stikaloVrstica button.glavni,
+.stikaloVrstica button.drugotni {
+  flex: 1;
+  margin-top: 0;
+}
+.stikaloVrstica button[disabled] {
+  opacity: .45;
+}

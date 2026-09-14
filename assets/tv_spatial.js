@@ -1206,6 +1206,97 @@ function hydraRevealPoster(el) {
                 } catch (_) {}
             }
 
+            // Ali se da v dani smeri se drsati? Ne sprasujemo, ali drsnik obstaja, ampak ali
+            // ima se kam iti: element levo zunaj zaslona je dosegljiv samo, ce je kaj ze
+            // odrsanega v desno. Sicer ga ni mogoce prikazati in ni cilj za daljinec.
+            function lahkoDrsi(el, vodoravno, nazaj) {
+                try {
+                    var st = window.getComputedStyle(el);
+                    var pretok = vodoravno ? st.overflowX : st.overflowY;
+                    if (pretok !== 'auto' && pretok !== 'scroll') return false;
+                    var polozaj = vodoravno ? el.scrollLeft : el.scrollTop;
+                    if (nazaj) return polozaj > 4;
+                    var obseg = vodoravno ? (el.scrollWidth - el.clientWidth)
+                                          : (el.scrollHeight - el.clientHeight);
+                    return (obseg - polozaj) > 4;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            function sePridePonj(el, vodoravno, nazaj) {
+                var p = el.parentElement;
+                var globina = 0;
+                while (p && globina < 30) {
+                    if (lahkoDrsi(p, vodoravno, nazaj)) return true;
+                    p = p.parentElement;
+                    globina++;
+                }
+                try {
+                    var d = document.documentElement;
+                    var polozaj = vodoravno ? (window.scrollX || d.scrollLeft || 0)
+                                            : (window.scrollY || d.scrollTop || 0);
+                    if (nazaj) return polozaj > 4;
+                    var obseg = vodoravno ? (d.scrollWidth - d.clientWidth)
+                                          : (d.scrollHeight - d.clientHeight);
+                    return (obseg - polozaj) > 4;
+                } catch (_) {
+                    return true;
+                }
+            }
+
+            // Pritrjen element (position: fixed, sam ali po predniku) stoji glede na pogled.
+            // Ce je zunaj zaslona, ga drsenje ne bo nikoli prikazalo - tak je skriti stranski
+            // predal, ki ga ima veliko strani (npr. chatgpt.com).
+            function jePritrjen(el) {
+                var p = el;
+                var globina = 0;
+                while (p && p.nodeType === 1 && globina < 30) {
+                    try {
+                        var st = window.getComputedStyle(p);
+                        if (st.position === 'fixed') return true;
+                    } catch (_) {}
+                    p = p.parentElement;
+                    globina++;
+                }
+                return false;
+            }
+
+            // Ali je element zunaj vidnega polja? Cisto geometrijsko vprasanje, brez ugibanja:
+            // ce je tu odgovor pritrdilen tudi po poskusu drsenja, obroca tja ne postavimo.
+            function jeZunajPogleda(el) {
+                try {
+                    var r = el.getBoundingClientRect();
+                    var winW = window.innerWidth || 1920;
+                    var winH = window.innerHeight || 1080;
+                    if (r.width < 1 && r.height < 1) return true;
+                    return (r.right <= 4) || (r.left >= winW - 4) ||
+                           (r.bottom <= 4) || (r.top >= winH - 4);
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            // Element cisto zunaj zaslona, do katerega se ne da pridrsati, ni cilj:
+            // obroc bi se narisal zunaj vidnega polja in uporabnik bi ostal brez oznake.
+            function jeIzvenDosega(el) {
+                try {
+                    var r = el.getBoundingClientRect();
+                    var winW = window.innerWidth || 1920;
+                    var winH = window.innerHeight || 1080;
+                    if (r.width < 1 && r.height < 1) return true;
+                    var zunaj = (r.right <= 4) || (r.left >= winW - 4) ||
+                                (r.bottom <= 4) || (r.top >= winH - 4);
+                    if (!zunaj) return false;
+                    if (jePritrjen(el)) return true;
+                    if (r.right <= 4) return !sePridePonj(el, true, true);
+                    if (r.left >= winW - 4) return !sePridePonj(el, true, false);
+                    if (r.bottom <= 4) return !sePridePonj(el, false, true);
+                    if (r.top >= winH - 4) return !sePridePonj(el, false, false);
+                } catch (_) {}
+                return false;
+            }
+
             function odstraniNedosegljive(seznam) {
                 if (!seznam || !seznam.length) return seznam;
                 var okno = najdiPrekrivnoOkno();
@@ -1213,6 +1304,7 @@ function hydraRevealPoster(el) {
                 for (var i = 0; i < seznam.length; i++) {
                     var el = seznam[i];
                     if (jeSkritZaFokus(el)) continue;
+                    if (jeIzvenDosega(el)) continue;
                     if (okno && !okno.contains(el)) continue;
                     vOknu.push(el);
                 }
@@ -1234,7 +1326,7 @@ function hydraRevealPoster(el) {
             }
 
             // Oznaka za razhroscevanje: po njej se vidi, ali tece popravljena skripta.
-            try { window._safeerFokusFilter = '2026-09-14'; } catch (_) {}
+            try { window._safeerFokusFilter = '2026-09-14e'; } catch (_) {}
 
             function isActionable(el) {
                 if (!el || el.nodeType !== 1) return false;
@@ -1749,6 +1841,40 @@ function hydraRevealPoster(el) {
 
             function highlightElement(el) {
                 window._safeerCandCache = null;
+                if (el && jeZunajPogleda(el)) {
+                    // Najprej ga poskusimo pridrsati v pogled; sele ce tudi potem ni viden,
+                    // cilja ne sprejmemo. Merimo, ne ugibamo po zgradbi strani.
+                    try { el.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' }); } catch (_) {}
+                    if (jeZunajPogleda(el)) {
+                        // #region agent log
+                        try {
+                            var rz = el.getBoundingClientRect();
+                            var prvi = el.parentElement, drs = null, gl = 0;
+                            while (prvi && gl < 30 && !drs) {
+                                var sp = window.getComputedStyle(prvi);
+                                if (sp.overflowX === 'auto' || sp.overflowX === 'scroll') drs = prvi;
+                                prvi = prvi.parentElement;
+                                gl++;
+                            }
+                            window._safeerDbgIzvenN = (window._safeerDbgIzvenN || 0) + 1;
+                            if (window._safeerDbgIzvenN <= 6) {
+                                window._safeerDbg('H51', 'tv_spatial.js:hl', 'cilj izven zaslona zavrnjen', {
+                                    tag: (el.tagName || ''),
+                                    l: Math.round(rz.left),
+                                    r: Math.round(rz.right),
+                                    sx: Math.round(window.scrollX || 0),
+                                    dsl: Math.round((document.documentElement || {}).scrollLeft || 0),
+                                    dsw: Math.round((document.documentElement || {}).scrollWidth || 0),
+                                    dcw: Math.round((document.documentElement || {}).clientWidth || 0),
+                                    ovl: drs ? Math.round(drs.scrollLeft) : -1,
+                                    filter: window._safeerFokusFilter || '?'
+                                });
+                            }
+                        } catch (_) {}
+                        // #endregion
+                        return;
+                    }
+                }
                 clearActive();
                 if (!el) return;
                 window._safeer_xplore_did_focus = true;

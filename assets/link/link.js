@@ -222,39 +222,39 @@
   // vidijo skupaj -- kar je treba prevesti, je na enem mestu.
   var BESEDILA_HUB = {
     sl: {
-      tuOpis: "Če doma nimaš računalnika, lahko središče prevzame ta televizor. Telefoni in tablice v hiši se povežejo nanj.",
-      prizgiTu: "Prižgi središče na tem televizorju",
+      tuOpis: "Če doma nimaš računalnika, lahko središče prevzame ta televizor.",
+      vklopiLink: "Vklopi Safeer Link",
+      izklopiLink: "Izklopi Safeer Link",
       tuNaslov: "Ta televizor je središče",
-      tuPojasnilo: "Telefoni in tablice v hiši se povežejo na ta televizor. Nič ne gre v oblak.",
-      tuSredisce: "Središče teče na tem televizorju",
+      tuPojasnilo: "Naprave v lokalnem omrežju se povezujejo na televizor.",
+      tuSredisce: "Poveži napravo na televizor",
       povezana: "Povezana",
       sePotrdi: "Še enkrat pritisni, da ji odvzameš dostop",
-      ugasniTu: "Ugasni središče na televizorju",
       cakaPrijava: "Naprava se želi povezati",
       primerjajKodo: "Na napravi mora pisati ista koda",
       potrdi: "Potrdi",
       zavrni: "Zavrni",
       odstrani: "Odstrani",
       povezanNaTv: "Sme pošiljati na ta televizor",
-      nobeneNaprave: "Nobena naprava še ni povezana. Na telefonu odpri Safeer Link in ga poišči.",
+      nobeneNaprave: "Povežite naprave za lažje delo",
       prizigam: "Prižigam …"
     },
     en: {
-      tuOpis: "If you have no computer at home, this television can be the hub. Phones and tablets in the house connect to it.",
-      prizgiTu: "Turn on the hub on this television",
+      tuOpis: "If you have no computer at home, this television can be the hub.",
+      vklopiLink: "Turn on Safeer Link",
+      izklopiLink: "Turn off Safeer Link",
       tuNaslov: "This television is the hub",
-      tuPojasnilo: "Phones and tablets in the house connect to this television. Nothing goes to the cloud.",
-      tuSredisce: "The hub is running on this television",
+      tuPojasnilo: "Devices on the local network connect to this television.",
+      tuSredisce: "Connect a device to the television",
       povezana: "Connected",
       sePotrdi: "Press again to revoke access",
-      ugasniTu: "Turn off the hub on this television",
       cakaPrijava: "A device wants to connect",
       primerjajKodo: "The same code must show on the device",
       potrdi: "Approve",
       zavrni: "Decline",
       odstrani: "Remove",
       povezanNaTv: "May send to this television",
-      nobeneNaprave: "No device is connected yet. Open Safeer Link on your phone and let it find this television.",
+      nobeneNaprave: "Connect your devices to make work easier",
       prizigam: "Turning on …"
     }
   };
@@ -402,7 +402,12 @@
     pokazi("zaslonSeznanitev", caka);
     pokazi("zaslonPovezan", !tuSredisce && !brezHuba && !caka && !stanje.preseljen);
     pokazi("gumbPozabi", !tuSredisce && !brezHuba && !caka && !!(most && most.pozabiNapravo));
-    pokazi("zaslonHubMoznost", !tuSredisce && podpiraHub);
+    pokazi("hubStikalo", podpiraHub);
+    var vklopi = el("gumbHubVklopi");
+    var izklopi = el("gumbHubIzklopi");
+    if (vklopi) vklopi.disabled = tuSredisce;
+    if (izklopi) izklopi.disabled = !tuSredisce;
+    besedilo("opombaHubVklop", tuSredisce ? "" : t("tuOpis"));
     narisiStanje();
   }
 
@@ -635,7 +640,7 @@
         // storjen, naprava pa se mora potem znova seznaniti.
         var odvzemamTo = odvzemam === n.id;
         var vrsticaNaprave = vrstica(
-          "📱",
+          ikonaNaprave(n),
           n.ime || t("zaslon"),
           odvzemamTo ? t("sePotrdi") : t("povezanNaTv"),
           odvzemamTo ? t("odstrani") : t("povezana"),
@@ -673,6 +678,18 @@
     hubPrejPrijav = stanje.prijave.length;
   }
 
+  /**
+   * Ikona pove, kaj se povezuje. Vrsto naprave uganemo iz imena, ki ga naprava pove o sebi --
+   * racunalnik naj bo racunalnik in ne telefon, sicer uporabnik ne ve, katera naprava je katera.
+   */
+  function ikonaNaprave(naprava) {
+    var opis = ((naprava && (naprava.ime || "")) + " " + (naprava && (naprava.id || ""))).toLowerCase();
+    if (/(televizor|tv|philips|android tv)/.test(opis)) return "📺";
+    if (/(racunaln|računaln|computer|namizn|desktop|laptop|prenosn|linux|windows|mac|pc\b)/.test(opis)) return "💻";
+    if (/(tablic|tablet|ipad)/.test(opis)) return "📱";
+    return "📱";
+  }
+
   function vrsticaPrijave(p) {
     var li = document.createElement("li");
     li.className = "prijava";
@@ -681,7 +698,7 @@
     telo.className = "telo";
     var ime = document.createElement("div");
     ime.className = "ime";
-    ime.textContent = p.ime || t("zaslon");
+    ime.textContent = (ikonaNaprave(p) + " " + (p.ime || t("zaslon"))).trim();
     var pod = document.createElement("div");
     pod.className = "pod";
     pod.textContent = t("primerjajKodo");
@@ -992,6 +1009,7 @@
     }
     var kandidati = ["gumbSeznani", "gumbPoisci", "gumbHubVklopi", "gumbHubIzklopi",
                      "gumbOsvezi", "gumbHubOsvezi"];
+    // Onemogocen gumb ni cilj za daljinec.
     for (var i = 0; i < kandidati.length; i++) {
       var e = el(kandidati[i]);
       if (e && e.offsetParent !== null && !e.disabled) {
