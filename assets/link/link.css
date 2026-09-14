@@ -10,6 +10,8 @@
   --medlo: #91a0b4;
   --zelena: #10b981;
   --zelenaTemna: #04231a;
+  --rumena: #f5b642;
+  --siva: #5c6b80;
   --rdeca: #f87171;
 }
 
@@ -48,6 +50,38 @@ body { padding-bottom: 28px; }
 .logo { font-size: 30px; line-height: 1; }
 .glava h1 { font-size: 21px; margin: 0; letter-spacing: -0.01em; }
 .glava p { margin: 2px 0 0; font-size: 13px; color: var(--medlo); }
+
+/* Stanje je barva, ne stavek: pika pove na prvi pogled, ali je vse v redu. */
+.stanjeVrstica { display: flex; align-items: center; gap: 7px; }
+
+.pika {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--siva);
+  box-shadow: 0 0 0 3px rgba(92, 107, 128, .18);
+}
+
+.pika.zelena {
+  background: var(--zelena);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, .2);
+}
+
+.pika.rumena {
+  background: var(--rumena);
+  box-shadow: 0 0 0 3px rgba(245, 182, 66, .2);
+  animation: utrip 1.8s ease-in-out infinite;
+}
+
+@keyframes utrip {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pika.rumena { animation: none; }
+}
 
 .zapri {
   flex: none;
@@ -124,6 +158,16 @@ button.glavni { background: var(--zelena); color: var(--zelenaTemna); }
 button.drugotni { background: var(--ploscaSvetla); color: var(--besedilo); border: 1px solid var(--crta); }
 button[disabled] { opacity: .5; }
 
+/* Tanek drugotni gumb za redka dejanja (npr. Pozabi to napravo). */
+button.drugotni.tanek {
+  margin-top: 16px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--medlo);
+}
+button.drugotni.tanek:hover { color: var(--besedilo); }
+
 .vrsticaGlave { display: flex; align-items: center; justify-content: space-between; }
 .drobniGumb {
   padding: 7px 13px;
@@ -166,6 +210,7 @@ button[disabled] { opacity: .5; }
 }
 
 .znacka.zivo { color: var(--zelena); border-color: rgba(16, 185, 129, .45); }
+.znacka.opozorilo { color: var(--rumena); border-color: rgba(245, 182, 66, .45); }
 
 .seznam li.klikljiv { border-color: rgba(16, 185, 129, .35); }
 

@@ -8,15 +8,21 @@
 </head>
 <body>
 
+<!-- Vsa vidna besedila nosijo data-t; link.js jih napolni v jeziku uporabnika.
+     Tu zapisana slovenscina je hkrati privzetek, ce bi se prevod kdaj izgubil. -->
+
 <header class="glava">
   <div class="znak">
     <span class="logo">🔗</span>
     <div>
       <h1>Safeer Link</h1>
-      <p id="podnaslov">Preverjam …</p>
+      <p class="stanjeVrstica">
+        <span class="pika" id="pika"></span>
+        <span id="podnaslov" data-t="preverjam">Preverjam …</span>
+      </p>
     </div>
   </div>
-  <button class="zapri" id="gumbZapri" aria-label="Zapri">✕</button>
+  <button class="zapri" id="gumbZapri" aria-label="Zapri" data-t-naslov="zapri">✕</button>
 </header>
 
 <main>
@@ -25,17 +31,17 @@
   <section class="zaslon" id="zaslonBrezHuba">
     <div class="kartica sredina">
       <div class="velikaIkona">🏠</div>
-      <h2>Safeer Hub ni najden</h2>
-      <p class="pojasnilo">
+      <h2 data-t="brezHubaNaslov">Safeer Link še ni vklopljen</h2>
+      <p class="pojasnilo" data-t="brezHubaOpis">
         Safeer Link pošlje odprto stran na televizor in poveže tvoje naprave doma —
-        brez oblaka in brez računa. Za to potrebuješ <b>Safeer Control</b>, ki teče na
+        brez oblaka in brez računa. Za to potrebuješ Safeer Control, ki teče na
         računalniku ali Raspberry Pi-ju in je domače središče vseh naprav.
       </p>
-      <p class="pojasnilo drobno">
+      <p class="pojasnilo drobno" data-t="brezHubaPomirilo">
         Brskalnik deluje povsem normalno tudi brez njega. Ničesar ne izgubiš, če to okno zapreš.
       </p>
-      <button class="glavni" id="gumbPoisci">Poišči v mojem omrežju</button>
-      <button class="drugotni" id="gumbNavodila">Kako dobim Safeer Control</button>
+      <button class="glavni" id="gumbPoisci" data-t="poisci">Poišči v mojem omrežju</button>
+      <button class="drugotni" id="gumbNavodila" data-t="kakoDobim">Kako dobim Safeer Control</button>
       <p class="opomba" id="opombaIskanje"></p>
     </div>
   </section>
@@ -44,18 +50,19 @@
   <section class="zaslon" id="zaslonSeznanitev" hidden>
     <div class="kartica sredina">
       <div class="velikaIkona">🔐</div>
-      <h2>Poveži to napravo</h2>
+      <h2 data-t="povežiNaslov">Poveži to napravo</h2>
       <p class="pojasnilo">
-        Hub je najden na <span class="poudarek" id="naslovHuba"></span>.
-        Da ti sme pošiljati in sinhronizirati, ga moraš enkrat potrditi.
+        <span data-t="hubNajdenNa">Safeer Link je na naslovu</span>
+        <span class="poudarek" id="naslovHuba"></span>.
+        <span data-t="zakajPotrditi">Da ti sme pošiljati in sinhronizirati, ga moraš enkrat potrditi.</span>
       </p>
       <div class="koda" id="kodaBlok" hidden>
-        <p class="pojasnilo drobno">V Safeer Controlu (zavihek Naprave) potrdi to kodo:</p>
+        <p class="pojasnilo drobno" data-t="potrdiKodo">V Safeer Controlu (zavihek Naprave) potrdi to kodo:</p>
         <div class="stevilke" id="kodaStevilke">------</div>
-        <p class="opomba">Koda velja 5 minut.</p>
+        <p class="opomba" data-t="kodaVelja">Koda velja 5 minut.</p>
       </div>
-      <button class="glavni" id="gumbSeznani">Pokaži kodo</button>
-      <button class="drugotni" id="gumbKonzola" hidden>Odpri konzolo</button>
+      <button class="glavni" id="gumbSeznani" data-t="poveziSSafeerLink">Poveži s Safeer Link</button>
+      <button class="drugotni" id="gumbKonzola" hidden data-t="odpriKonzolo">Odpri konzolo</button>
       <p class="opomba" id="opombaSeznanitev"></p>
     </div>
   </section>
@@ -63,10 +70,10 @@
   <!-- Stanje 3: povezani. En sam zaslon, brez zavihkov: najprej dejanje, nato stanje. -->
   <section class="zaslon" id="zaslonPovezan" hidden>
 
-    <div class="panel" id="panelCast">
-      <h2>Pošlji to stran</h2>
+    <div class="panel" id="panelCast" hidden>
+      <h2 data-t="posljiStran">Pošlji to stran</h2>
       <div class="kartica tesno">
-        <p class="oznaka">Odprto v brskalniku</p>
+        <p class="oznaka" data-t="odprtoVBrskalniku">Odprto v brskalniku</p>
         <p class="naslovStrani" id="naslovStrani">—</p>
         <p class="urlStrani" id="urlStrani"></p>
       </div>
@@ -74,36 +81,42 @@
       <p class="opomba" id="opombaCast"></p>
 
       <div class="predvajalnik" id="predvajalnik" hidden>
-        <p class="oznaka">Predvaja se na <span id="imePrejemnika"></span></p>
+        <p class="oznaka">
+          <span data-t="predvajaSeNa">Predvaja se na</span> <span id="imePrejemnika"></span>
+        </p>
         <p class="naslovStrani" id="naslovPredvajanja">—</p>
         <div class="crta"><div class="crtaNapolnjena" id="crtaNapolnjena"></div></div>
         <p class="cas"><span id="casPolozaj">0:00</span> / <span id="casTrajanje">0:00</span></p>
         <div class="tipke">
-          <button data-ukaz="nazaj">⏪ 10 s</button>
-          <button data-ukaz="pause">⏸ Pavza</button>
-          <button data-ukaz="play">▶ Predvajaj</button>
-          <button data-ukaz="naprej">10 s ⏩</button>
+          <button data-ukaz="nazaj" data-t="nazaj10">⏪ 10 s</button>
+          <button data-ukaz="pause" data-t="pavza">⏸ Pavza</button>
+          <button data-ukaz="play" data-t="predvajaj">▶ Predvajaj</button>
+          <button data-ukaz="naprej" data-t="naprej10">10 s ⏩</button>
         </div>
       </div>
     </div>
 
     <div class="panel" id="panelNaprave">
       <div class="vrsticaGlave">
-        <h2>Povezane naprave</h2>
-        <button class="drobniGumb" id="gumbOsvezi">Osveži</button>
+        <h2 data-t="povezaneNaprave">Povezane naprave</h2>
+        <button class="drobniGumb" id="gumbOsvezi" data-t="osvezi">Osveži</button>
       </div>
       <ul class="seznam" id="seznamNaprav"></ul>
-      <p class="opomba" id="opombaNaprave">Povezujem se s Hubom …</p>
+      <p class="opomba" id="opombaNaprave" data-t="povezujem">Povezujem se …</p>
+      <button class="drugotni tanek" id="gumbPozabi" hidden data-t="pozabiNapravo">
+        Pozabi to napravo
+      </button>
+      <p class="opomba" id="opombaPozabi"></p>
     </div>
 
     <div class="panel" id="panelSync">
-      <h2>Sinhronizacija</h2>
-      <p class="pojasnilo">
-        Zaznamki in nastavitve potujejo med tvojimi napravami prek domačega Huba.
+      <h2 data-t="sinhronizacija">Sinhronizacija</h2>
+      <p class="pojasnilo" data-t="syncOpis">
+        Zaznamki potujejo med tvojimi napravami prek domačega Safeer Linka.
         Nič ne gre v oblak.
       </p>
       <ul class="seznam" id="seznamSync"></ul>
-      <p class="opomba" id="opombaSync">Sinhronizacija zaznamkov se vklopi, ko jo potrdiš — do takrat se ne pošlje nič.</p>
+      <p class="opomba" id="opombaSync" data-t="syncPrivzeto">Sinhronizacija se vklopi, ko jo potrdiš — do takrat se ne pošlje nič.</p>
     </div>
 
   </section>
