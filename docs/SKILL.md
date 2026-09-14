@@ -1,12 +1,12 @@
 ---
 name: tv-browser-2-xplore-drm
 description: >-
-  TV Browser 2: Xplore WebView catalog + native Media3 ExoPlayer (DASH/Widevine),
+  Safeer TV Browser: Xplore WebView catalog + native Media3 ExoPlayer (DASH/Widevine),
   and HydraHD D-Pad spatial nav. Activate for tv-browser-2, Xplore, livetv, DRM,
   Media3, hydrahd, D-Pad, or build_tv_apk.sh.
 ---
 
-# TV Browser 2 — Xplore native Media3 playback
+# Safeer TV Browser — Xplore native Media3 playback
 
 Xplore (`xploretv.si`) catalog, login, D-Pad and EPG stay in **WebView**. Video is decoded by **AndroidX Media3 ExoPlayer** on a raw `SurfaceView` overlay. Do **not** add Castlabs PRESTOplay Android SDK or any paid DRM SDK. Do **not** scrape pirate streams.
 
@@ -15,9 +15,9 @@ Xplore (`xploretv.si`) catalog, login, D-Pad and EPG stay in **WebView**. Video 
 - **Folder**: `tv-browser-2/` (not `streamN-TV/`, not `freenet-browser/`)
 - **Package**: `si.safeer.tv`
 - **APK**: `tv-browser-2/TV-Browser-2.apk` via `tv-browser-2/build_tv_apk.sh` (**Gradle + Media3**, then uber-apk-signer)
-- **GitHub**: `https://github.com/memelandfaner/tv-browser-2`
-- **Download APK**: `https://github.com/memelandfaner/tv-browser-2/raw/main/TV-Browser-2.apk` — short: `https://tinyurl.com/27w3uxob` / `https://da.gd/8fziT`
-- **Install**: `curl -sL https://raw.githubusercontent.com/memelandfaner/tv-browser-2/main/install_tv_browser.sh | bash`
+- **GitHub**: `https://github.com/memelandfaner/Safeer-TV-Browser`
+- **Download APK**: `https://github.com/memelandfaner/Safeer-TV-Browser/raw/main/TV-Browser-2.apk` — short: `https://tinyurl.com/27w3uxob` / `https://da.gd/8fziT`
+- **Install**: `curl -sL https://raw.githubusercontent.com/memelandfaner/Safeer-TV-Browser/main/install_tv_browser.sh | bash`
 - **MainActivity** stays `android.app.Activity` (not AppCompatActivity). No `media3-ui`.
 
 ## Frozen / do-not-touch

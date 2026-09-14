@@ -14,4 +14,4 @@ Downloads go to the device's Downloads area through Android DownloadManager. On 
 
 No analytics SDK is included. Release builds disable the developer command receiver and SafeerDbg diagnostic logging. The project does not operate a browser-history collection service.
 
-Privacy questions and issue reports: https://github.com/memelandfaner/tv-browser-2/issues
+Privacy questions and issue reports: https://github.com/memelandfaner/Safeer-TV-Browser/issues

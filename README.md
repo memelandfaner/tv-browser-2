@@ -6,11 +6,11 @@
 
 | Kaj | Povezava |
 |---|---|
-| GitHub | https://github.com/memelandfaner/Safeer-TV-Browser- |
-| APK (neposredno) | https://github.com/memelandfaner/Safeer-TV-Browser-/raw/main/TV-Browser-2.apk |
+| GitHub | https://github.com/memelandfaner/Safeer-TV-Browser |
+| APK (neposredno) | https://github.com/memelandfaner/Safeer-TV-Browser/raw/main/TV-Browser-2.apk |
 | Kratka povezava (APK) | https://tinyurl.com/27w3uxob |
 | Kratka povezava (da.gd) | https://da.gd/8fziT |
-| 1-vrstica (PC → TV prek ADB) | `curl -sL https://raw.githubusercontent.com/memelandfaner/Safeer-TV-Browser-/main/install_tv_browser.sh \| bash` |
+| 1-vrstica (PC → TV prek ADB) | `curl -sL https://raw.githubusercontent.com/memelandfaner/Safeer-TV-Browser/main/install_tv_browser.sh \| bash` |
 
 Na TV dovoli namestitev iz neznanih virov, nato odpri preneseni `TV-Browser-2.apk`.
 

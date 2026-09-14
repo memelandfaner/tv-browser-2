@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# 1-klik prenos in namestitev TV Browser 2 (Android / Android TV prek ADB)
+# 1-klik prenos in namestitev Safeer TV Browser (Android / Android TV prek ADB)
 set -euo pipefail
 
-APK_URL="https://github.com/memelandfaner/tv-browser-2/raw/main/TV-Browser-2.apk"
+APK_URL="https://github.com/memelandfaner/Safeer-TV-Browser/raw/main/TV-Browser-2.apk"
 TEMP_APK="/tmp/TV-Browser-2.apk"
 TV="${1:-}"
 
 echo "=========================================================="
-echo "TV Browser 2 — prenos in namestitev"
+echo "Safeer TV Browser — prenos in namestitev"
 echo "=========================================================="
 
 echo "Prenašam APK..."
