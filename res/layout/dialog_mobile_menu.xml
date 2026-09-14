@@ -98,6 +98,18 @@
 
             <!-- Zaznamki -->
             <LinearLayout
+                android:id="@+id/rowMenuSafeerLink" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_mobile_icon_button"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔗" android:textSize="16sp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:text="@string/menu_safeer_link" android:textColor="@color/text_primary" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/rowMenuBookmarks" android:focusable="true" android:clickable="true" android:descendantFocusability="blocksDescendants"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"

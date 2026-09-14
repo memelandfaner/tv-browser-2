@@ -11,7 +11,11 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -38,10 +42,21 @@ class CastReceiverService : Service() {
         const val EXTRA_HUB_URL = "extra_hub_url"
         const val EXTRA_DEVICE_NAME = "extra_device_name"
 
-        /** Privzeto vozlišče: lahka različica na vedno vklopljeni napravi v domačem omrežju. */
-        const val DEFAULT_HUB_URL = "ws://192.168.0.143:8990/cast/ws"
+        /**
+         * Privzetega vozlišča ni. Brskalnik je uporaben sam; Hub je nadgradnja, ki jo
+         * uporabnik doda, če jo ima. Trdo zapisan naslov bi pomenil, da vsaka nameščena
+         * kopija trka na tuje omrežje.
+         */
+        const val DEFAULT_HUB_URL = ""
+
+        /** Ali je vozlišče sploh nastavljeno na tej napravi. */
+        fun isConfigured(context: Context): Boolean =
+            !context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_HUB_URL, "").isNullOrBlank()
         const val PREFS_NAME = "safeer_cast_prefs"
         const val KEY_HUB_URL = "hub_url"
+        const val KEY_CONTROL_TOKEN = "control_token"
+        const val KEY_TICKET_PATH = "hub_ticket_path"
 
         const val ACTION_OPEN_CAST = "si.safeer.tv.cast.OPEN"
         const val EXTRA_CAST_URL = "cast_url"
@@ -49,6 +64,8 @@ class CastReceiverService : Service() {
         const val EXTRA_CAST_POSITION = "cast_position"
         private const val WAKE_NOTIFICATION_ID = 4041
         private const val WAKE_CHANNEL_ID = "safeer_cast_wake"
+        private const val MAX_RECONNECT_ATTEMPTS = 10
+        private const val IDLE_RETRY_MS = 600_000L
 
         /** MainActivity javi, ali je v ospredju; ce ni, naslov odpremo z namero. */
         @Volatile
@@ -63,6 +80,12 @@ class CastReceiverService : Service() {
             private set
 
         fun start(context: Context, hubUrl: String? = null, deviceName: String? = null) {
+            // Brez nastavljenega vozlišča storitve sploh ne zaženemo: nobenega obvestila,
+            // nobenega omrežnega prometa, nič, kar bi uporabnik brez Huba sploh opazil.
+            if (hubUrl.isNullOrBlank() && !isConfigured(context)) {
+                Log.i(TAG, "Safeer Hub ni nastavljen - sprejemnika ne zaganjam.")
+                return
+            }
             val intent = Intent(context, CastReceiverService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_HUB_URL, hubUrl)
@@ -127,7 +150,16 @@ class CastReceiverService : Service() {
         if (!isRunning) return
 
         Log.i(TAG, "Povezujem se na Safeer Cast Hub: $hubUrl (naprava: $deviceId)")
-        val request = Request.Builder().url(hubUrl).build()
+        zVstopnico(hubUrl, controlToken()) { naslov -> odpriPovezavo(naslov) }
+    }
+
+    /** Zeton za Safeer Control; nastavi se ob seznanitvi televizorja. */
+    fun controlToken(): String? =
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(KEY_CONTROL_TOKEN, null)
+
+    private fun odpriPovezavo(naslov: String) {
+        if (!isRunning) return
+        val request = Request.Builder().url(naslov).build()
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(ws: WebSocket, response: Response) {
@@ -237,10 +269,75 @@ class CastReceiverService : Service() {
         }
     }
 
+
+    /**
+     * Vzame enokratno vstopnico pri Safeer Controlu in sele nato odpre WebSocket.
+     *
+     * Vstopnica velja 30 sekund in se porabi ob prvi uporabi, zato jo vzamemo pri vsaki
+     * povezavi posebej. Ce zetona ni, se povezemo brez nje (staro vozlisce) in to povemo
+     * v dnevniku -- nezasciteno pot pustimo vidno, ne tiho.
+     */
+    private fun zVstopnico(wsUrl: String, token: String?, naprej: (String) -> Unit) {
+        if (token.isNullOrBlank()) {
+            Log.w(TAG, "Zeton za Safeer Control ni nastavljen - povezujem se BREZ avtentikacije.")
+            naprej(wsUrl)
+            return
+        }
+        val osnova = wsUrl.replace(Regex("^wss"), "https").replace(Regex("^ws"), "http")
+            .substringBefore("/cast/ws").substringBefore("/link/ws").substringBefore("/safeer/ws")
+            .trimEnd('/')
+        val zahteva = Request.Builder()
+            .url("$osnova${ticketPath()}")
+            .addHeader("X-Safeer-Token", token)
+            .post("".toRequestBody("application/json".toMediaTypeOrNull()))
+            .build()
+        client.newCall(zahteva).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) {
+                Log.w(TAG, "Vstopnice ni bilo mogoce dobiti: ${e.message}")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    val telo = it.body?.string().orEmpty()
+                    if (!it.isSuccessful) {
+                        Log.w(TAG, "Control je zavrnil zahtevo za vstopnico (${it.code}).")
+                        return
+                    }
+                    val vstopnica = try {
+                        JSONObject(telo).optString("ticket")
+                    } catch (e: Exception) {
+                        ""
+                    }
+                    if (vstopnica.isBlank()) {
+                        Log.w(TAG, "Odgovor Controla ne vsebuje vstopnice.")
+                        return
+                    }
+                    val locilo = if (wsUrl.contains("?")) "&" else "?"
+                    naprej("$wsUrl${locilo}ticket=$vstopnica")
+                }
+            }
+        })
+    }
+
+
+    /** Pot do vstopnice, kot jo je objavil Hub (privzeto /cast/ticket). */
+    private fun ticketPath(): String =
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_TICKET_PATH, "/cast/ticket") ?: "/cast/ticket"
+
     private fun scheduleReconnect() {
         if (!isRunning) return
         reconnectAttempts++
-        val delayMs = (reconnectAttempts * 2000L).coerceAtMost(30000L)
+        // Vozlišče je lahko preprosto ugasnjeno. Deset poskusov z naraščajočim premorom,
+        // nato mirujemo deset minut -- televizor ne sme vso noč trkati na vrata, ki jih ni.
+        val delayMs = if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+            if (reconnectAttempts == MAX_RECONNECT_ATTEMPTS + 1) {
+                Log.i(TAG, "Vozlišča ni; poskušam znova vsakih 10 minut.")
+            }
+            IDLE_RETRY_MS
+        } else {
+            (reconnectAttempts * 2000L).coerceAtMost(30000L)
+        }
         mainHandler.postDelayed({ connectToHub() }, delayMs)
     }
 

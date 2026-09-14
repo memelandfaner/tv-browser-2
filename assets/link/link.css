@@ -1,0 +1,242 @@
+/* Safeer Link — vgrajen zaslon v brskalniku.
+   Barve so iste kot v Safeerju: temna podlaga, zelena poteza. */
+
+:root {
+  --ozadje: #0b1017;
+  --plosca: #131a24;
+  --ploscaSvetla: #1b2430;
+  --crta: #243040;
+  --besedilo: #e6edf6;
+  --medlo: #91a0b4;
+  --zelena: #10b981;
+  --zelenaTemna: #04231a;
+  --rdeca: #f87171;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* Atribut hidden mora premagati display iz sloga, sicer "skriti" gumbi ostanejo vidni. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ozadje);
+  color: var(--besedilo);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+body { padding-bottom: 28px; }
+
+/* ---------- glava ---------- */
+
+.glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 12px;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(var(--ozadje) 70%, transparent);
+  z-index: 5;
+}
+
+.znak { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo { font-size: 30px; line-height: 1; }
+.glava h1 { font-size: 21px; margin: 0; letter-spacing: -0.01em; }
+.glava p { margin: 2px 0 0; font-size: 13px; color: var(--medlo); }
+
+.zapri {
+  flex: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--crta);
+  background: var(--plosca);
+  color: var(--besedilo);
+  font-size: 17px;
+}
+
+/* ---------- zavihki ---------- */
+
+.zavihki {
+  display: flex;
+  gap: 8px;
+  padding: 0 18px 10px;
+  overflow-x: auto;
+}
+
+.zavihek {
+  flex: none;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--crta);
+  background: var(--plosca);
+  color: var(--medlo);
+  font-size: 14px;
+}
+
+.zavihek.izbran {
+  background: var(--zelena);
+  border-color: var(--zelena);
+  color: var(--zelenaTemna);
+  font-weight: 600;
+}
+
+/* ---------- vsebina ---------- */
+
+main { padding: 0 18px; }
+
+.kartica {
+  background: var(--plosca);
+  border: 1px solid var(--crta);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.kartica.tesno { padding: 14px 16px; margin-bottom: 14px; }
+.kartica.sredina { text-align: center; margin-top: 12px; }
+
+.velikaIkona { font-size: 44px; margin-bottom: 6px; }
+
+h2 { font-size: 18px; margin: 0 0 8px; }
+
+.pojasnilo { color: var(--medlo); font-size: 14px; margin: 0 0 12px; }
+.pojasnilo.drobno { font-size: 13px; }
+.poudarek { color: var(--besedilo); }
+.opomba { color: var(--medlo); font-size: 13px; margin: 10px 0 0; min-height: 1em; }
+.oznaka { color: var(--medlo); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 4px; }
+
+button.glavni, button.drugotni {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 15px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+button.glavni { background: var(--zelena); color: var(--zelenaTemna); }
+button.drugotni { background: var(--ploscaSvetla); color: var(--besedilo); border: 1px solid var(--crta); }
+button[disabled] { opacity: .5; }
+
+.vrsticaGlave { display: flex; align-items: center; justify-content: space-between; }
+.drobniGumb {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--crta);
+  background: var(--plosca);
+  color: var(--medlo);
+  font-size: 13px;
+}
+
+.panel { margin-bottom: 26px; }
+
+/* ---------- seznam naprav ---------- */
+
+.seznam { list-style: none; margin: 12px 0 0; padding: 0; }
+
+.seznam li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--plosca);
+  border: 1px solid var(--crta);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.seznam li .ikona { font-size: 22px; flex: none; }
+.seznam li .telo { flex: 1; min-width: 0; }
+.seznam li .ime { font-size: 15px; }
+.seznam li .pod { font-size: 12px; color: var(--medlo); }
+
+.znacka {
+  flex: none;
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--crta);
+  color: var(--medlo);
+}
+
+.znacka.zivo { color: var(--zelena); border-color: rgba(16, 185, 129, .45); }
+
+.seznam li.klikljiv { border-color: rgba(16, 185, 129, .35); }
+
+/* ---------- koda ---------- */
+
+.koda { margin-top: 16px; }
+
+.stevilke {
+  font-family: ui-monospace, monospace;
+  font-size: 34px;
+  letter-spacing: .18em;
+  padding: 14px 0;
+  background: var(--ploscaSvetla);
+  border-radius: 12px;
+}
+
+/* ---------- predvajalnik ---------- */
+
+.predvajalnik {
+  margin-top: 18px;
+  background: var(--plosca);
+  border: 1px solid var(--crta);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.naslovStrani {
+  margin: 0;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.urlStrani {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--medlo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crta { height: 4px; background: var(--ploscaSvetla); border-radius: 999px; margin: 12px 0 6px; }
+.crtaNapolnjena { height: 100%; width: 0; background: var(--zelena); border-radius: 999px; }
+.cas { margin: 0; font-size: 12px; color: var(--medlo); }
+
+.tipke { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.tipke button {
+  flex: 1 1 calc(50% - 8px);
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--crta);
+  background: var(--ploscaSvetla);
+  color: var(--besedilo);
+  font-size: 14px;
+}
+
+/* ---------- televizor: daljinec potrebuje viden fokus ---------- */
+
+@media (min-width: 900px) {
+  body { font-size: 18px; }
+  .stevilke { font-size: 46px; }
+}
+
+button:focus, .seznam li:focus {
+  outline: 3px solid var(--zelena);
+  outline-offset: 2px;
+}
+
+/* Glavnemu gumbu podlage ne spreminjamo: napis na njem je temen. */
+.drugotni:focus, .drobniGumb:focus, .tipke button:focus {
+  background: var(--ploscaSvetla);
+}

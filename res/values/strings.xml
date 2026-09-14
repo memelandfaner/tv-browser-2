@@ -11,6 +11,7 @@
     <!-- Menu Items -->
     <string name="menu_new_tab">New Tab</string>
     <string name="menu_bookmarks">Bookmarks</string>
+    <string name="menu_safeer_link">Safeer Link</string>
     <string name="menu_add_bookmark">Bookmark this Page</string>
     <string name="menu_downloads">Downloads</string>
     <string name="menu_history">History</string>

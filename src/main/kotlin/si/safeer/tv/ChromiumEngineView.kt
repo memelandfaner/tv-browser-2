@@ -191,6 +191,11 @@ class ChromiumEngineView @JvmOverloads constructor(
     }
 
     private fun applyUserAgentForUrl(url: String) {
+        // Most sme premikati brskalnik in brati domace ploscice samo na domacih straneh.
+        jsBridge.krajevnaStran = url.isBlank() ||
+            url.startsWith("file:///android_asset/") ||
+            url.startsWith("safeer://") ||
+            url.startsWith("about:blank")
         val host = try { Uri.parse(url).host?.lowercase() ?: "" } catch (_: Exception) { "" }
         val isGoogle = UserScriptManager.isGoogleDomain(url)
         val isGoogleAuth = isGoogle && (UserScriptManager.isGoogleAuthUrl(url) ||
@@ -289,6 +294,23 @@ class ChromiumEngineView @JvmOverloads constructor(
         var onChromeHidden: ((Boolean) -> Unit)? = null
 
         /**
+         * Ali je v tem pogledu nalozena domaca stran aplikacije.
+         *
+         * Most je dosegljiv vsaki strani, zato metode, ki premikajo brskalnik ali
+         * berejo uporabnikove podatke, brez tega ne smejo delovati. Zastavico postavi
+         * applyUserAgentForUrl ob vsaki navigaciji; klici mostu pridejo z druge niti,
+         * zato je @Volatile in ne beremo webView.url.
+         */
+        @Volatile
+        var krajevnaStran: Boolean = true
+
+        private fun samoDomaca(ime: String): Boolean {
+            if (krajevnaStran) return true
+            android.util.Log.w("SafeerBridge", "Zavrnjen klic $ime() z zunanje strani.")
+            return false
+        }
+
+        /**
          * ⏭ SponsorBlock: stran YouTube sporoči ID videa, aplikacija v ozadju poišče sponzorske odseke (po
          * predponi zgoščene vrednosti, brez ID-ja) in jih vrne strani. Deluje samo za stran YouTube v tem zavihku.
          */
@@ -351,6 +373,7 @@ class ChromiumEngineView @JvmOverloads constructor(
 
         @android.webkit.JavascriptInterface
         fun navigate(url: String) {
+            if (!samoDomaca("navigate")) return
             (context as? android.app.Activity)?.runOnUiThread {
                 webView.loadUrl(url)
             }
@@ -358,6 +381,7 @@ class ChromiumEngineView @JvmOverloads constructor(
 
         @android.webkit.JavascriptInterface
         fun getHomeTiles(): String {
+            if (!samoDomaca("getHomeTiles")) return "[]"
             return try {
                 HomeTilesStore.toJson(context)
             } catch (_: Exception) {
@@ -367,6 +391,7 @@ class ChromiumEngineView @JvmOverloads constructor(
 
         @android.webkit.JavascriptInterface
         fun openHomeTilesEditor() {
+            if (!samoDomaca("openHomeTilesEditor")) return
             val act = context as? android.app.Activity ?: return
             act.runOnUiThread {
                 HomeTilesStore.showEditor(act) { reloadHome() }
@@ -375,6 +400,7 @@ class ChromiumEngineView @JvmOverloads constructor(
 
         @android.webkit.JavascriptInterface
         fun addHomeTile() {
+            if (!samoDomaca("addHomeTile")) return
             val act = context as? android.app.Activity ?: return
             act.runOnUiThread {
                 HomeTilesStore.showTileForm(act, null) { created ->
@@ -418,6 +444,37 @@ class ChromiumEngineView @JvmOverloads constructor(
 
     private fun setupClients() {
         webChromeClient = object : WebChromeClient() {
+            // Okna JavaScripta: privzeti WebChromeClient jih tiho preklice, zato jih
+            // narisemo sami -- sicer prijave in potrditve na straneh ne delujejo.
+            override fun onJsAlert(
+                view: android.webkit.WebView?,
+                url: String?,
+                message: String?,
+                result: android.webkit.JsResult?
+            ): Boolean = JsOkna.alert(view, url, message, result)
+
+            override fun onJsConfirm(
+                view: android.webkit.WebView?,
+                url: String?,
+                message: String?,
+                result: android.webkit.JsResult?
+            ): Boolean = JsOkna.confirm(view, url, message, result)
+
+            override fun onJsPrompt(
+                view: android.webkit.WebView?,
+                url: String?,
+                message: String?,
+                defaultValue: String?,
+                result: android.webkit.JsPromptResult?
+            ): Boolean = JsOkna.prompt(view, url, message, defaultValue, result)
+
+            override fun onJsBeforeUnload(
+                view: android.webkit.WebView?,
+                url: String?,
+                message: String?,
+                result: android.webkit.JsResult?
+            ): Boolean = JsOkna.predZapustitvijo(view, url, message, result)
+
             override fun onCreateWindow(
                 view: WebView?,
                 isDialog: Boolean,

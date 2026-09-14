@@ -611,11 +611,68 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
     private fun startCastReceiver() {
         try {
             si.safeer.tv.cast.CastReceiverService.mediaController = this
-            si.safeer.tv.cast.CastReceiverService.start(
-                this,
-                null,
-                getString(R.string.app_name) + " (" + android.os.Build.MODEL + ")"
-            )
+            val zazeni = {
+                si.safeer.tv.cast.CastReceiverService.start(
+                    this,
+                    null,
+                    getString(R.string.app_name) + " (" + android.os.Build.MODEL + ")"
+                )
+            }
+            // Koda velja pet minut. Kdor jo zagleda in gre po telefon, jo pogosto zamudi,
+            // zato po neuspesnem krogu pokazemo novo -- najvec trikrat, potem tiho odnehamo.
+            val najvecKrogov = 3
+            var krog = 0
+            lateinit var seznani: (String) -> Unit
+            seznani = { naslov: String ->
+                krog += 1
+                si.safeer.tv.cast.HubPairing.pair(
+                    this, naslov,
+                    "tv-" + android.os.Build.MODEL.replace(Regex("\\s+"), "-").lowercase(),
+                    getString(R.string.app_name) + " (" + android.os.Build.MODEL + ")",
+                    { koda ->
+                        // durationMs = 0: koda ostane na zaslonu, dokler je kaj ne zamenja.
+                        // S tremi sekundami je izginila, preden jo je bilo mogoce prepisati.
+                        showTvOsd(
+                            "🔗 Safeer Hub",
+                            "Potrdi to kodo v Safeer Controlu:  " + koda,
+                            0L
+                        )
+                    },
+                    { uspelo ->
+                        // Izpis zamenjamo v vsakem primeru, sicer bi koda obvisela na zaslonu.
+                        if (uspelo) {
+                            showTvOsd("🔗 Safeer Hub", "Televizor je povezan.", 4000L)
+                            zazeni()
+                        } else if (krog < najvecKrogov) {
+                            showTvOsd("🔗 Safeer Hub", "Koda je potekla; pripravljam novo ...", 4000L)
+                            mainHandler.postDelayed({ seznani(naslov) }, 30_000L)
+                        } else {
+                            showTvOsd(
+                                "🔗 Safeer Hub",
+                                "Seznanitev ni bila potrjena. Znova zazeni brskalnik, ce zelis poskusiti.",
+                                6000L
+                            )
+                        }
+                    })
+            }
+            val zazeniAliSeznani = { naslov: String ->
+                if (si.safeer.tv.cast.HubPairing.token(this) != null) {
+                    zazeni()
+                } else {
+                    // Prvic: Hub nas se ne pozna. Pokazemo kodo na zaslonu in pocakamo, da jo
+                    // Matej potrdi v Controlu -- tipkati z daljincem ni treba nicesar.
+                    seznani(naslov)
+                }
+            }
+            if (si.safeer.tv.cast.CastReceiverService.isConfigured(this)) {
+                zazeniAliSeznani(si.safeer.tv.cast.HubDiscovery.knownHubUrl(this))
+            } else {
+                // Huba se ne poznamo: kratko ga poiscemo. Ce ga ni, se ne zgodi nic --
+                // televizor ostane navaden brskalnik brez storitve in brez obvestila.
+                si.safeer.tv.cast.HubDiscovery.discover(this) { naslov ->
+                    if (naslov != null) zazeniAliSeznani(naslov)
+                }
+            }
         } catch (e: Exception) {
             android.util.Log.w("SafeerCast", "Sprejemnika ni bilo mogoce zagnati: " + e.message)
         }
@@ -1279,6 +1336,95 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
         }
     }
 
+    // ------------------------------------------------------------------
+    // Safeer Link — stanje, seznanitev in sinhronizacija na televizorju
+    // ------------------------------------------------------------------
+
+    private var linkOkno: Dialog? = null
+
+    /** Odpre naslov tako, kot ga odpira brskalnik sam: v dejavnem zavihku, sicer v novem. */
+    private fun odpriVZavihku(naslov: String) {
+        val activeTab = tabManager.getActiveTab()
+        if (activeTab != null) {
+            activeTab.webView.loadUrl(naslov)
+        } else {
+            tabManager.createTab(this, naslov, true)
+        }
+    }
+
+    /**
+     * Odpre Safeer Link v svojem pogledu.
+     *
+     * Pogled je locen od zavihkov in nalozi samo stran iz aplikacije, zato njegov most
+     * ni dosegljiv nobeni spletni strani. Ta pogled tudi ne sme nikamor navigirati.
+     */
+    private fun odpriSafeerLink() {
+        try {
+            val pogled = android.webkit.WebView(this)
+            pogled.settings.javaScriptEnabled = true
+            pogled.settings.domStorageEnabled = true
+            pogled.settings.allowFileAccess = false
+            pogled.settings.allowContentAccess = false
+            pogled.settings.setSupportMultipleWindows(false)
+            pogled.settings.javaScriptCanOpenWindowsAutomatically = false
+            pogled.setBackgroundColor(android.graphics.Color.parseColor("#0b1017"))
+            // Na televizorju mora fokus prevzeti stran, sicer daljinec nima kam.
+            pogled.isFocusable = true
+            pogled.isFocusableInTouchMode = true
+
+            val okno = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+            okno.setContentView(pogled)
+
+            // Naslov strani preberemo tu, na glavni niti: most ga bo vprasal z druge,
+            // kjer WebView svojih metod ne da brati.
+            val zavihek = tabManager.getActiveTab()
+            val naslovStrani = zavihek?.webView?.url ?: zavihek?.url ?: ""
+            val imeStrani = zavihek?.webView?.title
+
+            val most = si.safeer.tv.link.LinkMost(
+                this,
+                pogled,
+                { Pair(naslovStrani, imeStrani) },
+                { okno.dismiss() },
+                { naslov -> odpriVZavihku(naslov) }
+            )
+            pogled.addJavascriptInterface(most, "SafeerLink")
+
+            pogled.webViewClient = object : android.webkit.WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    view: android.webkit.WebView?,
+                    request: android.webkit.WebResourceRequest?
+                ): Boolean {
+                    val naslov = request?.url?.toString() ?: return true
+                    if (naslov.startsWith("file:///android_asset/link/")) return false
+                    okno.dismiss()
+                    if (naslov.startsWith("http://") || naslov.startsWith("https://")) {
+                        odpriVZavihku(naslov)
+                    }
+                    return true
+                }
+
+                override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    view?.requestFocus()
+                }
+            }
+
+            okno.setOnDismissListener {
+                try { most.pospravi() } catch (_: Exception) {}
+                try { pogled.destroy() } catch (_: Exception) {}
+                linkOkno = null
+            }
+
+            pogled.loadUrl("file:///android_asset/link/index.html")
+            linkOkno = okno
+            okno.show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Safeer Linka ni bilo mogoče odpreti.", Toast.LENGTH_SHORT).show()
+            android.util.Log.w("SafeerLink", "Zaslon se ni odprl: " + e.message)
+        }
+    }
+
     private fun showMobileMenu() {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -1344,6 +1490,11 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
             dialog.dismiss()
             editUrl.requestFocus()
             showKeyboard()
+        }
+
+        dialog.findViewById<LinearLayout>(R.id.rowMenuSafeerLink).setOnClickListener {
+            dialog.dismiss()
+            odpriSafeerLink()
         }
 
         dialog.findViewById<LinearLayout>(R.id.rowMenuBookmarks).setOnClickListener {
