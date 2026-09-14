@@ -1098,6 +1098,138 @@ function hydraRevealPoster(el) {
                 return highestCard;
             }
 
+            // --- Prekrivna okna (prijava, piskotki, obvestila) ---
+            // Ko je odprto prekrivno okno, gumbi pod njim ostanejo v DOM in so po CSS
+            // se vedno "vidni", klikniti pa jih ni mogoce. Brez tega preverjanja daljinec
+            // fokusira prav te gumbe: okvir skace po praznem zaslonu in uporabnik ne more
+            // do vsebine okna. Ne ugibamo po imenih razredov (vsaka stran jih imenuje po
+            // svoje) - vprasamo brskalnik, kaj je dejansko na tisti tocki.
+            function jeSkritZaFokus(el) {
+                try {
+                    if (el.closest && el.closest('[inert], [aria-hidden="true"]')) return true;
+                } catch (_) {}
+                return false;
+            }
+
+            function jePrekrit(el) {
+                try {
+                    var r = el.getBoundingClientRect();
+                    var winW = window.innerWidth || 1920;
+                    var winH = window.innerHeight || 1080;
+                    var l = Math.max(r.left, 0), d = Math.min(r.right, winW);
+                    var t = Math.max(r.top, 0), b = Math.min(r.bottom, winH);
+                    // Element zunaj zaslona: o njem ne sodimo, za to skrbijo drugi filtri.
+                    if (d - l < 2 || b - t < 2) return false;
+                    var y = (t + b) / 2;
+                    var sredina = l + (d - l) * 0.5;
+                    if (!jeNaTocki(el, sredina, y)) {
+                        // Videti je prekrit. Preden ga odpisemo, poskusimo se levo in desno -
+                        // lepljiva glava ali drsnik lahko prekriva le sredino.
+                        var levo = l + (d - l) * 0.15;
+                        var desno = l + (d - l) * 0.85;
+                        if (jeNaTocki(el, levo, y)) return false;
+                        if (jeNaTocki(el, desno, y)) return false;
+                        return true;
+                    }
+                } catch (_) {}
+                return false;
+            }
+
+            function jeNasObroc(el) {
+                if (!el) return false;
+                if (el.id === 'safeer-focus-target-ring') return true;
+                var c = ((el.className || '') + '');
+                return c.indexOf('safeer-focus-badge') !== -1 || c.indexOf('safeer-ring') !== -1;
+            }
+
+            function jeNaTocki(el, x, y) {
+                var winW = window.innerWidth || 1920;
+                var winH = window.innerHeight || 1080;
+                if (x <= 0 || y <= 0 || x >= winW || y >= winH) return true;
+                var zadetek = document.elementFromPoint(x, y);
+                if (!zadetek) return true;
+                // Nas lastni oznacevalni obroc ni ovira. Ce bi stel za oviro, bi prav
+                // trenutno oznacen element izpadel s seznama in oznaka bi odskocila drugam.
+                if (jeNasObroc(zadetek)) return true;
+                return zadetek === el || el.contains(zadetek) || zadetek.contains(el);
+            }
+
+            // Poisce plast cez cel zaslon: prijavno okno, obvestilo o piskotkih, opozorilo.
+            // Ce taka plast obstaja, je vse zunaj nje za uporabnika nedosegljivo, cetudi je
+            // po CSS se vedno vidno. Iscemo po obicajnih imenih, potem pa vsakega kandidata
+            // se izmerimo - ime samo po sebi ni dokaz.
+            function najdiPrekrivnoOkno() {
+                var imena = '[role="dialog"], [role="alertdialog"], dialog[open],' +
+                    ' [class*="modal"], [class*="Modal"], [class*="overlay"], [class*="Overlay"],' +
+                    ' [class*="backdrop"], [class*="popup"], [class*="Popup"], [class*="dialog"],' +
+                    ' [class*="consent"], [class*="cookie"], [id*="modal"], [id*="overlay"],' +
+                    ' [id*="popup"], [id*="consent"], [id*="cookie"]';
+                var kandidati;
+                try { kandidati = document.querySelectorAll(imena); } catch (_) { return null; }
+                var winW = window.innerWidth || 1920;
+                var winH = window.innerHeight || 1080;
+                var najboljsi = null, najvisji = -1;
+                for (var i = 0; i < kandidati.length; i++) {
+                    var el = kandidati[i];
+                    var st;
+                    try { st = window.getComputedStyle(el); } catch (_) { continue; }
+                    if (st.position !== 'fixed' && st.position !== 'absolute') continue;
+                    if (st.display === 'none' || st.visibility === 'hidden') continue;
+                    if ((parseFloat(st.opacity) || 1) < 0.15) continue;
+                    if (st.pointerEvents === 'none') continue;
+                    var r = el.getBoundingClientRect();
+                    if (r.width < winW * 0.8 || r.height < winH * 0.8) continue;
+                    if (r.top > 8 || r.left > 8) continue;
+                    var z = parseInt(st.zIndex, 10);
+                    if (!(z > 0)) continue;
+                    // Gola zatemnitev brez gumbov ni okno, v katerega bi se dalo premakniti.
+                    try {
+                        if (!el.querySelector('a, button, input, select, textarea, [role="button"]')) continue;
+                    } catch (_) { continue; }
+                    if (z >= najvisji) { najvisji = z; najboljsi = el; }
+                }
+                return najboljsi;
+            }
+
+            function pocistiObroc(dovoljeni) {
+                try {
+                    var aktiven = document.querySelector('.safeer-active-card');
+                    if (aktiven && dovoljeni.indexOf(aktiven) === -1) {
+                        aktiven.classList.remove('safeer-active-card');
+                    }
+                } catch (_) {}
+            }
+
+            function odstraniNedosegljive(seznam) {
+                if (!seznam || !seznam.length) return seznam;
+                var okno = najdiPrekrivnoOkno();
+                var vOknu = [];
+                for (var i = 0; i < seznam.length; i++) {
+                    var el = seznam[i];
+                    if (jeSkritZaFokus(el)) continue;
+                    if (okno && !okno.contains(el)) continue;
+                    vOknu.push(el);
+                }
+                if (okno) {
+                    // Znotraj okna ne ugibamo naprej: kar je v njem, je dosegljivo.
+                    // Ce v oknu ni nobenega cilja, raje pustimo prvotni seznam, kot da bi
+                    // daljinec ostal brez cilja.
+                    if (!vOknu.length) return seznam;
+                    pocistiObroc(vOknu);
+                    return vOknu;
+                }
+                var ostane = [];
+                for (var j = 0; j < vOknu.length; j++) {
+                    if (!jePrekrit(vOknu[j])) ostane.push(vOknu[j]);
+                }
+                if (!ostane.length) return vOknu.length ? vOknu : seznam;
+                pocistiObroc(ostane);
+                return ostane;
+            }
+
+            // Oznaka za razhroscevanje: po njej se vidi, ali tece popravljena skripta.
+            try { window._safeerFokusFilter = '2026-09-14'; } catch (_) {}
+
             function isActionable(el) {
                 if (!el || el.nodeType !== 1) return false;
                 var tag = el.tagName.toUpperCase();
@@ -1194,7 +1326,7 @@ function hydraRevealPoster(el) {
                 if (window._safeerCandCache && (nowMs - (window._safeerCandAt || 0)) < 80) {
                     return window._safeerCandCache;
                 }
-                var found = getCandidatesFresh();
+                var found = odstraniNedosegljive(getCandidatesFresh());
                 window._safeerCandCache = found;
                 window._safeerCandAt = nowMs;
                 return found;
@@ -2540,6 +2672,7 @@ function hydraRevealPoster(el) {
                     for (var i = 0; i < focusables.length; i++) {
                         var el = focusables[i];
                         if (isHydraChromeEl(el) || isHydraNavArrow(el)) continue;
+                        if (jeSkritZaFokus(el)) continue;
                         if (!el.hasAttribute('tabindex')) {
                             el.setAttribute('tabindex', '0');
                         }

@@ -114,7 +114,7 @@ class CastReceiverService : Service() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var hubUrl: String = DEFAULT_HUB_URL
     private var deviceId: String = "tv-" + Build.MODEL.replace("\\s+".toRegex(), "-").lowercase()
-    private var deviceName: String = "Philips Android TV"
+    private var deviceName: String = "Android TV"
     private var isRunning = false
     private var reconnectAttempts = 0
 

@@ -5,7 +5,7 @@
 set -e
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLS_DIR="/home/janez/Namizje/Neimenovana mapa/streamN-TV2/android_tv/.tools"
+TOOLS_DIR="${SAFEER_TOOLS_DIR:-$HOME/Namizje/Neimenovana mapa/streamN-TV2/android_tv/.tools}"
 KOTLINC="$TOOLS_DIR/kotlinc/bin/kotlinc"
 KOTLIN_LIB="$TOOLS_DIR/kotlinc/lib/kotlin-stdlib.jar"
 BUILD_DIR="$DIR/build"
@@ -65,7 +65,7 @@ FINAL_APK="$RELEASE_DIR/safeer-browser-release.apk"
 cp "$BUILD_DIR/signed/unaligned-aligned-debugSigned.apk" "$FINAL_APK"
 cp "$FINAL_APK" "$DIR/Safeer-Browser.apk"
 
-WEB_MOBILE_DIR="/home/janez/Namizje/safeer-web/assets/mobile"
+WEB_MOBILE_DIR="${SAFEER_WEB_DIR:-$HOME/Namizje/safeer-web/assets/mobile}"
 if [[ -d "$WEB_MOBILE_DIR" ]]; then
     cp "$FINAL_APK" "$WEB_MOBILE_DIR/Safeer-Browser.apk"
     echo "🌐 Posodobljeno na spletni strani: $WEB_MOBILE_DIR/Safeer-Browser.apk"
