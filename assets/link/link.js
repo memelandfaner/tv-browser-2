@@ -34,20 +34,19 @@
       cakaNaPotrditev: "Čaka na tvojo potrditev",
       niVklopljen: "Ni povezano",
       brezHubaNaslov: "Safeer Link še ni vklopljen",
-      brezHubaOpis: "Safeer Link pošlje odprto stran na televizor in poveže tvoje naprave doma — brez oblaka in brez računa. Za to potrebuješ Safeer Control, ki teče na računalniku ali Raspberry Pi-ju in je domače središče vseh naprav.",
+      brezHubaOpis: "Safeer Link pošlje odprto stran na televizor in poveže tvoje naprave doma — brez oblaka in brez računa. Za to mora ena naprava v hiši prevzeti vlogo središča; ostale se povežejo nanjo.",
       brezHubaPomirilo: "Brskalnik deluje povsem normalno tudi brez njega. Ničesar ne izgubiš, če to okno zapreš.",
       poisci: "Poišči v mojem omrežju",
-      kakoDobim: "Kako dobim Safeer Control",
+      kakoDobim: "Kako to vklopim",
       iscem: "Iščem …",
-      niNajden: "V tem omrežju ga nisem našel. Preveri, ali Safeer Control teče, in poskusi znova.",
+      niNajden: "V tem omrežju ga nisem našel. Preveri, ali Safeer Link teče na kateri od tvojih naprav, in poskusi znova.",
       povežiNaslov: "Poveži to napravo",
       hubNajdenNa: "Safeer Link je na naslovu",
       zakajPotrditi: "Da ti sme pošiljati in sinhronizirati, ga moraš enkrat potrditi.",
-      potrdiKodo: "V Safeer Controlu (zavihek Naprave) potrdi to kodo:",
+      potrdiKodo: "Kodo potrdi na napravi, kjer teče Safeer Link:",
       kodaVelja: "Koda velja 5 minut.",
       poveziSSafeerLink: "Poveži s Safeer Link",
-      odpriKonzolo: "Odpri konzolo",
-      cakamNaPotrditev: "Čakam na potrditev v Safeer Controlu …",
+      cakamNaPotrditev: "Čakam na potrditev …",
       niPotrjeno: "Koda ni bila potrjena. Poskusi znova.",
       posljiStran: "Pošlji to stran",
       odprtoVBrskalniku: "Odprto v brskalniku",
@@ -110,20 +109,19 @@
       cakaNaPotrditev: "Waiting for your approval",
       niVklopljen: "Not connected",
       brezHubaNaslov: "Safeer Link is not set up yet",
-      brezHubaOpis: "Safeer Link sends the open page to your television and connects the devices in your home — no cloud, no account. It needs Safeer Control, which runs on a computer or a Raspberry Pi and is the home hub for all your devices.",
+      brezHubaOpis: "Safeer Link sends the open page to your television and connects the devices in your home — no cloud, no account. One device in the house takes the role of the hub; the others connect to it.",
       brezHubaPomirilo: "The browser works exactly as before without it. You lose nothing by closing this window.",
       poisci: "Look on my network",
-      kakoDobim: "How do I get Safeer Control",
+      kakoDobim: "How do I turn this on",
       iscem: "Looking …",
-      niNajden: "I could not find it on this network. Check that Safeer Control is running and try again.",
+      niNajden: "I could not find it on this network. Check that Safeer Link is running on one of your devices and try again.",
       povežiNaslov: "Connect this device",
       hubNajdenNa: "Safeer Link is at",
       zakajPotrditi: "To let it send and sync to you, approve it once.",
-      potrdiKodo: "In Safeer Control (Devices tab) approve this code:",
+      potrdiKodo: "Approve this code on the device running Safeer Link:",
       kodaVelja: "The code is valid for 5 minutes.",
       poveziSSafeerLink: "Connect to Safeer Link",
-      odpriKonzolo: "Open the console",
-      cakamNaPotrditev: "Waiting for approval in Safeer Control …",
+      cakamNaPotrditev: "Waiting for approval …",
       niPotrjeno: "The code was not approved. Please try again.",
       posljiStran: "Send this page",
       odprtoVBrskalniku: "Open in the browser",
@@ -536,7 +534,6 @@
         besedilo("opombaSeznanitev", t("cakamNaPotrditev"));
         var g = el("gumbSeznani");
         if (g) g.disabled = true;
-        pokazi("gumbKonzola", true);
       } else if (vrsta === "seznanitev") {
         var gumb = el("gumbSeznani");
         if (gumb) gumb.disabled = false;
@@ -675,12 +672,6 @@
     naKlik("gumbSeznani", function () {
       besedilo("opombaSeznanitev", "");
       if (most) most.seznani();
-    });
-
-    naKlik("gumbKonzola", function () {
-      if (!most) return;
-      var naslov = most.naslovKonzole();
-      if (naslov) most.odpri(naslov);
     });
 
     naKlik("gumbOsvezi", poveziSe);
