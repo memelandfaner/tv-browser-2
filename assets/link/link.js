@@ -97,7 +97,11 @@
       filtri: "Seznami filtrov",
       filtriOpis: "Iste zaščite na vseh napravah",
       kmalu: "Kmalu",
-      tezava: "Nekaj ni v redu. Poskusi znova."
+      tezava: "Nekaj ni v redu. Poskusi znova.",
+      preseljenNaslov: "Safeer Link je na novem naslovu",
+      preseljenOpis: "Doma se javlja z drugega naslova kot doslej — običajno zato, ker mu je usmerjevalnik podelil novega. Potrdi, da je to tvoj Safeer Link.",
+      daPovezi: "Da, poveži",
+      preverjamNaslov: "Povezujem se na nov naslov …"
     },
     en: {
       preverjam: "Checking …",
@@ -169,7 +173,11 @@
       filtri: "Filter lists",
       filtriOpis: "The same protections on every device",
       kmalu: "Soon",
-      tezava: "Something went wrong. Please try again."
+      tezava: "Something went wrong. Please try again.",
+      preseljenNaslov: "Safeer Link has a new address",
+      preseljenOpis: "It is announcing itself from a different address than before — usually because the router gave it a new one. Confirm that this is your Safeer Link.",
+      daPovezi: "Yes, connect",
+      preverjamNaslov: "Connecting to the new address …"
     }
   };
 
@@ -226,7 +234,8 @@
     naprave: [],
     prejemnik: null,
     predvajanje: null,
-    tezava: false
+    tezava: false,
+    preseljen: false
   };
 
   function besedilo(id, vsebina) {
@@ -321,6 +330,9 @@
     } else if (stanje.znan && stanje.seznanjen) {
       barva = stanje.povezan ? "zelena" : "rumena";
       napis = stanje.povezan ? t("povezano") : t("povezujem");
+    } else if (stanje.preseljen) {
+      barva = "rumena";
+      napis = t("preseljenNaslov");
     } else if (stanje.znan) {
       barva = "rumena";
       napis = t("cakaNaPotrditev");
@@ -330,11 +342,12 @@
   }
 
   function narisiZaslon() {
-    var brezHuba = !stanje.znan;
-    var caka = stanje.znan && !stanje.seznanjen;
+    var brezHuba = !stanje.znan && !stanje.preseljen;
+    var caka = stanje.znan && !stanje.seznanjen && !stanje.preseljen;
     pokazi("zaslonBrezHuba", brezHuba);
+    pokazi("zaslonPreseljen", stanje.preseljen);
     pokazi("zaslonSeznanitev", caka);
-    pokazi("zaslonPovezan", !brezHuba && !caka);
+    pokazi("zaslonPovezan", !brezHuba && !caka && !stanje.preseljen);
     pokazi("gumbPozabi", !brezHuba && !caka && !!(most && most.pozabiNapravo));
     narisiStanje();
   }
@@ -506,12 +519,17 @@
         if (podatki && podatki.najden) {
           stanje.znan = true;
           stanje.tezava = false;
+          stanje.preseljen = false;
           besedilo("naslovHuba", prijaznaHisa(podatki.naslov));
           osveziStanje();
         } else {
           besedilo("opombaIskanje", t("niNajden"));
           narisiStanje();
         }
+      } else if (vrsta === "preseljen") {
+        stanje.preseljen = true;
+        besedilo("noviNaslov", prijaznaHisa(podatki && podatki.naslov));
+        narisiZaslon();
       } else if (vrsta === "koda") {
         pokazi("kodaBlok", true);
         besedilo("kodaStevilke", String(podatki));
@@ -666,6 +684,12 @@
     });
 
     naKlik("gumbOsvezi", poveziSe);
+
+    naKlik("gumbPotrdiNaslov", function () {
+      if (!most || !most.potrdiNovNaslov) return;
+      besedilo("opombaPreselitev", t("preverjamNaslov"));
+      most.potrdiNovNaslov();
+    });
 
     var pozabiPotrjujem = false;
     naKlik("gumbPozabi", function () {
