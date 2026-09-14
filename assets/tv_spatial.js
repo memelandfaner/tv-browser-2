@@ -8,8 +8,14 @@
             if (!window._safeer_tv_remote_installed) window._safeer_tv_remote_installed = true;
 
             // #region agent log
-            window._safeerDbg = function(h, loc, msg) {
-                try { console.log(String(h || '') + ' ' + String(loc || '') + ' ' + String(msg || '')); } catch (_) {}
+            window._safeerDbg = function(h, loc, msg, podatki) {
+                try {
+                    var rep = '';
+                    if (podatki !== undefined && podatki !== null) {
+                        try { rep = ' ' + JSON.stringify(podatki); } catch (_) { rep = ' ' + String(podatki); }
+                    }
+                    console.log(String(h || '') + ' ' + String(loc || '') + ' ' + String(msg || '') + rep);
+                } catch (_) {}
             };
             window._safeerDbgRun = 'lean';
             // #endregion
@@ -1305,7 +1311,11 @@ function hydraRevealPoster(el) {
 
                 if (cls.indexOf('content-carousel__item') !== -1) return true;
                 if (tag === 'A' || tag === 'BUTTON' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-                if (el.hasAttribute('onclick') || el.hasAttribute('data-ved') || el.hasAttribute('tabindex')) return true;
+                if (el.hasAttribute('onclick') || el.hasAttribute('data-ved')) return true;
+                // tabindex="-1" pomeni "dosegljiv samo iz kode, ne za uporabnika" - tak
+                // element (npr. vsebnik prekrivnega okna) ni cilj za daljinec.
+                if (el.hasAttribute('tabindex') &&
+                    ((el.getAttribute('tabindex') || '').trim() !== '-1')) return true;
                 if (el.getAttribute('role') === 'button' || el.getAttribute('role') === 'link' || el.getAttribute('role') === 'tab') return true;
                 if (cls.indexOf('item--event') !== -1) return true;
                 
@@ -1699,6 +1709,43 @@ function hydraRevealPoster(el) {
                 }
                 updateFocusRing(null);
             }
+
+            // Obroc mora slediti svojemu cilju tudi takrat, ko se stran ne premakne, ampak
+            // se preuredi: razdelek se razpre, obvestilo izgine, slika se nalozi. Doslej se
+            // je popravil samo ob drsenju in spremembi velikosti okna, zato je obvisel na
+            // starem mestu - na televizorju cez besedilo, ki ga ni mogoce pritisniti.
+            // In ce cilj izgine, obroc umaknemo, namesto da bi kazal v prazno.
+            var zadnjiOkvirObroca = null;
+
+            function spremljajCiljObroca() {
+                try {
+                    var el = document.querySelector('.safeer-active-card');
+                    if (!el || !el.isConnected) {
+                        if (zadnjiOkvirObroca !== null) {
+                            zadnjiOkvirObroca = null;
+                            updateFocusRing(null);
+                        }
+                        return;
+                    }
+                    var r = el.getBoundingClientRect();
+                    var st = window.getComputedStyle(el);
+                    if (st.display === 'none' || st.visibility === 'hidden' ||
+                        (r.width < 2 && r.height < 2)) {
+                        el.classList.remove('safeer-active-card');
+                        zadnjiOkvirObroca = null;
+                        updateFocusRing(null);
+                        return;
+                    }
+                    var okvir = Math.round(r.top) + ':' + Math.round(r.left) + ':' +
+                                Math.round(r.width) + ':' + Math.round(r.height);
+                    if (okvir !== zadnjiOkvirObroca) {
+                        zadnjiOkvirObroca = okvir;
+                        updateFocusRing(el);
+                    }
+                } catch (_) {}
+            }
+
+            setInterval(spremljajCiljObroca, 250);
 
             function highlightElement(el) {
                 window._safeerCandCache = null;
