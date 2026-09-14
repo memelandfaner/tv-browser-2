@@ -618,60 +618,14 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
                     getString(R.string.app_name) + " (" + android.os.Build.MODEL + ")"
                 )
             }
-            // Koda velja pet minut. Kdor jo zagleda in gre po telefon, jo pogosto zamudi,
-            // zato po neuspesnem krogu pokazemo novo -- najvec trikrat, potem tiho odnehamo.
-            val najvecKrogov = 3
-            var krog = 0
-            lateinit var seznani: (String) -> Unit
-            seznani = { naslov: String ->
-                krog += 1
-                si.safeer.tv.cast.HubPairing.pair(
-                    this, naslov,
-                    "tv-" + android.os.Build.MODEL.replace(Regex("\\s+"), "-").lowercase(),
-                    getString(R.string.app_name) + " (" + android.os.Build.MODEL + ")",
-                    { koda ->
-                        // durationMs = 0: koda ostane na zaslonu, dokler je kaj ne zamenja.
-                        // S tremi sekundami je izginila, preden jo je bilo mogoce prepisati.
-                        showTvOsd(
-                            "🔗 Safeer Hub",
-                            "Potrdi to kodo v Safeer Controlu:  " + koda,
-                            0L
-                        )
-                    },
-                    { uspelo ->
-                        // Izpis zamenjamo v vsakem primeru, sicer bi koda obvisela na zaslonu.
-                        if (uspelo) {
-                            showTvOsd("🔗 Safeer Hub", "Televizor je povezan.", 4000L)
-                            zazeni()
-                        } else if (krog < najvecKrogov) {
-                            showTvOsd("🔗 Safeer Hub", "Koda je potekla; pripravljam novo ...", 4000L)
-                            mainHandler.postDelayed({ seznani(naslov) }, 30_000L)
-                        } else {
-                            showTvOsd(
-                                "🔗 Safeer Hub",
-                                "Seznanitev ni bila potrjena. Znova zazeni brskalnik, ce zelis poskusiti.",
-                                6000L
-                            )
-                        }
-                    })
-            }
-            val zazeniAliSeznani = { naslov: String ->
-                if (si.safeer.tv.cast.HubPairing.token(this) != null) {
-                    zazeni()
-                } else {
-                    // Prvic: Hub nas se ne pozna. Pokazemo kodo na zaslonu in pocakamo, da jo
-                    // Matej potrdi v Controlu -- tipkati z daljincem ni treba nicesar.
-                    seznani(naslov)
-                }
-            }
-            if (si.safeer.tv.cast.CastReceiverService.isConfigured(this)) {
-                zazeniAliSeznani(si.safeer.tv.cast.HubDiscovery.knownHubUrl(this))
-            } else {
-                // Huba se ne poznamo: kratko ga poiscemo. Ce ga ni, se ne zgodi nic --
-                // televizor ostane navaden brskalnik brez storitve in brez obvestila.
-                si.safeer.tv.cast.HubDiscovery.discover(this) { naslov ->
-                    if (naslov != null) zazeniAliSeznani(naslov)
-                }
+            // Ob zagonu NIKOLI ne sprozimo seznanjanja -- brskalnik je najprej brskalnik.
+            // Sprejemnik zazenemo tiho SAMO, ce je televizor ze seznanjen; to je uporabnik
+            // izbral sam prek menija Safeer Link. Ce ni seznanjen, se ne zgodi nic: nobene
+            // kode, nobenega obvestila. Kodo za seznanitev pokaze le Safeer Link, ko jo
+            // uporabnik izrecno zahteva.
+            if (si.safeer.tv.cast.CastReceiverService.isConfigured(this)
+                    && si.safeer.tv.cast.HubPairing.token(this) != null) {
+                zazeni()
             }
         } catch (e: Exception) {
             android.util.Log.w("SafeerCast", "Sprejemnika ni bilo mogoce zagnati: " + e.message)
