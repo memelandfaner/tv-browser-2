@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TV Browser 2</string>
+    <string name="app_name">Safeer TV Browser</string>
     <string name="url_hint">Recherche sécurisée ou URL</string>
     <string name="btn_home">Accueil</string>
     <string name="btn_back">Retour</string>
