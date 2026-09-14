@@ -2183,8 +2183,16 @@ function hydraRevealPoster(el) {
                     var candidates = getCandidates();
 
                     if (candidates.length === 0) {
-                        if (direction === 'DOWN') { window.scrollBy({ top: 120, behavior: scrollEase }); return 1; }
+                        // Nicesar ne vidimo (to se zgodi pri oknih, ki tecejo v svojem okvirju).
+                        // Najprej poskusimo podrsati vsebino, sicer povemo, da nimamo kam -
+                        // takrat tipko dobi stran sama.
+                        if (direction === 'DOWN') {
+                            if (drsajNotranjiVsebnik(null, 1)) return 1;
+                            if (oknoLahkoDrsi(1)) { window.scrollBy({ top: 120, behavior: scrollEase }); return 1; }
+                            return -1;
+                        }
                         if (direction === 'UP') {
+                            if (drsajNotranjiVsebnik(null, -1)) return 1;
                             if (scrollY <= 20) return -1;
                             window.scrollBy({ top: -120, behavior: scrollEase });
                             return 1;
@@ -2510,8 +2518,15 @@ function hydraRevealPoster(el) {
                         highlightElement(bestTarget);
                         return 1;
                     } else {
-                        if (direction === 'DOWN') window.scrollBy({ top: 120, behavior: scrollEase });
+                        if (direction === 'DOWN') {
+                            // Vsebnik pod prstom ima lahko svoj drsnik (okno s piskotki,
+                            // seznam v pogovornem oknu); tega podrsamo, ne cele strani.
+                            if (drsajNotranjiVsebnik(current, 1)) return 1;
+                            if (!oknoLahkoDrsi(1)) return -1;
+                            window.scrollBy({ top: 120, behavior: scrollEase });
+                        }
                         else if (direction === 'UP') {
+                            if (drsajNotranjiVsebnik(current, -1)) return 1;
                             if (isXploreHost()) {
                                 var menuMiss = pickXploreMenuLink(false, current);
                                 if (menuMiss) {
@@ -2533,6 +2548,54 @@ function hydraRevealPoster(el) {
                 } catch(_) {}
                 return -1;
             };
+
+            /**
+             * Podrsa vsebnik, v katerem smo (npr. okno s piskotki), in ne cele strani.
+             * smer: 1 navzdol, -1 navzgor. Vrne true, ce se je kaj premaknilo.
+             */
+            function drsajNotranjiVsebnik(zacetek, smer) {
+                var nazaj = smer < 0;
+                var korak = Math.round((window.innerHeight || 1080) * 0.35);
+                var el = zacetek;
+                var globina = 0;
+                while (el && el.nodeType === 1 && globina < 30) {
+                    if (lahkoDrsi(el, false, nazaj)) {
+                        try { el.scrollTop += smer * korak; } catch (_) {}
+                        return true;
+                    }
+                    el = el.parentElement;
+                    globina++;
+                }
+                // Brez izhodisca poskusimo v prekrivnem oknu: tam je vsebina, ki jo
+                // uporabnik gleda, in prav ta mora iti navzdol.
+                var okno = najdiPrekrivnoOkno();
+                if (!okno) return false;
+                if (lahkoDrsi(okno, false, nazaj)) {
+                    try { okno.scrollTop += smer * korak; } catch (_) {}
+                    return true;
+                }
+                var notranji;
+                try { notranji = okno.querySelectorAll('div, section, main, ul, form'); } catch (_) { return false; }
+                for (var i = 0; i < notranji.length && i < 400; i++) {
+                    if (lahkoDrsi(notranji[i], false, nazaj)) {
+                        try { notranji[i].scrollTop += smer * korak; } catch (_) {}
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            /** Ali se da drsati celo stran v dani smeri? */
+            function oknoLahkoDrsi(smer) {
+                try {
+                    var d = document.documentElement;
+                    var polozaj = window.scrollY || d.scrollTop || 0;
+                    if (smer < 0) return polozaj > 4;
+                    return ((d.scrollHeight - d.clientHeight) - polozaj) > 4;
+                } catch (_) {
+                    return false;
+                }
+            }
 
             function nativeTapElement(el) {
                 if (!el) return;

@@ -68,6 +68,50 @@ object SiteProfileResolver {
     }
 }
 
+/**
+ * Smerno tipko najprej ponudimo nasi navigaciji. Ce ta pove, da ni imela kam (-1), tipko
+ * dobi stran sama. Tako pridemo do gumbov v oknih, ki tecejo v svojem okvirju in jih nasa
+ * skripta sploh ne vidi - na primer do "Zavrni vse" v Googlovem oknu o piskotkih.
+ */
+private fun posljiSmer(wv: android.webkit.WebView, smer: String, event: KeyEvent) {
+    // V Googlove strani namenoma ne vbrizgavamo nicesar, da ostanejo prijava, iskanje in
+    // reCAPTCHA povsem izvirni. Tam torej nase navigacije ni in tipka gre naravnost strani -
+    // sicer bi se izgubila in uporabnik ne bi mogel niti do gumbov v oknu o piskotkih.
+    if (si.safeer.tv.UserScriptManager.isGoogleDomain(wv.url)) {
+        nativnaTipka(wv, event)
+        return
+    }
+    try {
+        wv.evaluateJavascript("window._safeer_navigate_spatial('$smer');") { odgovor ->
+            val ocisceno = (odgovor ?: "").trim().trim('"')
+            if (ocisceno == "-1" || ocisceno == "null" || ocisceno.isEmpty()) {
+                nativnaTipka(wv, event)
+            }
+        }
+    } catch (_: Exception) {
+        nativnaTipka(wv, event)
+    }
+}
+
+/**
+ * Premakne fokus po strani sami. Smerne tipke spletna vsebina ne pozna (daljinec je iznajdba
+ * televizorja), zna pa vsaka stran vrstni red s tipko Tab - in brskalnik nov fokus sam
+ * pridrsa v pogled. Navzgor in levo gresta nazaj (Shift+Tab).
+ */
+private fun nativnaTipka(wv: android.webkit.WebView, event: KeyEvent) {
+    try {
+        val nazaj = event.keyCode == KeyEvent.KEYCODE_DPAD_UP || event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+        val meta = if (nazaj) KeyEvent.META_SHIFT_ON else 0
+        val zdaj = android.os.SystemClock.uptimeMillis()
+        wv.dispatchKeyEvent(
+            KeyEvent(zdaj, zdaj, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB, 0, meta)
+        )
+        wv.dispatchKeyEvent(
+            KeyEvent(zdaj, zdaj + 1, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_TAB, 0, meta)
+        )
+    } catch (_: Exception) {}
+}
+
 object XploreSiteProfile : SiteProfile {
     override fun matches(url: String) = TvSite.isXplore(url)
     override fun hideChrome(url: String) = true
@@ -130,19 +174,19 @@ object XploreSiteProfile : SiteProfile {
         if (!wv.hasFocus()) wv.requestFocus()
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('DOWN');", null)
+                posljiSmer(wv, "DOWN", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_UP -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('UP');", null)
+                posljiSmer(wv, "UP", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_LEFT -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('LEFT');", null)
+                posljiSmer(wv, "LEFT", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('RIGHT');", null)
+                posljiSmer(wv, "RIGHT", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
@@ -519,7 +563,7 @@ object HydraSiteProfile : SiteProfile {
         if (!wv.hasFocus()) wv.requestFocus()
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('DOWN');", null)
+                posljiSmer(wv, "DOWN", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_UP -> {
@@ -536,11 +580,11 @@ object HydraSiteProfile : SiteProfile {
                 return true
             }
             KeyEvent.KEYCODE_DPAD_LEFT -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('LEFT');", null)
+                posljiSmer(wv, "LEFT", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('RIGHT');", null)
+                posljiSmer(wv, "RIGHT", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
@@ -644,7 +688,7 @@ object GenericWebSiteProfile : SiteProfile {
         if (!wv.hasFocus()) wv.requestFocus()
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('DOWN');", null)
+                posljiSmer(wv, "DOWN", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_UP -> {
@@ -660,11 +704,11 @@ object GenericWebSiteProfile : SiteProfile {
                 return true
             }
             KeyEvent.KEYCODE_DPAD_LEFT -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('LEFT');", null)
+                posljiSmer(wv, "LEFT", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                wv.evaluateJavascript("window._safeer_navigate_spatial('RIGHT');", null)
+                posljiSmer(wv, "RIGHT", event)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {

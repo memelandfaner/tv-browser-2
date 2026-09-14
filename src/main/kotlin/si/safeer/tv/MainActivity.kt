@@ -536,6 +536,31 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
         super.onStop()
     }
 
+    /**
+     * Sistem javi, da mu zmanjkuje pomnilnika. To je edini trenutek, ko lahko kaj ukrenemo,
+     * preden nas ubije: zavihki v ozadju gredo spat, stran pa se ob vrnitvi nalozi znova.
+     * Aktivnega zavihka in tistega, ki predvaja, se ne dotaknemo.
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        try {
+            if (level < TRIM_MEMORY_RUNNING_LOW) return
+            val vse = level >= TRIM_MEMORY_RUNNING_CRITICAL
+            if (::tabManager.isInitialized) tabManager.uspavajOzadje(vse)
+            android.util.Log.i(
+                "SafeerPomnilnik",
+                "Sistem javlja pomanjkanje pomnilnika (stopnja $level); zavihki v ozadju gredo spat."
+            )
+        } catch (_: Exception) {}
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        try {
+            if (::tabManager.isInitialized) tabManager.uspavajOzadje(true)
+        } catch (_: Exception) {}
+    }
+
     override fun onDestroy() {
         silenceBackgroundMedia("onDestroy")
         // Hub tece samo, dokler tece brskalnik. Zeljo uporabnika ohranimo (zapomni = false),

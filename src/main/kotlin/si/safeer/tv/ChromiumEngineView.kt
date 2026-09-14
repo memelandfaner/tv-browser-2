@@ -73,6 +73,12 @@ class ChromiumEngineView @JvmOverloads constructor(
     var onPageLoaded: ((String, String) -> Unit)? = null
     var onFullscreenToggled: ((View?, WebChromeClient.CustomViewCallback?) -> Unit)? = null
 
+    /**
+     * Izrisovalnik strani je umrl. Prvi argument je ta pogled, drugi pove, ali je slo za
+     * sesutje strani ali za to, da je sistem sprostil pomnilnik. Nastavi ga TabManager.
+     */
+    var naSmrtIzrisovalnika: ((ChromiumEngineView, Boolean) -> Unit)? = null
+
     private var customView: View? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private val jsBridge = SafeerWebAppInterface(context, this)
@@ -628,6 +634,35 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
 
         webViewClient = object : WebViewClient() {
+            /**
+             * Stran se izrisuje v svojem procesu. Ko sistemu zmanjka pomnilnika, ubije tega -
+             * in ce tu vrnemo false, Android ubije se cel brskalnik. Zato vrnemo true in
+             * pogled zavrzemo sami: zavihek se obnovi, uporabnik pa ostane v brskalniku.
+             */
+            override fun onRenderProcessGone(
+                view: WebView?,
+                detail: android.webkit.RenderProcessGoneDetail?
+            ): Boolean {
+                val sesul = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && detail?.didCrash() == true
+                android.util.Log.w(
+                    "SafeerPomnilnik",
+                    if (sesul) "Izrisovalnik strani se je sesul; obnavljam zavihek."
+                    else "Sistem je zaradi pomanjkanja pomnilnika ubil izrisovalnik strani; obnavljam zavihek."
+                )
+                val pogled = this@ChromiumEngineView
+                val obnovi = pogled.naSmrtIzrisovalnika
+                // Pogleda od tu naprej ni vec dovoljeno uporabljati, zato delo odlozimo.
+                pogled.post {
+                    if (obnovi != null) {
+                        obnovi(pogled, sesul)
+                    } else {
+                        try { (pogled.parent as? android.view.ViewGroup)?.removeView(pogled) } catch (_: Exception) {}
+                        try { pogled.destroy() } catch (_: Exception) {}
+                    }
+                }
+                return true
+            }
+
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return false
                 val urlStr = uri.toString()
