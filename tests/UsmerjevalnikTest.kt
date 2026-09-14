@@ -415,6 +415,11 @@ private fun preizkusHttp() {
     preveriEnako("razlicica protokola je ista kot na racunalniku", "0.2", polje(stanje!!.telo, "protocol"))
 
     preveri("neznana pot ni odgovorjena", u.odgovori(zahteva("GET", "/cast/skrivnost")) == null)
+    // Naprava, ki isce Hub, prav po tem loci Safeer Hub od tujega streznika na istih vratih.
+    preveriEnako("znana pot z napacnim glagolom vrne 405", 405,
+        u.odgovori(zahteva("GET", "/cast/ticket"))?.koda)
+    preveriEnako("tudi prijava z GET vrne 405", 405,
+        u.odgovori(zahteva("GET", "/cast/pair/start"))?.koda)
     preveri("potrjevanje ni dosegljivo po omrezju",
         u.odgovori(zahteva("POST", "/cast/pair/approve", """{"pair_id":"$pairId"}""")) == null)
     preveri("cakajocih prijav ni mogoce prebrati po omrezju",

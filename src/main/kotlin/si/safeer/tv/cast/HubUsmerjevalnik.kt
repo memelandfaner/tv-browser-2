@@ -321,11 +321,6 @@ class HubUsmerjevalnik(
     private fun idPovezave(povezava: Odjemalec): String? =
         naprave.entries.firstOrNull { it.value.povezava === povezava }?.key
 
-    /** Nova povezava: usmerjevalnik prevzame njena sporocila in pospravi za njo. */
-    fun sprejmiPovezavo(odjemalec: Odjemalec, nastaviPoslusalca: ((String) -> Unit, () -> Unit) -> Unit) {
-        nastaviPoslusalca({ sporocilo -> obdelaj(odjemalec, sporocilo) }, { odklopi(odjemalec) })
-    }
-
     fun odklopi(povezava: Odjemalec) {
         var spremenjeno = false
         synchronized(kljucnica) {
@@ -663,6 +658,11 @@ class HubUsmerjevalnik(
             return HubStreznik.Odgovor(200, stanje)
         }
 
+        // Znana pot z napacnim glagolom ni "ni te poti": naprava, ki isce Hub, prav po tem
+        // loci Safeer Hub od poljubnega streznika na istih vratih.
+        if (pot in ZNANE_POTI) {
+            return HubStreznik.Odgovor(405, napakaJson("Ta način za to pot ni dovoljen."))
+        }
         return null
     }
 
@@ -686,6 +686,10 @@ class HubUsmerjevalnik(
         const val ZMOZNOST_SYNC = "sync"
 
         private const val KLJUC_ZETONOV = "cast_naprave"
+
+        private val ZNANE_POTI = setOf(
+            "/cast/pair/start", "/cast/pair/claim", "/cast/ticket", "/cast/devices", "/cast/health"
+        )
 
         private val CAST_POSREDOVANJE = setOf("cast.url", "cast.media", "cast.control")
         private val SYNC_POSREDOVANJE = setOf("sync.request", "sync.data", "sync.status")

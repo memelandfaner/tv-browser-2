@@ -134,6 +134,41 @@
 
   </section>
 
+  <!-- Vedno na voljo, dokler sredisce ne tece: televizor lahko sam prevzame vlogo. -->
+  <section class="zaslon" id="zaslonHubMoznost" hidden>
+    <div class="kartica sredina">
+      <p class="pojasnilo drobno" data-t="tuOpis">
+        Če doma nimaš računalnika, lahko središče prevzame ta televizor.
+        Telefoni in tablice v hiši se povežejo nanj.
+      </p>
+      <button class="glavni" id="gumbHubVklopi" data-t="prizgiTu">Prižgi središče na tem televizorju</button>
+      <p class="opomba" id="opombaHubVklop"></p>
+    </div>
+  </section>
+
+  <!-- Stanje 4: sredisce tece v tem brskalniku na televizorju. -->
+  <section class="zaslon" id="zaslonHubTu" hidden>
+
+    <div class="panel" id="panelPrijave" hidden>
+      <h2 data-t="cakaPrijava">Naprava se želi povezati</h2>
+      <ul class="seznam" id="seznamPrijav"></ul>
+    </div>
+
+    <div class="panel">
+      <div class="vrsticaGlave">
+        <h2 data-t="tuNaslov">Ta televizor je središče</h2>
+        <button class="drobniGumb" id="gumbHubOsvezi" data-t="osvezi">Osveži</button>
+      </div>
+      <p class="pojasnilo" data-t="tuPojasnilo">
+        Telefoni in tablice v hiši se povežejo na ta televizor. Nič ne gre v oblak.
+      </p>
+      <ul class="seznam" id="seznamHubNaprav"></ul>
+      <p class="opomba" id="opombaHub"></p>
+      <button class="drugotni tanek" id="gumbHubIzklopi" data-t="ugasniTu">Ugasni središče na televizorju</button>
+    </div>
+
+  </section>
+
 </main>
 
 <script src="link.js"></script>

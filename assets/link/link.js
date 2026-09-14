@@ -218,6 +218,51 @@
     }
   }
 
+  // Besedila za sredisce na televizorju. Dodana so tu na kupu, da se v obeh jezikih
+  // vidijo skupaj -- kar je treba prevesti, je na enem mestu.
+  var BESEDILA_HUB = {
+    sl: {
+      tuOpis: "Če doma nimaš računalnika, lahko središče prevzame ta televizor. Telefoni in tablice v hiši se povežejo nanj.",
+      prizgiTu: "Prižgi središče na tem televizorju",
+      tuNaslov: "Ta televizor je središče",
+      tuPojasnilo: "Telefoni in tablice v hiši se povežejo na ta televizor. Nič ne gre v oblak.",
+      tuSredisce: "Središče teče na tem televizorju",
+      povezana: "Povezana",
+      sePotrdi: "Še enkrat pritisni, da ji odvzameš dostop",
+      ugasniTu: "Ugasni središče na televizorju",
+      cakaPrijava: "Naprava se želi povezati",
+      primerjajKodo: "Na napravi mora pisati ista koda",
+      potrdi: "Potrdi",
+      zavrni: "Zavrni",
+      odstrani: "Odstrani",
+      povezanNaTv: "Sme pošiljati na ta televizor",
+      nobeneNaprave: "Nobena naprava še ni povezana. Na telefonu odpri Safeer Link in ga poišči.",
+      prizigam: "Prižigam …"
+    },
+    en: {
+      tuOpis: "If you have no computer at home, this television can be the hub. Phones and tablets in the house connect to it.",
+      prizgiTu: "Turn on the hub on this television",
+      tuNaslov: "This television is the hub",
+      tuPojasnilo: "Phones and tablets in the house connect to this television. Nothing goes to the cloud.",
+      tuSredisce: "The hub is running on this television",
+      povezana: "Connected",
+      sePotrdi: "Press again to revoke access",
+      ugasniTu: "Turn off the hub on this television",
+      cakaPrijava: "A device wants to connect",
+      primerjajKodo: "The same code must show on the device",
+      potrdi: "Approve",
+      zavrni: "Decline",
+      odstrani: "Remove",
+      povezanNaTv: "May send to this television",
+      nobeneNaprave: "No device is connected yet. Open Safeer Link on your phone and let it find this television.",
+      prizigam: "Turning on …"
+    }
+  };
+  for (var _jezik in BESEDILA_HUB) {
+    if (!BESEDILA[_jezik]) BESEDILA[_jezik] = {};
+    for (var _kljuc in BESEDILA_HUB[_jezik]) BESEDILA[_jezik][_kljuc] = BESEDILA_HUB[_jezik][_kljuc];
+  }
+
   // ----------------------------------------------------------------
   // Stanje
   // ----------------------------------------------------------------
@@ -233,7 +278,11 @@
     prejemnik: null,
     predvajanje: null,
     tezava: false,
-    preseljen: false
+    preseljen: false,
+    hubTece: false,
+    hubPovezanih: 0,
+    prijave: [],
+    hubNaprave: []
   };
 
   function besedilo(id, vsebina) {
@@ -322,7 +371,10 @@
     var pika = el("pika");
     var barva = "siva";
     var napis = t("niVklopljen");
-    if (stanje.tezava) {
+    if (stanje.hubTece) {
+      barva = "zelena";
+      napis = t("tuSredisce");
+    } else if (stanje.tezava) {
       barva = "rumena";
       napis = t("tezava");
     } else if (stanje.znan && stanje.seznanjen) {
@@ -340,13 +392,17 @@
   }
 
   function narisiZaslon() {
-    var brezHuba = !stanje.znan && !stanje.preseljen;
-    var caka = stanje.znan && !stanje.seznanjen && !stanje.preseljen;
+    // Ce sredisce tece tu, je to edina zgodba na zaslonu: televizor ne isce sam sebe.
+    var tuSredisce = stanje.hubTece;
+    var brezHuba = !tuSredisce && !stanje.znan && !stanje.preseljen;
+    var caka = !tuSredisce && stanje.znan && !stanje.seznanjen && !stanje.preseljen;
+    pokazi("zaslonHubTu", tuSredisce);
     pokazi("zaslonBrezHuba", brezHuba);
-    pokazi("zaslonPreseljen", stanje.preseljen);
+    pokazi("zaslonPreseljen", !tuSredisce && stanje.preseljen);
     pokazi("zaslonSeznanitev", caka);
-    pokazi("zaslonPovezan", !brezHuba && !caka && !stanje.preseljen);
-    pokazi("gumbPozabi", !brezHuba && !caka && !!(most && most.pozabiNapravo));
+    pokazi("zaslonPovezan", !tuSredisce && !brezHuba && !caka && !stanje.preseljen);
+    pokazi("gumbPozabi", !tuSredisce && !brezHuba && !caka && !!(most && most.pozabiNapravo));
+    pokazi("zaslonHubMoznost", !tuSredisce && podpiraHub);
     narisiStanje();
   }
 
@@ -508,6 +564,168 @@
   }
 
   // ----------------------------------------------------------------
+  // Sredisce na tem televizorju
+  // ----------------------------------------------------------------
+
+  var podpiraHub = !!(most && most.hubStanje);
+  var hubUra = null;
+  var hubPodpis = "";
+  var hubPrejPrijav = 0;
+  var odvzemam = "";
+
+  /** Prebere stanje sredisca pri mostu. Na napravah brez te podpore ne naredi nicesar. */
+  function hubOsvezi() {
+    if (!podpiraHub) return;
+    try {
+      var s = JSON.parse(most.hubStanje() || "{}");
+      stanje.hubTece = !!s.tece;
+      stanje.hubPovezanih = s.naprav || 0;
+    } catch (e) {}
+    try {
+      stanje.prijave = JSON.parse(most.hubPrijave() || "[]");
+    } catch (e) {
+      stanje.prijave = [];
+    }
+    try {
+      stanje.hubNaprave = JSON.parse(most.hubSeznanjene() || "[]");
+    } catch (e) {
+      stanje.hubNaprave = [];
+    }
+    narisiHub();
+    narisiZaslon();
+    hubUraNastavi();
+  }
+
+  /** Medtem ko sredisce tece, stanje osvezujemo sami -- nova prijava se mora pokazati sama. */
+  function hubUraNastavi() {
+    if (stanje.hubTece && !hubUra) hubUra = setInterval(hubOsvezi, 4000);
+    if (!stanje.hubTece && hubUra) {
+      clearInterval(hubUra);
+      hubUra = null;
+    }
+  }
+
+  function narisiHub() {
+    // Seznama ne prerisujemo, ce se ni nic spremenilo: na daljincu bi vsako risanje
+    // odneslo fokus z gumba, ki ga ima uporabnik ravno pod prstom.
+    var podpis = JSON.stringify([stanje.prijave, stanje.hubNaprave, odvzemam]);
+    if (podpis === hubPodpis) return;
+    hubPodpis = podpis;
+
+    // Kje je bil fokus? Po izrisu ga vrnemo na isto mesto: brez tega drugi pritisk
+    // na daljincu pade v prazno, ker je element, ki ga je uporabnik gledal, nov.
+    var prejsnjiFokus = null;
+    try {
+      prejsnjiFokus = document.activeElement &&
+        document.activeElement.getAttribute && document.activeElement.getAttribute("data-fokus");
+    } catch (e) {}
+
+    var prijave = el("seznamPrijav");
+    if (prijave) {
+      prijave.innerHTML = "";
+      stanje.prijave.forEach(function (p) { prijave.appendChild(vrsticaPrijave(p)); });
+    }
+    pokazi("panelPrijave", stanje.prijave.length > 0);
+
+    var naprave = el("seznamHubNaprav");
+    if (naprave) {
+      naprave.innerHTML = "";
+      stanje.hubNaprave.forEach(function (n) {
+        // Dostop se odvzame v dveh korakih: en sam pritisk na daljincu je prehitro
+        // storjen, naprava pa se mora potem znova seznaniti.
+        var odvzemamTo = odvzemam === n.id;
+        var vrsticaNaprave = vrstica(
+          "📱",
+          n.ime || t("zaslon"),
+          odvzemamTo ? t("sePotrdi") : t("povezanNaTv"),
+          odvzemamTo ? t("odstrani") : t("povezana"),
+          odvzemamTo ? "" : "zivo",
+          function () {
+            if (!odvzemamTo) {
+              odvzemam = n.id;
+              narisiHub();
+              return;
+            }
+            odvzemam = "";
+            if (most && most.hubPreklici) most.hubPreklici(n.id);
+          });
+        vrsticaNaprave.setAttribute("data-fokus", "naprava:" + n.id);
+        naprave.appendChild(vrsticaNaprave);
+      });
+    }
+    besedilo("opombaHub", stanje.hubNaprave.length ? "" : t("nobeneNaprave"));
+
+    // Fokus nazaj na isto mesto; ce ga ni vec, na cakajoco prijavo.
+    var nicNiFokusirano = !document.activeElement || document.activeElement === document.body;
+    var vrnjen = false;
+    if (prejsnjiFokus) {
+      var isti = document.querySelector('[data-fokus="' + prejsnjiFokus + '"]');
+      if (isti) {
+        try { isti.focus(); vrnjen = true; } catch (e) {}
+      }
+    }
+    // Nova prijava: fokus gre na Potrdi, da je dovolj en pritisk na V redu.
+    // Prav tako takrat, kadar fokus ni nikjer -- daljinec mora vedno imeti kam.
+    if (!vrnjen && stanje.prijave.length &&
+        (stanje.prijave.length > hubPrejPrijav || nicNiFokusirano)) {
+      setTimeout(fokusirajPotrditev, 80);
+    }
+    hubPrejPrijav = stanje.prijave.length;
+  }
+
+  function vrsticaPrijave(p) {
+    var li = document.createElement("li");
+    li.className = "prijava";
+
+    var telo = document.createElement("div");
+    telo.className = "telo";
+    var ime = document.createElement("div");
+    ime.className = "ime";
+    ime.textContent = p.ime || t("zaslon");
+    var pod = document.createElement("div");
+    pod.className = "pod";
+    pod.textContent = t("primerjajKodo");
+    telo.appendChild(ime);
+    telo.appendChild(pod);
+
+    var koda = document.createElement("div");
+    koda.className = "stevilke";
+    koda.textContent = p.koda || "------";
+
+    var tipke = document.createElement("div");
+    tipke.className = "tipke";
+    var potrdi = document.createElement("button");
+    potrdi.className = "glavni";
+    potrdi.setAttribute("data-potrdi", "1");
+    potrdi.setAttribute("data-fokus", "prijava:" + p.id + ":potrdi");
+    potrdi.textContent = t("potrdi");
+    potrdi.addEventListener("click", function () {
+      if (most && most.hubPotrdi) most.hubPotrdi(p.id);
+    });
+    var zavrni = document.createElement("button");
+    zavrni.className = "drugotni tanek";
+    zavrni.setAttribute("data-fokus", "prijava:" + p.id + ":zavrni");
+    zavrni.textContent = t("zavrni");
+    zavrni.addEventListener("click", function () {
+      if (most && most.hubZavrni) most.hubZavrni(p.id);
+    });
+    tipke.appendChild(potrdi);
+    tipke.appendChild(zavrni);
+
+    li.appendChild(telo);
+    li.appendChild(koda);
+    li.appendChild(tipke);
+    return li;
+  }
+
+  function fokusirajPotrditev() {
+    var gumb = document.querySelector("#seznamPrijav button[data-potrdi]");
+    if (gumb) {
+      try { gumb.focus(); } catch (e) {}
+    }
+  }
+
+  // ----------------------------------------------------------------
   // Odzivi mostu
   // ----------------------------------------------------------------
 
@@ -524,6 +742,18 @@
           besedilo("opombaIskanje", t("niNajden"));
           narisiStanje();
         }
+      } else if (vrsta === "hub-tu") {
+        stanje.hubTece = !!(podatki && podatki.tece);
+        stanje.hubPovezanih = (podatki && podatki.naprav) || 0;
+        hubPodpis = "";
+        hubOsvezi();
+      } else if (vrsta === "hub-prijave") {
+        stanje.prijave = podatki || [];
+        narisiHub();
+        narisiZaslon();
+      } else if (vrsta === "hub-seznanjene") {
+        stanje.hubNaprave = podatki || [];
+        narisiHub();
       } else if (vrsta === "preseljen") {
         stanje.preseljen = true;
         besedilo("noviNaslov", prijaznaHisa(podatki && podatki.naslov));
@@ -676,6 +906,20 @@
 
     naKlik("gumbOsvezi", poveziSe);
 
+    naKlik("gumbHubVklopi", function () {
+      besedilo("opombaHubVklop", t("prizigam"));
+      if (most && most.hubVklopi) most.hubVklopi();
+    });
+
+    naKlik("gumbHubIzklopi", function () {
+      if (most && most.hubIzklopi) most.hubIzklopi();
+    });
+
+    naKlik("gumbHubOsvezi", function () {
+      hubPodpis = "";
+      hubOsvezi();
+    });
+
     naKlik("gumbPotrdiNaslov", function () {
       if (!most || !most.potrdiNovNaslov) return;
       besedilo("opombaPreselitev", t("preverjamNaslov"));
@@ -713,14 +957,41 @@
     }
 
     narisiSync();
+    pazljivNaSmerneTipke();
     osveziStanje();
+    hubOsvezi();
     // Na daljincu prvi fokus odloca, kaj uporabnik potrdi: naj bo glavno dejanje,
     // ne krizec za zapiranje.
     setTimeout(fokusirajGlavno, 150);
   });
 
+  /**
+   * Zasilni izhod za daljinec. Ce fokus ni na nobenem gumbu (to se na televizorju zgodi,
+   * kadar se stran na novo izrise), prvi pritisk na smerno tipko ne premakne nicesar --
+   * zato ga porabimo za to, da fokus postavimo na glavno dejanje.
+   */
+  function pazljivNaSmerneTipke() {
+    document.addEventListener("keydown", function (e) {
+      var smerna = e.key === "ArrowUp" || e.key === "ArrowDown" ||
+                   e.key === "ArrowLeft" || e.key === "ArrowRight";
+      if (!smerna) return;
+      var kje = document.activeElement;
+      if (!kje || kje === document.body || kje === document.documentElement) {
+        e.preventDefault();
+        fokusirajGlavno();
+      }
+    }, true);
+  }
+
   function fokusirajGlavno() {
-    var kandidati = ["gumbPoisci", "gumbSeznani", "gumbOsvezi"];
+    // Ce kdo caka na potrditev, je to najpomembnejse na zaslonu.
+    var potrdi = document.querySelector("#seznamPrijav button[data-potrdi]");
+    if (potrdi) {
+      try { potrdi.focus(); } catch (err) {}
+      return;
+    }
+    var kandidati = ["gumbSeznani", "gumbPoisci", "gumbHubVklopi", "gumbHubIzklopi",
+                     "gumbOsvezi", "gumbHubOsvezi"];
     for (var i = 0; i < kandidati.length; i++) {
       var e = el(kandidati[i]);
       if (e && e.offsetParent !== null && !e.disabled) {

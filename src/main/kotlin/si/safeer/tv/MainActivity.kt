@@ -181,6 +181,11 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
         // Safeer Cast: sprejemnik povezav s telefona in računalnika (vozlišče v domačem omrežju).
         startCastReceiver()
 
+        // Safeer Hub v tem brskalniku. Ne zažene se sam od sebe: steče le, če ga je uporabnik
+        // v Safeer Linku že prižgal. Takrat je televizor vozlišče za telefone v hiši tudi
+        // brez računalnika.
+        try { si.safeer.tv.cast.HubKrmilnik.samodejniZagon(this) } catch (_: Exception) {}
+
         // Agent za sezname groženj (Feodo, URLhaus, Phishing Army): shranjeni seznami takoj v ozadju,
         // preverjanje novih ~12 s po zagonu. Zagona in nalaganja strani ne upočasni.
         ThreatFeedsUpdater.start(this)
@@ -533,6 +538,9 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
 
     override fun onDestroy() {
         silenceBackgroundMedia("onDestroy")
+        // Hub tece samo, dokler tece brskalnik. Zeljo uporabnika ohranimo (zapomni = false),
+        // da se ob naslednjem zagonu spet prizge sam.
+        try { si.safeer.tv.cast.HubKrmilnik.ustavi(this, zapomni = false) } catch (_: Exception) {}
         if (::tabManager.isInitialized) {
             for (tab in tabManager.getAllTabs()) {
                 try { tab.webView.destroy() } catch (_: Exception) {}
@@ -1397,7 +1405,6 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
         val menuBtnForward = dialog.findViewById<Button>(R.id.menuBtnForward)
         val menuBtnReload = dialog.findViewById<Button>(R.id.menuBtnReload)
         val menuBtnStar = dialog.findViewById<Button>(R.id.menuBtnStar)
-        val menuBtnShare = dialog.findViewById<Button>(R.id.menuBtnShare)
 
         menuBtnBack.setOnClickListener {
             if (wv?.canGoBack() == true) wv.goBack()
@@ -1427,15 +1434,6 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
                 updateBookmarkButton(curUrl)
                 Toast.makeText(this, getString(R.string.toast_bookmark_added), Toast.LENGTH_SHORT).show()
             }
-            dialog.dismiss()
-        }
-
-        menuBtnShare.setOnClickListener {
-            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, curUrl)
-            }
-            startActivity(Intent.createChooser(shareIntent, UiText.get(R.string.ui_share)))
             dialog.dismiss()
         }
 

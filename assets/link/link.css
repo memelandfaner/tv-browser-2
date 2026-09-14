@@ -285,3 +285,26 @@ button:focus, .seznam li:focus {
 .drugotni:focus, .drobniGumb:focus, .tipke button:focus {
   background: var(--ploscaSvetla);
 }
+
+
+/* Cakajoca prijava: ime naprave, koda in dve tipki. Koda je velika, ker jo uporabnik
+   primerja s tisto na telefonu -- to je edini korak, ki mora biti bran z dveh metrov. */
+.seznam li.prijava {
+  display: block;
+  padding: 16px 18px;
+}
+.seznam li.prijava .stevilke {
+  margin: 10px 0 12px;
+}
+.seznam li.prijava .tipke {
+  display: flex;
+  gap: 10px;
+}
+.seznam li.prijava .tipke button {
+  flex: 1;
+}
+.tuSredisce {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}

@@ -41,6 +41,9 @@ class LinkMost(
     private fun odziv(vrsta: String, podatki: Any) {
         val telo = when (podatki) {
             is JSONObject -> podatki.toString()
+            // Seznam mora priti do strani kot seznam; ce ga zavijemo v narekovaje,
+            // stran dobi besedilo in odziv tiho odpade.
+            is org.json.JSONArray -> podatki.toString()
             is Boolean -> podatki.toString()
             else -> JSONObject.quote(podatki.toString())
         }
@@ -223,7 +226,136 @@ class LinkMost(
     }
 
 
+    // ------------------------------------------------------------------ Hub na televizorju
+
+    /**
+     * Stanje Huba, ki ga gosti ta televizor.
+     *
+     * Ob vsakem pogledu na stran tudi povemo usmerjevalniku, kam naj javi spremembe -
+     * tako se cakajoca prijava pokaze sama od sebe in uporabniku ni treba osvezevati.
+     */
+    @JavascriptInterface
+    fun hubStanje(): String {
+        pripniPoslusalce()
+        return try {
+            si.safeer.tv.cast.HubKrmilnik.stanjeJson(dejavnost)
+        } catch (e: Throwable) {
+            "{\"tece\":false,\"zazelen\":false}"
+        }
+    }
+
+    @JavascriptInterface
+    fun hubVklopi() {
+        try {
+            val uspelo = si.safeer.tv.cast.HubKrmilnik.zazeni(dejavnost)
+            pripniPoslusalce()
+            if (!uspelo) napaka("Huba ni bilo mogoce zagnati.")
+            odziv("hub-tu", JSONObject(hubStanje()))
+        } catch (e: Throwable) {
+            napaka("Huba ni bilo mogoce zagnati: ${e.message}")
+        }
+    }
+
+    @JavascriptInterface
+    fun hubIzklopi() {
+        try {
+            si.safeer.tv.cast.HubKrmilnik.ustavi(dejavnost)
+            odziv("hub-tu", JSONObject(hubStanje()))
+        } catch (e: Throwable) {
+            napaka("Huba ni bilo mogoce ustaviti: ${e.message}")
+        }
+    }
+
+    /** Naprave, ki cakajo na potrditev: ime in sestmestna koda, ki jo naprava kaze na zaslonu. */
+    @JavascriptInterface
+    fun hubPrijave(): String = try {
+        val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik
+        org.json.JSONArray().apply {
+            u?.cakajocePrijave()?.forEach { p ->
+                put(JSONObject().apply {
+                    put("id", p.pairId)
+                    put("ime", p.ime)
+                    put("koda", p.pin)
+                    put("naslov", p.naslov)
+                    put("starost", p.starostSekund)
+                })
+            }
+        }.toString()
+    } catch (e: Throwable) {
+        "[]"
+    }
+
+    /** Uporabnik je na televizorju pritisnil V redu. Nicesar ni treba vtipkati. */
+    @JavascriptInterface
+    fun hubPotrdi(idPrijave: String) {
+        val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik
+        if (u == null) {
+            napaka("Hub ne tece.")
+            return
+        }
+        if (!u.potrdiPrijavo(idPrijave)) {
+            napaka("Prijave ni vec ali pa je poteklo.")
+        }
+        odziv("hub-prijave", org.json.JSONArray(hubPrijave()))
+    }
+
+    @JavascriptInterface
+    fun hubZavrni(idPrijave: String) {
+        si.safeer.tv.cast.HubKrmilnik.usmerjevalnik?.zavrniPrijavo(idPrijave)
+        odziv("hub-prijave", org.json.JSONArray(hubPrijave()))
+    }
+
+    /** Naprave, ki jim je uporabnik ze dovolil. */
+    @JavascriptInterface
+    fun hubSeznanjene(): String = try {
+        val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik
+        org.json.JSONArray().apply {
+            u?.seznanjeneNaprave()?.forEach { n ->
+                put(JSONObject().apply {
+                    put("id", n.deviceId)
+                    put("ime", n.ime)
+                    put("od", n.seznanjenaOb)
+                })
+            }
+        }.toString()
+    } catch (e: Throwable) {
+        "[]"
+    }
+
+    /** Odvzame dostop napravi in jo, ce je povezana, odklopi. */
+    @JavascriptInterface
+    fun hubPreklici(idNaprave: String) {
+        val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik
+        if (u == null) {
+            napaka("Hub ne tece.")
+            return
+        }
+        u.prekliciNapravo(idNaprave)
+        odziv("hub-seznanjene", org.json.JSONArray(hubSeznanjene()))
+    }
+
+    /**
+     * Usmerjevalnik javi spremembe strani, da se nova prijava pokaze takoj.
+     * Poslusalca pripnemo vedno na novo, ker se Hub lahko vmes ugasne in prizge.
+     */
+    private fun pripniPoslusalce() {
+        val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik ?: return
+        u.naSpremembePrijav = { odziv("hub-prijave", org.json.JSONArray(hubPrijave())) }
+        u.naSpremembeNaprav = { odziv("hub-tu", JSONObject(si.safeer.tv.cast.HubKrmilnik.stanjeJson(dejavnost))) }
+    }
+
+
     fun pospravi() {
         // Televizor tu nima odprte povezave, ki bi jo bilo treba zapreti.
+        // Hub pa namenoma tece naprej: televizor je zaslon, ki naj bo dosegljiv tudi
+        // takrat, ko uporabnik zapre ta zaslon in gleda. Ugasne ga uporabnik sam ali
+        // konec brskalnika. Odklopimo samo poslusalca, da stran ne ostane v pomnilniku.
+        try {
+            val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik
+            u?.naSpremembePrijav = null
+            u?.naSpremembeNaprav = null
+        } catch (e: Throwable) {
+            android.util.Log.w(TAG, "Poslusalcev ni bilo mogoce odkljuciti: ${e.message}")
+        }
     }
 }

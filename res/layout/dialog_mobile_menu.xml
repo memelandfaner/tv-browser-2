@@ -54,16 +54,6 @@
             android:text="⭐"
             android:textColor="@color/accent_cyan"
             android:textSize="14sp" />
-
-        <Button
-            android:id="@+id/menuBtnShare"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_mobile_icon_button"
-            android:text="📤"
-            android:textColor="@color/text_primary"
-            android:textSize="14sp" />
     </LinearLayout>
 
     <View
