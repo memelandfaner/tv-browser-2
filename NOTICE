@@ -1,0 +1,21 @@
+Safeer TV Browser
+Copyright 2026 Safeer
+
+Ta izdelek vsebuje programje, razvito v okviru projekta Safeer.
+Izdan je pod licenco Apache License 2.0; besedilo je v datoteki LICENSE.
+
+Tuje knjiznice
+--------------
+V mapi libs/ so prilozene knjiznice drugih avtorjev. Zanje veljajo njihove
+lastne licence, ne ta:
+
+  okhttp, okio            Square, Inc.            Apache License 2.0
+  androidx (annotation,
+  core, webkit)           The Android Open
+                          Source Project          Apache License 2.0
+  Bouncy Castle (ed25519) The Legion of the
+                          Bouncy Castle Inc.      licenca MIT
+
+Filtrski seznami, ki jih brskalnik prenese ob zagonu (EasyList, Phishing Army,
+HaGeZi, abuse.ch, StevenBlack, SI-CERT), niso del te kode in imajo svoje pogoje
+uporabe. Brskalnik jih prenasa neposredno od izdajateljev.

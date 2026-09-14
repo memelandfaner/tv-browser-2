@@ -28,6 +28,16 @@ object AdBlockEngine {
     // Suffix Trie za strogo preverjene varne domene (Bela lista)
     private val whitelistTrie = DomainSuffixTrie()
 
+    // Vgrajena seznama hranimo tudi kot polji, da ju je mogoce preveriti v preizkusih.
+    // POZOR: razglasitev mora stati PRED blokom init, sicer ju ta prepise s praznim
+    // seznamom - polja se v Kotlinu izvedejo po vrstnem redu zapisa.
+    private var _bela: List<String> = emptyList()
+    private var _oglasne: List<String> = emptyList()
+
+    /** Vgrajeni seznami, izpostavljeni za preizkuse higiene (podvojitve, odvecne poddomene). */
+    fun vgrajenaBelaLista(): List<String> = _bela
+    fun vgrajeneOglasneDomene(): List<String> = _oglasne
+
     // 📜 Pravila EasyList (agent za sezname jih prenese, FilterListEngine jih prevede); zamenjava je atomska
     @Volatile
     private var filterSet: FilterSet = FilterSet.EMPTY
@@ -65,12 +75,15 @@ object AdBlockEngine {
         return try { set.decide(FilterRequest(url, page, type))?.block == true } catch (e: RuntimeException) { false }
     }
 
-    /** Bela lista, prave banke in Xplore veljajo tudi za pravila EasyList. */
-    private fun isTrustedForFilterLists(url: String): Boolean {
-        val lower = url.lowercase()
-        val host = try { Uri.parse(lower).host?.lowercase()?.trim() ?: "" } catch (_: Exception) { "" }
-        return host.isEmpty() || ThreatBlockEngine.isRealBankHost(host) || whitelistTrie.matches(host) || isXploreRelated(host, lower)
-    }
+    /** Gostitelj iz naslova; ob nerazumljivem naslovu prazen niz. */
+    private fun gostiteljIz(lower: String): String =
+        try { Uri.parse(lower).host?.lowercase()?.trim() ?: "" } catch (_: Exception) { "" }
+
+    /** Bela lista, prave banke in Xplore veljajo tudi za pravila EasyList.
+     *  Gostitelja sprejme ze razclenjenega, da ga ni treba razclenjevati dvakrat. */
+    private fun jeZaupanjaVreden(lower: String, host: String): Boolean =
+        host.isEmpty() || ThreatBlockEngine.isRealBankHost(host) ||
+            whitelistTrie.matches(host) || isXploreRelated(host, lower)
 
     // Vzorci oglasnih, sledilnih in analitičnih poti (Path Rules)
     // Ne uporabljaj splošnih imen kot /watch.js — to pobije predvajalnike (Xplore TV).
@@ -92,61 +105,75 @@ object AdBlockEngine {
     }
 
     private fun initializeWhitelist() {
+        // Drevo ujame tudi vse poddomene, zato so tu samo korenske domene.
+        // Vnosi kot m.youtube.com ali accounts.google.com so bili odvecni.
         val trusted = listOf(
             "google.com", "google.si", "gstatic.com", "googleapis.com", "googleusercontent.com",
-            "recaptcha.net", "www.recaptcha.net", "apis.google.com", "consent.google.com",
-            "duckduckgo.com", "bing.com", "yahoo.com", "wikipedia.org", "wikimedia.org",
-            "youtube.com", "m.youtube.com", "music.youtube.com", "googlevideo.com", "ytimg.com",
-            "accounts.youtube.com", "accounts.google.com", "myaccount.google.com",
+            "recaptcha.net", "duckduckgo.com", "bing.com", "yahoo.com", "wikipedia.org", "wikimedia.org",
+            "youtube.com", "googlevideo.com", "ytimg.com",
             "nlb.si", "nkbm.si", "skb.si", "dh.si", "intesa.si", "intesasanpaolobank.si",
             "sparkasse.si", "revolut.com", "n26.com", "delavska-hranilnica.si",
             "bks-bank.si", "unicreditbank.si", "lon.si", "gorenjska-banka.si",
             "rtvslo.si", "24ur.com", "siol.net", "github.com",
-            "xploretv.si", "www.xploretv.si", "a1xploretv.si", "a1.si", "a1.net",
-            "cdn23.a1.net", "widevine.com", "drmtoday.com", "castlabs.com", "expressplay.com",
-            "bitmovin.com", "bitmovin-a.akamaihd.net", "theoplayer.com",
-            "akamaihd.net", "akamaized.net",
-            "themoviedb.org", "tmdb.org", "image.tmdb.org", "api.themoviedb.org",
+            "xploretv.si", "a1xploretv.si", "a1.si", "a1.net",
+            "widevine.com", "drmtoday.com", "castlabs.com", "expressplay.com",
+            "bitmovin.com", "theoplayer.com", "akamaihd.net", "akamaized.net",
+            "themoviedb.org", "tmdb.org",
             "streamex.sh", "streamex.ws", "vidlink.pro", "vidsrc.me", "vidsrc.in", "vidsrc.pm",
             "vidsrc.net", "vidsrc.to", "vidsrc.xyz", "autoembed.co", "autoembed.cc", "multiembed.mov",
             "2embed.cc", "111movies.com", "hydrahd.ws", "ythd.org", "megacloud.tv", "rabbitstream.net",
             "dokicloud.one", "vizcloud.online", "filemoon.sx", "streamtape.com", "vidgod.me",
-            "peach.stream", "cinemanos.com", "core.streamex.sh", "streamwish.to", "doodstream.com",
+            "peach.stream", "cinemanos.com", "streamwish.to", "doodstream.com",
             "pornhub.com", "phncdn.com", "phncdn.net"
         )
+        _bela = trusted
         for (d in trusted) whitelistTrie.insert(d)
     }
 
     private fun initializeBlockedDomains() {
-        val adsAndGambling = listOf(
-            // Stavniške & Casino platforme
-            "20bet.com", "20bet.top", "20bet-aff.com", "1xbet.com", "1xbet.mobi", "1xbet-partner.com",
-            "betwinner.com", "melbet.com", "mostbet.com", "vulkanvegas.com", "parimatch.com", "ggbet.com",
-            "betsson.com", "unibet.com", "bet365.com", "betway.com", "bwin.com", "campobet.com",
-            "rabona.com", "fezbet.com", "librabet.com", "nomini.com", "wazamba.com", "sportaza.com",
-            "greatwin.com", "casinia.com", "spinanga.com", "boomerang-casino.com", "pin-up.casino",
+        // Doslej je bil to en sam seznam, v katerem sta se pomesala dva razlicna namena.
+        // Loceno je jasneje in laze vzdrzevati: prvi seznam je oglasno filtriranje, drugi
+        // pa odlocitev o vsebini. Razlika ni kozmeticna - EasyList pokriva prvo, drugega
+        // pa ne pozna in se za glavni okvir sploh ne uporabi, zato mora ostati pri nas.
+        //
+        // Vseh poddomen ni treba nasteti: drevo ujame tudi vse poddomene korenske domene.
 
-            // Popunderji, In-Page Push & Agresivna oglasna omrežja (vključno z video preroll & bannerji)
+        /** Oglasni, sledilni in podtikalni strezniki (popunder, in-page push). */
+        val oglasniStrezniki = listOf(
+            // Podtikanje oken in vsiljena obvestila - to je najbolj motece za uporabnika
             "popads.net", "popcash.net", "monetag.com", "adcash.com", "propellerads.com",
-            "exoclick.com", "trafficjunky.com", "trafficjunky.net", "ads.trafficjunky.net", "delivery.trafficjunky.net",
-            "tsyndicate.com", "et-code.com", "ero-advertising.com", "clickadu.com", "adsterra.com", "adxad.com",
-            "hilltopads.com", "hilltopads.net", "richpush.co", "pushground.com", "admaven.com", "rollerads.com",
-            "juicyads.com", "trafficfactory.biz", "realsrv.com", "onclickalgo.com", "onclickperformance.com",
-            "onclickmega.com", "onclickgate.com", "syndication.exoclick.com", "syndication.realsrv.com",
-            "doublepimp.com", "deloplen.com", "highperformancegate.com", "effectivegate.com", "pussing.com",
-            "propu.sh", "creativecdn.com", "whosamung.us", "traffichaus.com", "bngpt.com", "adnxs.com",
-            "trafficstars.com", "livejasmin.com", "bongacams.com", "chaturbate.com", "stripchat.com", "cam4.com",
+            "exoclick.com", "tsyndicate.com", "et-code.com", "ero-advertising.com", "clickadu.com",
+            "adsterra.com", "adxad.com", "hilltopads.com", "hilltopads.net", "richpush.co",
+            "pushground.com", "admaven.com", "rollerads.com", "juicyads.com", "realsrv.com",
+            "onclickperformance.com", "onclickmega.com", "onclickgate.com", "onclickalgo.com",
+            "doublepimp.com", "deloplen.com", "highperformancegate.com", "effectivegate.com",
+            "pussing.com", "propu.sh", "whosamung.us", "bngpt.com",
 
-            // Oglasni strežniki in sledilci
-            "doubleclick.net", "googleads.g.doubleclick.net", "static.doubleclick.net",
-            "googlesyndication.com", "pagead2.googlesyndication.com", "googleadservices.com",
+            // Oglasni strezniki in sledilci
+            "doubleclick.net", "googlesyndication.com", "googleadservices.com",
             "adservice.google.com", "adservice.google.si", "amazon-adsystem.com",
             "taboola.com", "outbrain.com", "criteo.com", "rubiconproject.com",
             "pubmatic.com", "openx.net", "smartadserver.com", "bidswitch.net", "casalemedia.com",
             "scorecardresearch.com", "quantserve.com", "hotjar.com", "clarity.ms",
+            "adnxs.com", "creativecdn.com", "trafficstars.com",
+            "trafficjunky.com", "trafficjunky.net", "traffichaus.com", "trafficfactory.biz",
             "mc.yandex.ru", "metrika.yandex.ru", "an.yandex.ru"
         )
-        for (d in adsAndGambling) blockedTrie.insert(d)
+
+        /** Vsebinska blokada: stavnice, igralnice in strani za odrasle.
+         *  To ni oglasno filtriranje - tu gre za odlocitev, katere strani se sploh ne odprejo. */
+        val blokiranaVsebina = listOf(
+            "20bet.com", "1xbet.com", "betwinner.com", "melbet.com", "mostbet.com",
+            "vulkanvegas.com", "parimatch.com", "ggbet.com", "betsson.com", "unibet.com",
+            "bet365.com", "betway.com", "bwin.com", "campobet.com", "rabona.com", "fezbet.com",
+            "librabet.com", "nomini.com", "wazamba.com", "sportaza.com", "greatwin.com",
+            "casinia.com", "spinanga.com", "boomerang-casino.com", "pin-up.casino",
+            "livejasmin.com", "bongacams.com", "chaturbate.com", "stripchat.com", "cam4.com"
+        )
+
+        val vse = oglasniStrezniki + blokiranaVsebina
+        _oglasne = vse
+        for (d in vse) blockedTrie.insert(d)
     }
 
     /**
@@ -171,6 +198,11 @@ object AdBlockEngine {
     fun shouldBlockUrl(url: String): Boolean {
         if (!isEnabled || url.isEmpty()) return false
         val lower = url.lowercase()
+        return vgrajenoBlokira(lower, gostiteljIz(lower))
+    }
+
+    /** Odlocitev vgrajenih pravil za ze razclenjen naslov. */
+    private fun vgrajenoBlokira(lower: String, host: String): Boolean {
 
         // 1. Devtools zaščita (disable-devtool.js vedno blokiraj)
         if (lower.contains("disable-devtool") || lower.contains("devtools-detector")) {
@@ -186,10 +218,7 @@ object AdBlockEngine {
         }
 
         // 2. Domene: bela lista PREJ, da predvajalnik (npr. Xplore /watch.js) ni izpraznjen
-        try {
-            val uri = Uri.parse(lower)
-            val host = uri.host?.lowercase()?.trim() ?: ""
-
+        run {
             if (host.isNotEmpty()) {
                 // Prave banke in plačilna infrastruktura (katalog BankGuard) delujejo brez posegov
                 if (ThreatBlockEngine.isRealBankHost(host)) return false
@@ -204,7 +233,7 @@ object AdBlockEngine {
                     return false
                 }
             }
-        } catch (_: Exception) {}
+        }
 
         // 3. Preverjanje poti samo za nezaupanja vredne gostitelje
         for (pattern in BLOCKED_PATH_PATTERNS) {
@@ -242,7 +271,13 @@ object AdBlockEngine {
         if (!isEnabled) return null
         val lower = url.lowercase()
 
-        if (shouldBlockUrl(url) || (!isMainFrame && !isTrustedForFilterLists(url) && filterListBlocks(url, pageUrl, accept, isMainFrame))) {
+        // Naslov razclenimo enkrat; oba sloja dobita isti rezultat.
+        val host = gostiteljIz(lower)
+        val vgrajeno = url.isNotEmpty() && vgrajenoBlokira(lower, host)
+        val poSeznamih = !vgrajeno && !isMainFrame && !jeZaupanjaVreden(lower, host) &&
+            filterListBlocks(url, pageUrl, accept, isMainFrame)
+
+        if (vgrajeno || poSeznamih) {
             blockedAdsCount.incrementAndGet()
             android.util.Log.d("SafeerAdBlock", "blokirano: ${url.take(120)}")
             onAdBlocked?.invoke()
