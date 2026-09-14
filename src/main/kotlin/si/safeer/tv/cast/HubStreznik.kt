@@ -53,6 +53,9 @@ class HubStreznik(
     private var vticnica: ServerSocket? = null
     private val povezave = CopyOnWriteArrayList<Povezava>()
 
+    /** Koliko bajtov trenutno zadrzujejo vse povezave skupaj (sestavljanje sporocil). */
+    private val skupajZadrzano = java.util.concurrent.atomic.AtomicLong(0)
+
     /** Vrata, na katerih streznik dejansko poslusa (lahko se razlikujejo od zeljenih). */
     @Volatile
     var vrata: Int = 0
@@ -64,7 +67,7 @@ class HubStreznik(
         vticnica = vt
         vrata = vt.localPort
         tece.set(true)
-        thread(name = "safeer-hub-accept", isDaemon = true) { zankaSprejemanja(vt) }
+        zazeniNit("safeer-hub-accept") { zankaSprejemanja(vt) }
         Log.i(OZNAKA, "Hub posluša na vratih $vrata")
         return true
     }
@@ -99,12 +102,25 @@ class HubStreznik(
     private fun odpriVticnico(): ServerSocket? {
         for (kandidat in listOf(zeljenaVrata, 0)) {
             try {
-                return ServerSocket(kandidat, 64, InetAddress.getByName("0.0.0.0"))
+                return ServerSocket(kandidat, CAKALNA_VRSTA, InetAddress.getByName("0.0.0.0"))
             } catch (e: Exception) {
                 Log.w(OZNAKA, "Vrat $kandidat ni bilo mogoče odpreti: ${e.message}")
             }
         }
         return null
+    }
+
+    /**
+     * Niti zaganjamo s privzetim skladom. Poskus, da bi ga zmanjsali, se je v preizkusu
+     * koncal s StackOverflowError: sklad je navidezni pomnilnik, ki se dodeljuje sproti,
+     * zato neaktivna nit v resnici porabi le nekaj kilobajtov - prihranek bi bil navidezen,
+     * tveganje sesutja pa pravo. Pomnilnik zares omejujeta stevilo povezav in velikost
+     * sporocil, ne velikost sklada.
+     */
+    private fun zazeniNit(ime: String, blok: () -> Unit) {
+        val nit = Thread(null, { blok() }, ime)
+        nit.isDaemon = true
+        nit.start()
     }
 
     private fun zankaSprejemanja(vt: ServerSocket) {
@@ -115,7 +131,7 @@ class HubStreznik(
                 if (tece.get()) Log.w(OZNAKA, "Napaka pri sprejemanju: ${e.message}")
                 break
             }
-            thread(name = "safeer-hub-odjemalec", isDaemon = true) {
+            zazeniNit("safeer-hub-odjemalec") {
                 try {
                     postrezi(odjemalec)
                 } catch (e: Exception) {
@@ -150,6 +166,12 @@ class HubStreznik(
             val kljuc = zahteva.glave["sec-websocket-key"]
             if (kljuc.isNullOrBlank()) {
                 posljiOdgovor(izhod, Odgovor(400, "{\"napaka\":\"manjka kljuc\"}"))
+                return
+            }
+            // Hisa ima nekaj naprav, ne nekaj sto. Odvecno povezavo raje zavrnemo, kot da
+            // bi z niti in medpomnilniki po nepotrebnem jedli pomnilnik naprave.
+            if (povezave.size >= NAJVEC_POVEZAV) {
+                posljiOdgovor(izhod, Odgovor(503, "{\"napaka\":\"preveč povezanih naprav\"}"))
                 return
             }
             rokovanje(izhod, kljuc)
@@ -281,6 +303,7 @@ class HubStreznik(
         405 -> "Method Not Allowed"
         409 -> "Conflict"
         429 -> "Too Many Requests"
+        503 -> "Service Unavailable"
         else -> "Internal Server Error"
     }
 
@@ -339,6 +362,30 @@ class HubStreznik(
         private val odprta = AtomicBoolean(true)
         private val kljucnicaPisanja = Any()
 
+        /**
+         * Koliko bajtov ta povezava trenutno zadrzuje pri sestavljanju sporocila. Racun je
+         * tudi skupen: vse povezave skupaj ne smejo zadrzati vec, kot dovoli meja, sicer bi
+         * lahko nekaj naprav hkrati napolnilo pomnilnik naprave.
+         */
+        private var zadrzano = 0L
+
+        private fun zadrziBajte(n: Int): Boolean {
+            val skupaj = skupajZadrzano.addAndGet(n.toLong())
+            if (skupaj > NAJVECJI_SKUPNI_ZADRZEK) {
+                skupajZadrzano.addAndGet(-n.toLong())
+                return false
+            }
+            zadrzano += n
+            return true
+        }
+
+        private fun sprostiZadrzek() {
+            if (zadrzano > 0) {
+                skupajZadrzano.addAndGet(-zadrzano)
+                zadrzano = 0
+            }
+        }
+
         /** Kaj narediti s prejetim sporocilom; nastavi usmerjevalnik. */
         @Volatile
         var naSporocilo: ((String) -> Unit)? = null
@@ -365,6 +412,7 @@ class HubStreznik(
 
         fun zapri(koda: Int = 1000, razlog: String = "") {
             if (!odprta.getAndSet(false)) return
+            sprostiZadrzek()
             try {
                 synchronized(kljucnicaPisanja) {
                     val telo = ByteArrayOutputStream()
@@ -413,6 +461,7 @@ class HubStreznik(
             var zbrano = ByteArrayOutputStream()
             var zbranaOpkoda = -1
             var zadnjiPing = System.currentTimeMillis()
+            var tihihKrogov = 0
 
             while (jeOdprta()) {
                 val prvi = try {
@@ -422,6 +471,13 @@ class HubStreznik(
                     val zdaj = System.currentTimeMillis()
                     if (zdaj - zadnjiPing > PING_VSAKIH_MS) {
                         zadnjiPing = zdaj
+                        // Naprava, ki se po vec pingih ne oglasi, je najbrz izginila
+                        // (izklopljen wifi, ugasnjen telefon). Taksne povezave ne drzimo
+                        // odprte, sicer se nit in medpomnilnik kopicita.
+                        if (++tihihKrogov > NAJVEC_TIHIH_KROGOV) {
+                            zapri(1001, "naprava se ne oglaša")
+                            break
+                        }
                         synchronized(kljucnicaPisanja) {
                             try {
                                 zapisiOkvir(OPKODA_PING, ByteArray(0))
@@ -436,6 +492,7 @@ class HubStreznik(
                     break
                 }
                 if (prvi < 0) break
+                tihihKrogov = 0
 
                 val zakljucen = (prvi and 0x80) != 0
                 val opkoda = prvi and 0x0F
@@ -485,6 +542,10 @@ class HubStreznik(
                             zapri(1009, "sporočilo je preveliko")
                             return
                         }
+                        if (!zadrziBajte(podatki.size)) {
+                            zapri(1013, "naprava naj poskusi znova")
+                            return
+                        }
                         zbrano.write(podatki)
                         if (zakljucen) {
                             if (zbranaOpkoda == OPKODA_BESEDILO) {
@@ -497,6 +558,7 @@ class HubStreznik(
                             }
                             zbrano = ByteArrayOutputStream()
                             zbranaOpkoda = -1
+                            sprostiZadrzek()
                         }
                     }
                 }
@@ -531,11 +593,20 @@ class HubStreznik(
         private const val OPKODA_PING = 0x9
         private const val OPKODA_PONG = 0xA
 
-        private const val NAJVECJE_SPOROCILO = 1L * 1024 * 1024
-        private const val NAJVECJE_TELO = 256 * 1024
+        // Meje so postavljene po meritvi na televizorju: naprava ima okoli 2,7 GB, prostega
+        // pa je le nekaj sto MB, brskalnik sam pa je ze velik. Java kopica ni ozko grlo -
+        // nevarno je, da sistem zaradi pomanjkanja pomnilnika ubije cel brskalnik. Zato
+        // raje zavrnemo odvecno povezavo ali preveliko sporocilo, kot da tvegamo to.
+        const val NAJVEC_POVEZAV = 6
+        private const val NAJVECJE_SPOROCILO = 256L * 1024
+        private const val NAJVECJI_SKUPNI_ZADRZEK = 1L * 1024 * 1024
+        private const val NAJVECJE_TELO = 64 * 1024
         private const val NAJVECJA_VRSTICA = 8 * 1024
         private const val NAJVEC_GLAV = 64
         private const val BRALNI_TIMEOUT_MS = 30_000
         private const val PING_VSAKIH_MS = 25_000L
+        /** Po toliko zaporednih pingih brez odziva povezavo zapremo, da se ne kopicijo. */
+        private const val NAJVEC_TIHIH_KROGOV = 3
+        private const val CAKALNA_VRSTA = 16
     }
 }

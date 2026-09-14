@@ -239,7 +239,60 @@ fun main() {
         o.zapri()
     }
 
-    Thread.sleep(300)
+    // 6) preveliko sporocilo mora povezavo koncati, ne pa pojesti pomnilnika naprave
+    run {
+        val o = TestniOdjemalec(vrata)
+        o.posljiSurovo(
+            "GET /cast/ws?ticket=prava HTTP/1.1\r\nHost: test\r\n" +
+                "Upgrade: websocket\r\nConnection: Upgrade\r\n" +
+                "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
+        )
+        o.preberiGlave()
+        // Strežnik zavrne že po glavi okvirja in povezavo zapre, zato pisanje najbrž ne
+        // steče do konca - prav to je zaželeno, ker podatkov sploh ne vzame v pomnilnik.
+        var zaprlJePriPisanju = false
+        try {
+            o.posljiBesedilo("x".repeat(400 * 1024))
+        } catch (e: Exception) {
+            zaprlJePriPisanju = true
+        }
+        val opkoda = if (zaprlJePriPisanju) 0x8 else o.preberiOkvir().first
+        preveri(
+            "preveliko sporočilo konča povezavo (opkoda=$opkoda, zaprl med pisanjem=$zaprlJePriPisanju)",
+            opkoda == 0x8 || opkoda == -1
+        )
+        o.zapri()
+    }
+
+    Thread.sleep(400)
+
+    // 7) stevilo hkratnih povezav je omejeno; odvecna naprava dobi vljudno zavrnitev
+    run {
+        val odprte = ArrayList<TestniOdjemalec>()
+        for (i in 0 until HubStreznik.NAJVEC_POVEZAV) {
+            val o = TestniOdjemalec(vrata)
+            o.posljiSurovo(
+                "GET /cast/ws?ticket=prava HTTP/1.1\r\nHost: test\r\n" +
+                    "Upgrade: websocket\r\nConnection: Upgrade\r\n" +
+                    "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
+            )
+            val (prva, _) = o.preberiGlave()
+            preveri("povezava ${i + 1} je sprejeta: $prva", prva.contains(" 101 "))
+            odprte.add(o)
+        }
+        val cez = TestniOdjemalec(vrata)
+        cez.posljiSurovo(
+            "GET /cast/ws?ticket=prava HTTP/1.1\r\nHost: test\r\n" +
+                "Upgrade: websocket\r\nConnection: Upgrade\r\n" +
+                "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
+        )
+        val (prva, _) = cez.preberiGlave()
+        preveri("povezava čez mejo je zavrnjena: $prva", prva.contains(" 503 "))
+        cez.zapri()
+        for (o in odprte) o.zapri()
+    }
+
+    Thread.sleep(400)
     streznik.ustavi()
     preveri("po ustavitvi ne teče", !streznik.teceZdaj())
 
