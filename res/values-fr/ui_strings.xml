@@ -108,4 +108,9 @@
   <string name="ui_lists_first_download">Listes de menaces : premier téléchargement en arrière-plan</string>
   <string name="ui_lists_checked">✅ Listes vérifiées : %1$s règles de sécurité actives</string>
   <string name="ui_bankguard_status">Protection contre les fausses banques en ligne : les vraies banques fonctionnent normalement</string>
+  <string name="ui_downloads_title">📥 Téléchargements</string>
+  <string name="ui_downloads_empty">Aucun fichier téléchargé.</string>
+  <string name="ui_downloads_cannot_open">Aucune application de ce téléviseur ne peut ouvrir ce fichier. Il est enregistré dans Téléchargements.</string>
+  <string name="ui_downloads_running">téléchargement</string>
+  <string name="ui_downloads_failed">échec du téléchargement</string>
 </resources>

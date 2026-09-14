@@ -108,4 +108,9 @@
   <string name="ui_lists_first_download">Threat lists: first download running in the background</string>
   <string name="ui_lists_checked">✅ Lists checked: %1$s security rules in use</string>
   <string name="ui_bankguard_status">Fake online bank protection: real banks work normally</string>
+  <string name="ui_downloads_title">📥 Downloads</string>
+  <string name="ui_downloads_empty">No downloaded files.</string>
+  <string name="ui_downloads_cannot_open">No app on this television can open this file. It is saved in the Downloads folder.</string>
+  <string name="ui_downloads_running">downloading</string>
+  <string name="ui_downloads_failed">download failed</string>
 </resources>

@@ -111,6 +111,7 @@ class TabManager(
         }
         container.addView(target.webView)
         zbudi(target)
+        strojniSloj(target.webView, true)
         for (tab in tabs) {
             try {
                 if (tab.id == tabId) tab.webView.onResume()
@@ -163,6 +164,9 @@ class TabManager(
             // prebuditev hitra.
             tab.webView.clearCache(false)
             tab.webView.onPause()
+            // Zavihek, ki ga nihce ne gleda, ne potrebuje strojnega sloja: ta je na
+            // televizorju cel zaslon velika slika v graficnem pomnilniku.
+            strojniSloj(tab.webView, false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 tab.webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_WAIVED, true)
             }
@@ -192,6 +196,32 @@ class TabManager(
         } catch (e: Exception) {
             Log.w(TAG, "Zavihka ni bilo mogoce prebuditi: ${e.message}")
         }
+    }
+
+    /**
+     * Strojni sloj je hiter, a stane cel zaslon grafike. Ima ga naj samo zavihek, ki je na
+     * zaslonu; drugim ga vzamemo in ga ob vrnitvi vrnemo.
+     */
+    private fun strojniSloj(pogled: ChromiumEngineView, vklopljen: Boolean) {
+        try {
+            pogled.setLayerType(
+                if (vklopljen) android.view.View.LAYER_TYPE_HARDWARE else android.view.View.LAYER_TYPE_NONE,
+                null
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Sloja ni bilo mogoce spremeniti: ${e.message}")
+        }
+    }
+
+    /**
+     * Ob hudi stiski s pomnilnikom sprostimo se predpomnilnik strani v pomnilniku (slike in
+     * viri se po potrebi preberejo z diska). Vsebine, ki jo uporabnik gleda, to ne pokvari.
+     */
+    fun sprostiPredpomnilnike() {
+        for (tab in tabs) {
+            try { tab.webView.clearCache(false) } catch (_: Exception) {}
+        }
+        Log.i(TAG, "Predpomnilniki strani sproscen")
     }
 
     /** Ali kateri zavihek trenutno predvaja; tak ne zaspi. */

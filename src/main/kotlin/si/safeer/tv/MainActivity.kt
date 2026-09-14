@@ -547,6 +547,10 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
             if (level < TRIM_MEMORY_RUNNING_LOW) return
             val vse = level >= TRIM_MEMORY_RUNNING_CRITICAL
             if (::tabManager.isInitialized) tabManager.uspavajOzadje(vse)
+            if (vse) {
+                if (::tabManager.isInitialized) tabManager.sprostiPredpomnilnike()
+                UserScriptManager.sprostiPredpomnilnik()
+            }
             android.util.Log.i(
                 "SafeerPomnilnik",
                 "Sistem javlja pomanjkanje pomnilnika (stopnja $level); zavihki v ozadju gredo spat."
@@ -1481,21 +1485,12 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
 
         dialog.findViewById<LinearLayout>(R.id.rowMenuDownloads).setOnClickListener {
             dialog.dismiss()
-            try {
-                startActivity(Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS))
-            } catch (_: Exception) {
-                Toast.makeText(this, UiText.get(R.string.ui_downloads_location), Toast.LENGTH_SHORT).show()
-            }
+            showDownloadsDialog()
         }
 
         dialog.findViewById<LinearLayout>(R.id.rowMenuHistory).setOnClickListener {
             dialog.dismiss()
             showHistoryDialog()
-        }
-
-        dialog.findViewById<LinearLayout>(R.id.rowMenuFindInPage).setOnClickListener {
-            dialog.dismiss()
-            showFindInPage()
         }
 
         val cbDesktop = dialog.findViewById<CheckBox>(R.id.cbDesktopSite)
@@ -1701,6 +1696,83 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
             }
             .setNegativeButton(UiText.get(R.string.ui_close), null)
             .show()
+    }
+
+    /**
+     * Prenosi v svojem oknu.
+     *
+     * Prej je ta vrstica v meniju odprla sistemsko namero za prikaz prenosov, televizor pa
+     * take aplikacije nima - uporabnik je dobil sporocilo, da dejanja ne more obdelati noben
+     * program. Zdaj seznam pokazemo sami: preberemo ga pri sistemskem prenosniku, kar pomeni,
+     * da vidimo tudi tiste, ki se prenasajo, in da ne potrebujemo dovoljenja za shrambo.
+     */
+    private fun showDownloadsDialog() {
+        val dm = getSystemService(Context.DOWNLOAD_SERVICE) as? android.app.DownloadManager
+        val vrstice = ArrayList<String>()
+        val idji = ArrayList<Long>()
+        try {
+            dm?.query(android.app.DownloadManager.Query())?.use { c ->
+                val iId = c.getColumnIndex(android.app.DownloadManager.COLUMN_ID)
+                val iNaslov = c.getColumnIndex(android.app.DownloadManager.COLUMN_TITLE)
+                val iStanje = c.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS)
+                val iVelikost = c.getColumnIndex(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                val iDoslej = c.getColumnIndex(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                while (c.moveToNext() && vrstice.size < 50) {
+                    val ime = (if (iNaslov >= 0) c.getString(iNaslov) else null) ?: "?"
+                    val stanje = if (iStanje >= 0) c.getInt(iStanje) else 0
+                    val velikost = if (iVelikost >= 0) c.getLong(iVelikost) else -1L
+                    val doslej = if (iDoslej >= 0) c.getLong(iDoslej) else 0L
+                    val opis = when (stanje) {
+                        android.app.DownloadManager.STATUS_SUCCESSFUL -> velikostVBesedi(velikost)
+                        android.app.DownloadManager.STATUS_FAILED -> UiText.get(R.string.ui_downloads_failed)
+                        else -> {
+                            val delez = if (velikost > 0) (doslej * 100 / velikost) else 0L
+                            UiText.get(R.string.ui_downloads_running) + " · " + delez + "%"
+                        }
+                    }
+                    vrstice.add(ime + "\n" + opis)
+                    idji.add(if (iId >= 0) c.getLong(iId) else -1L)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("SafeerPrenosi", "Seznama prenosov ni bilo mogoce prebrati: " + e.message)
+        }
+
+        val gradnik = AlertDialog.Builder(this).setTitle(UiText.get(R.string.ui_downloads_title))
+        if (vrstice.isEmpty()) {
+            gradnik.setMessage(UiText.get(R.string.ui_downloads_empty))
+        } else {
+            gradnik.setItems(vrstice.toTypedArray()) { _, kateri -> odpriPrenos(idji[kateri]) }
+        }
+        gradnik.setNegativeButton(UiText.get(R.string.ui_close), null).show()
+    }
+
+    private fun velikostVBesedi(bajtov: Long): String {
+        if (bajtov <= 0) return ""
+        val mb = bajtov / 1048576.0
+        return if (mb >= 1) String.format("%.1f MB", mb) else String.format("%.0f kB", bajtov / 1024.0)
+    }
+
+    /** Odpre preneseno datoteko s programom, ki jo zna odpreti; ce ga ni, to jasno povemo. */
+    private fun odpriPrenos(id: Long) {
+        if (id < 0) return
+        val dm = getSystemService(Context.DOWNLOAD_SERVICE) as? android.app.DownloadManager ?: return
+        try {
+            val naslov = dm.getUriForDownloadedFile(id)
+            if (naslov == null) {
+                Toast.makeText(this, UiText.get(R.string.ui_downloads_running), Toast.LENGTH_SHORT).show()
+                return
+            }
+            val vrsta = dm.getMimeTypeForDownloadedFile(id) ?: "*/*"
+            val namera = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(naslov, vrsta)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(namera)
+        } catch (e: Exception) {
+            Toast.makeText(this, UiText.get(R.string.ui_downloads_cannot_open), Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun setupFindInPage() {

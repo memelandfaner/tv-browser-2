@@ -956,6 +956,19 @@ object UserScriptManager {
     @Volatile
     private var cachedXploreAuthJs: String? = null
 
+    /**
+     * Vbrizgane skripte hranimo v pomnilniku, ker jih beremo ob vsaki strani. Ko sistemu
+     * zmanjkuje pomnilnika, jih izpustimo - naslednjic se preberejo iz aplikacije.
+     */
+    fun sprostiPredpomnilnik() {
+        cachedTvSpatialJs = null
+        cachedSiteXploreJs = null
+        cachedSiteHydraJs = null
+        cachedSite24urJs = null
+        cachedSiteAgentJs = null
+        cachedXploreAuthJs = null
+    }
+
     private fun assetJs(webView: WebView, name: String, cache: () -> String?, store: (String) -> Unit): String {
         cache()?.let { return it }
         val js = webView.context.assets.open(name).bufferedReader(Charsets.UTF_8).use { it.readText() }

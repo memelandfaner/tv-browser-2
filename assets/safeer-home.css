@@ -9,3 +9,11 @@ body{overflow:auto;background-image:radial-gradient(ellipse at 50% 0,rgba(155,21
 .remote-help{display:flex;gap:28px;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid #2c4033;color:#afc1b5;font-size:13px}.remote-help span{display:flex;align-items:center;gap:8px}.remote-help b{color:#e4eee6;background:#263b2d;padding:3px 7px;border-radius:5px;font-size:12px}.remote-help i{width:9px;height:9px;border-radius:50%;display:inline-block}.remote-red{background:#ef8b87}.remote-green{background:#b5eb8d}
 @media(max-width:850px){.stage{width:calc(100% - 48px)}.hero-card{height:145px}.hero-label{font-size:17px}.more-row{grid-template-columns:repeat(4,minmax(0,1fr))}.remote-help{flex-wrap:wrap;gap:16px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* Oznaka izbranega naj bo povsod ista: zelen rob brez sija. Prej so imele manjse tipke
+   svoj moder obroc, cez katerega je risala se nasa zelena oznaka - videti je bilo kot
+   dvojni obroc. Velike plosce so bile ze zelene, zdaj so enake vse. */
+.favorite-tile.mini:focus,.favorite-tile.mini.safeer-active-card{background:#19261e;border-color:#b5eb8d;box-shadow:none;transform:none}
+.edit-chip:focus,.edit-chip.safeer-active-card{background:#1c2a22;color:#e8f3e2;border-color:#b5eb8d;box-shadow:none}
+.engine-chip:focus,.engine-chip.safeer-active-card{background:#1c2a22;color:#e8f3e2;border-color:#b5eb8d;box-shadow:none}
+.search-btn:focus,.search-btn.safeer-active-card{background:#b5eb8d;color:#101814;box-shadow:none}
+.search-bar-wrapper:focus-within,.search-bar-wrapper.safeer-active-card{border-color:#b5eb8d;background:transparent;box-shadow:none}

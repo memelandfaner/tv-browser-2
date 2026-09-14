@@ -108,4 +108,9 @@
   <string name="ui_lists_first_download">Elenchi di minacce: primo download in background</string>
   <string name="ui_lists_checked">✅ Elenchi verificati: %1$s regole di sicurezza attive</string>
   <string name="ui_bankguard_status">Protezione dalle false banche online: le banche vere funzionano normalmente</string>
+  <string name="ui_downloads_title">📥 Download</string>
+  <string name="ui_downloads_empty">Nessun file scaricato.</string>
+  <string name="ui_downloads_cannot_open">Nessuna app di questo televisore può aprire questo file. È salvato nella cartella Download.</string>
+  <string name="ui_downloads_running">in download</string>
+  <string name="ui_downloads_failed">download non riuscito</string>
 </resources>

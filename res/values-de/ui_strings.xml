@@ -108,4 +108,9 @@
   <string name="ui_lists_first_download">Bedrohungslisten: erster Download läuft im Hintergrund</string>
   <string name="ui_lists_checked">✅ Listen geprüft: %1$s Sicherheitsregeln aktiv</string>
   <string name="ui_bankguard_status">Schutz vor gefälschten Online-Banken: echte Banken funktionieren normal</string>
+  <string name="ui_downloads_title">📥 Downloads</string>
+  <string name="ui_downloads_empty">Keine heruntergeladenen Dateien.</string>
+  <string name="ui_downloads_cannot_open">Keine App auf diesem Fernseher kann diese Datei öffnen. Sie liegt im Ordner Downloads.</string>
+  <string name="ui_downloads_running">wird geladen</string>
+  <string name="ui_downloads_failed">Download fehlgeschlagen</string>
 </resources>

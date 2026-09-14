@@ -108,4 +108,9 @@
   <string name="ui_lists_first_download">Seznami groženj: prvi prenos poteka v ozadju</string>
   <string name="ui_lists_checked">✅ Seznami preverjeni: %1$s varnostnih pravil v uporabi</string>
   <string name="ui_bankguard_status">Zaščita pred lažnimi spletnimi bankami: prave banke delujejo nemoteno</string>
+  <string name="ui_downloads_title">📥 Prenosi</string>
+  <string name="ui_downloads_empty">Ni prenesenih datotek.</string>
+  <string name="ui_downloads_cannot_open">Te datoteke na televizorju ne zna odpreti noben program. Shranjena je v mapi Prenosi.</string>
+  <string name="ui_downloads_running">se prenaša</string>
+  <string name="ui_downloads_failed">prenos ni uspel</string>
 </resources>
