@@ -26,16 +26,17 @@ VRH_STRANI = 0.13
 VZOREC = (160, 90)
 
 
-def _piksli(slika: Image.Image):
+def _piksli(slika: Image.Image, vrh: float = None, dno: float = 1.0):
     w, h = slika.size
-    stran = slika.convert("RGB").crop((0, int(h * VRH_STRANI), w, h)).resize(VZOREC)
+    vrh = VRH_STRANI if vrh is None else vrh
+    stran = slika.convert("RGB").crop((0, int(h * vrh), w, int(h * dno))).resize(VZOREC)
     bajti = stran.tobytes()
     return [tuple(bajti[i:i + 3]) for i in range(0, len(bajti), 3)]
 
 
-def izmeri(slika: Image.Image) -> dict:
+def izmeri(slika: Image.Image, vrh: float = None, dno: float = 1.0) -> dict:
     """Stiri stevilke, ki opisejo stran pod orodno vrstico."""
-    px = _piksli(slika)
+    px = _piksli(slika, vrh, dno)
     n = len(px)
     return {
         "svetlost": sum(sum(p) for p in px) / (3 * n),
@@ -45,13 +46,13 @@ def izmeri(slika: Image.Image) -> dict:
     }
 
 
-def plakat_prisoten(slika: Image.Image) -> bool:
+def plakat_prisoten(slika: Image.Image, vrh: float = None, dno: float = 1.0) -> bool:
     """Ali je na zaslonu privzeti sivi plakat Androida?
 
     Izmerjeno: plakat 98,4 / sivi 1,00 / 6 barv. Crn prehod po popravku
     0,0 / 1,00 / 1 barva. Prava slika videa 50,8 / 0,63 / 403 barve.
     """
-    m = izmeri(slika)
+    m = izmeri(slika, vrh, dno)
     return (m["delez_sivih"] >= 0.98
             and 60 <= m["svetlost"] <= 180
             and m["barv"] <= 12)
@@ -68,7 +69,7 @@ def stran_zatemnjena(svetla: Image.Image, temna: Image.Image) -> bool:
     return a > 5 and b * 2.5 <= a
 
 
-def opis(slika: Image.Image) -> str:
-    m = izmeri(slika)
+def opis(slika: Image.Image, vrh: float = None, dno: float = 1.0) -> str:
+    m = izmeri(slika, vrh, dno)
     return ("svetlost %.1f, nasicenost %.1f, delez sivih %.2f, barv %d"
             % (m["svetlost"], m["nasicenost"], m["delez_sivih"], m["barv"]))
