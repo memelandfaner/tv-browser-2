@@ -935,7 +935,9 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
                     editUrl.selectAll()
                 }
                 btnClearUrl.visibility = if (editUrl.text.isNotEmpty()) View.VISIBLE else View.GONE
-                fetchGoogleSuggestions(editUrl.text.toString())
+                // Ob samem prihodu fokusa ne posljemo nicesar: v polju je naslov odprte
+                // strani, ta pa ni iskalni niz in ne sodi v Googlovo storitev za predloge.
+                suggestionsListContainer.removeAllViews()
             } else {
                 omniboxContainer.setBackgroundResource(R.drawable.bg_mobile_omnibox)
                 btnClearUrl.visibility = View.GONE
@@ -1030,10 +1032,24 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
     private val suggestionHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var suggestionRunnable: Runnable? = null
 
+    /** Ali je besedilo videti kot naslov strani in ne kot iskanje. */
+    private fun jeNaslovStrani(besedilo: String): Boolean {
+        val t = besedilo.trim().lowercase()
+        if (t.isEmpty()) return false
+        if (t.contains("://") || t.startsWith("file:") || t.startsWith("about:") ||
+            t.startsWith("safeer:") || t.startsWith("data:") || t.startsWith("content:")
+        ) {
+            return true
+        }
+        if (t.contains(" ")) return false
+        return t.contains(".") && !t.endsWith(".")
+    }
+
     private fun fetchGoogleSuggestions(query: String) {
         val trimmed = query.trim()
         suggestionRunnable?.let { suggestionHandler.removeCallbacks(it) }
-        if (trimmed.isEmpty()) {
+        // Naslovov strani ne posiljamo nikomur; predlogi so za iskanje, ne za brskanje.
+        if (trimmed.length < 2 || jeNaslovStrani(trimmed)) {
             runOnUiThread { suggestionsListContainer.removeAllViews() }
             return
         }
