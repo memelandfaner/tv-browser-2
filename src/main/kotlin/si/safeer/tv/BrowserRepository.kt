@@ -31,6 +31,13 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
         private const val COL_BM_URL = "url"
         private const val COL_BM_ICON = "icon"
 
+        /**
+         * Koliko obiskov hranimo. Televizor ima malo pomnilnika, neskoncna zgodovina pa
+         * nikomur ne koristi - kar je starejse, se hitreje najde z iskalnikom.
+         */
+        const val NAJVEC_ZGODOVINE = 200
+        private const val NAJSTAREJSI_DNEVI = 60L
+
         private const val TABLE_HISTORY = "history"
         private const val COL_HIST_ID = "id"
         private const val COL_HIST_TITLE = "title"
@@ -133,12 +140,39 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     fun addHistory(title: String, url: String) {
         if (url.startsWith("about:") || url.isEmpty()) return
         val db = writableDatabase
-        val cv = ContentValues().apply {
-            put(COL_HIST_TITLE, title.ifEmpty { url })
-            put(COL_HIST_URL, url)
-            put(COL_HIST_TIME, System.currentTimeMillis())
+        val naslov = title.ifEmpty { url }
+        val zdaj = System.currentTimeMillis()
+        // Ista stran, odprta desetkrat, je en zapis z novim casom - ne deset vrstic.
+        val posodobljeno = db.update(
+            TABLE_HISTORY,
+            ContentValues().apply {
+                put(COL_HIST_TITLE, naslov)
+                put(COL_HIST_TIME, zdaj)
+            },
+            "$COL_HIST_URL = ?",
+            arrayOf(url)
+        )
+        if (posodobljeno <= 0) {
+            db.insert(TABLE_HISTORY, null, ContentValues().apply {
+                put(COL_HIST_TITLE, naslov)
+                put(COL_HIST_URL, url)
+                put(COL_HIST_TIME, zdaj)
+            })
         }
-        db.insert(TABLE_HISTORY, null, cv)
+        obreziZgodovino(db)
+    }
+
+    /** Odrezemo, kar je prestaro ali cez mejo; brez tega bi tabela rasla, dokler ne zmanjka prostora. */
+    private fun obreziZgodovino(db: SQLiteDatabase) {
+        try {
+            val meja = System.currentTimeMillis() - NAJSTAREJSI_DNEVI * 24L * 60L * 60L * 1000L
+            db.delete(TABLE_HISTORY, "$COL_HIST_TIME < ?", arrayOf(meja.toString()))
+            db.execSQL(
+                "DELETE FROM $TABLE_HISTORY WHERE $COL_HIST_ID NOT IN " +
+                    "(SELECT $COL_HIST_ID FROM $TABLE_HISTORY ORDER BY $COL_HIST_TIME DESC LIMIT $NAJVEC_ZGODOVINE)"
+            )
+        } catch (_: Exception) {
+        }
     }
 
     fun getHistory(limit: Int = 100): List<HistoryItem> {
@@ -161,5 +195,7 @@ class BrowserRepository(context: Context) : SQLiteOpenHelper(context, DATABASE_N
     fun clearHistory() {
         val db = writableDatabase
         db.delete(TABLE_HISTORY, null, null)
+        // Brisanje vrstic datoteke samo po sebi ne skrci; brez tega bi ostala velika.
+        try { db.execSQL("VACUUM") } catch (_: Exception) {}
     }
 }

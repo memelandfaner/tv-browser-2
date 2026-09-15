@@ -424,9 +424,6 @@ object XploreSiteProfile : SiteProfile {
 
 object YoutubeTvSiteProfile : SiteProfile {
     override fun matches(url: String) = TvSite.isYoutubeTv(url)
-    // YouTubova televizijska stran se drzi razmerja 16:9. Ce ji orodna vrstica vzame vrh
-    // zaslona, si sama doda crn pas levo in desno, zato ji damo cel zaslon; nazaj gre z Nazaj.
-    override fun hideChrome(url: String) = true
     override fun playbackMode() = PlaybackMode.InPlaceWebView
 
     override fun handleSearch(query: String, host: MainActivity): Boolean {
@@ -454,6 +451,10 @@ object YoutubeTvSiteProfile : SiteProfile {
         return true
     }
 
+    /** Ali je fokus v strani ze pri njenem vrhu (YouTubova zgornja vrstica). */
+    @Volatile
+    private var naVrhuStrani = false
+
     fun dispatchYoutubeTvKey(host: MainActivity, event: KeyEvent): Boolean {
         val webView = host.activeWebView() ?: return host.superDispatchKey(event)
         if (event.action == KeyEvent.ACTION_DOWN && !webView.hasFocus()) {
@@ -461,7 +462,27 @@ object YoutubeTvSiteProfile : SiteProfile {
             host.editUrl.clearFocus()
             webView.requestFocus()
         }
-        return webView.dispatchKeyEvent(event)
+        val obdelano = webView.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_DOWN) preveriVrh(webView)
+        return obdelano
+    }
+
+    /**
+     * Po vsaki smerni tipki vprasamo stran, kje je njen fokus. Odgovor pride z zamikom enega
+     * pritiska, kar je ravno prav: ko fokus prispe v YouTubovo zgornjo vrstico, gre naslednja
+     * tipka gor v naso orodno vrstico.
+     */
+    private fun preveriVrh(webView: android.webkit.WebView) {
+        try {
+            webView.evaluateJavascript(
+                "(function(){try{var e=document.activeElement;if(!e||!e.getBoundingClientRect)return '0';" +
+                    "var r=e.getBoundingClientRect();return (r.top<70)?'1':'0';}catch(x){return '0';}})();"
+            ) { odgovor ->
+                naVrhuStrani = (odgovor ?: "").contains("1")
+            }
+        } catch (_: Exception) {
+            naVrhuStrani = false
+        }
     }
 
     override fun handleKey(event: KeyEvent, host: MainActivity): Boolean {
@@ -470,6 +491,8 @@ object YoutubeTvSiteProfile : SiteProfile {
         if (host.isChromeFocused() && event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
             host.hideKeyboard()
             host.editUrl.clearFocus()
+            naVrhuStrani = false
+            host.chrome.prekrivnaVrstica(false)
             host.activeWebView()?.requestFocus()
             return true
         }
@@ -480,7 +503,18 @@ object YoutubeTvSiteProfile : SiteProfile {
             return false
         }
         return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> dispatchYoutubeTvKey(host, event)
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                val gledamo = curUrl.contains("#/watch") || curUrl.contains("/watch?v=")
+                if (gledamo || naVrhuStrani) {
+                    // Stran navzgor nima vec kam - tipka gre v orodno vrstico.
+                    naVrhuStrani = false
+                    host.chrome.prekrivnaVrstica(true)
+                    host.btnBack.requestFocus()
+                    true
+                } else {
+                    dispatchYoutubeTvKey(host, event)
+                }
+            }
             KeyEvent.KEYCODE_DPAD_DOWN,
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,

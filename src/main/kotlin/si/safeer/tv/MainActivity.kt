@@ -1702,20 +1702,36 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
     }
 
     private fun showHistoryDialog() {
-        val history = repository.getHistory(50)
-        val items = history.map { "${it.title}\n${it.url}" }.toTypedArray()
+        val history = repository.getHistory(BrowserRepository.NAJVEC_ZGODOVINE)
+        // Ciscenje je prva vrstica: prej je bilo na gumbu pod seznamom in si moral z
+        // daljincem cez vse obiske, da si prisel do njega.
+        val items = (listOf(UiText.get(R.string.ui_history_clear_item)) +
+            history.map { "${it.title}\n${it.url}" }).toTypedArray()
 
         AlertDialog.Builder(this)
             .setTitle(UiText.get(R.string.ui_history_title))
             .setItems(items) { _, which ->
-                val selected = history[which]
-                tabManager.getActiveTab()?.webView?.loadUrl(selected.url)
+                if (which == 0) {
+                    potrdiCiscenjeZgodovine()
+                } else {
+                    val selected = history[which - 1]
+                    tabManager.getActiveTab()?.webView?.loadUrl(selected.url)
+                }
             }
-            .setPositiveButton(UiText.get(R.string.ui_clear_history)) { _, _ ->
+            .setNegativeButton(UiText.get(R.string.ui_close), null)
+            .show()
+    }
+
+    /** Kratko vprasanje pred brisanjem, da en napacen pritisk ne pobrise vsega. */
+    private fun potrdiCiscenjeZgodovine() {
+        AlertDialog.Builder(this)
+            .setTitle(UiText.get(R.string.ui_clear_history))
+            .setMessage(UiText.get(R.string.ui_history_clear_confirm))
+            .setPositiveButton(UiText.get(R.string.ui_ok)) { _, _ ->
                 repository.clearHistory()
                 Toast.makeText(this, UiText.get(R.string.ui_history_cleared), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton(UiText.get(R.string.ui_close), null)
+            .setNegativeButton(UiText.get(R.string.ui_cancel), null)
             .show()
     }
 

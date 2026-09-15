@@ -13,7 +13,11 @@ class TvChrome(private val host: MainActivity) {
 
     private fun applyPageInset(url: String) {
         val kiosk = SiteProfileResolver.fromUrl(url).hideChrome(url)
-        val chromeOn = !kiosk &&
+        // YouTubova televizijska stran se drzi razmerja 16:9. Ce ji vrstica vzame vrh zaslona,
+        // si sama doda crn pas levo in desno. Zato tam vrstica lezi cez stran in ji ne jemlje
+        // visine - stran ostane cel zaslon, vrstica pa je se vedno vidna in dosegljiva.
+        val prekrivna = TvSite.isYoutubeTv(url)
+        val chromeOn = !kiosk && !prekrivna &&
             host.mobileTopBar.visibility == View.VISIBLE &&
             !host.playback.isActive()
         val pad = if (chromeOn) {
@@ -25,6 +29,42 @@ class TvChrome(private val host: MainActivity) {
         if (host.webViewContainer.paddingTop != pad) {
             host.webViewContainer.setPadding(0, pad, 0, 0)
         }
+    }
+
+    /**
+     * Prekrivna vrstica (YouTube): lezi cez stran, zato jo pospravimo, kadar ni v rabi -
+     * drugace bi zakrivala YouTubovo iskalno polje.
+     */
+    private val pospraviVrstico = Runnable {
+        if (TvSite.isYoutubeTv(host.activeUrl()) && !host.isChromeFocused()) {
+            premakniVrstico(false)
+        }
+    }
+
+    private fun premakniVrstico(pokazi: Boolean) {
+        val vrstica = host.mobileTopBar
+        vrstica.visibility = View.VISIBLE
+        val visina = if (vrstica.height > 0) {
+            vrstica.height
+        } else {
+            (56 * host.resources.displayMetrics.density).toInt()
+        }
+        val cilj = if (pokazi) 0f else -(visina.toFloat() + 4f)
+        if (vrstica.translationY != cilj) {
+            vrstica.animate().translationY(cilj).setDuration(180).start()
+        }
+    }
+
+    /** Pokazi ali pospravi prekrivno vrstico takoj. */
+    fun prekrivnaVrstica(pokazi: Boolean) {
+        host.mobileTopBar.removeCallbacks(pospraviVrstico)
+        premakniVrstico(pokazi)
+    }
+
+    /** Pokazi jo za hip, da uporabnik ve, da je tam, potem pa se umakni strani. */
+    fun prekrivnaVrsticaZaKratko() {
+        prekrivnaVrstica(true)
+        host.mobileTopBar.postDelayed(pospraviVrstico, 4000L)
     }
 
     fun setChromeHidden(hidden: Boolean) {
@@ -41,7 +81,14 @@ class TvChrome(private val host: MainActivity) {
     }
 
     fun applyUrlChrome(url: String) {
-        if (SiteProfileResolver.fromUrl(url).hideChrome(url)) {
+        host.mobileTopBar.removeCallbacks(pospraviVrstico)
+        if (TvSite.isYoutubeTv(url)) {
+            host.hideKeyboard()
+            host.editUrl.clearFocus()
+            host.searchSuggestionsOverlay.visibility = View.GONE
+            host.activeWebView()?.requestFocus()
+            prekrivnaVrsticaZaKratko()
+        } else if (SiteProfileResolver.fromUrl(url).hideChrome(url)) {
             host.hideKeyboard()
             host.editUrl.clearFocus()
             host.searchSuggestionsOverlay.visibility = View.GONE

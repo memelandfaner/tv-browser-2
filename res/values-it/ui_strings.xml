@@ -127,4 +127,6 @@
   <string name="ui_tv_wallpaper_black">Lo sfondo della schermata iniziale della TV ora è nero. Sarà visibile al prossimo avvio della schermata iniziale.</string>
   <string name="ui_tv_wallpaper_restored">Lo sfondo originale della TV è tornato. Sarà visibile al prossimo avvio della schermata iniziale.</string>
   <string name="ui_tv_wallpaper_failed">Questo televisore non consente di cambiare lo sfondo</string>
+  <string name="ui_history_clear_item">🧹 Cancella tutta la cronologia</string>
+  <string name="ui_history_clear_confirm">Cancellare tutta la cronologia di navigazione?</string>
 </resources>

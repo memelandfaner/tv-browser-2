@@ -127,4 +127,6 @@
   <string name="ui_tv_wallpaper_black">Le fond de l’écran d’accueil du TV est maintenant noir. Il apparaîtra au prochain démarrage de l’écran d’accueil.</string>
   <string name="ui_tv_wallpaper_restored">Le fond d’origine du TV est rétabli. Il apparaîtra au prochain démarrage de l’écran d’accueil.</string>
   <string name="ui_tv_wallpaper_failed">Ce téléviseur n’autorise pas le changement de fond</string>
+  <string name="ui_history_clear_item">🧹 Effacer tout l’historique</string>
+  <string name="ui_history_clear_confirm">Effacer tout l’historique de navigation ?</string>
 </resources>
