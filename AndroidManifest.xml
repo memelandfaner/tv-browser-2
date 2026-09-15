@@ -9,6 +9,8 @@
         android:targetSdkVersion="34" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Za crno ozadje domacega zaslona televizorja; spremeni ga samo uporabnik v meniju. -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <!-- mDNS: brez tega Android na Wi-Fi zavrze multicast in Safeer Hub ni najden. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

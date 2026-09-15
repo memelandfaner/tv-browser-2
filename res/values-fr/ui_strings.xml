@@ -124,4 +124,7 @@
   <string name="ui_cat_phishing">Hameçonnage (phishing)</string>
   <string name="ui_cat_adnet">Réseau publicitaire/de paris dangereux</string>
   <string name="ui_link_open_failed">Impossible d’ouvrir Safeer Link.</string>
+  <string name="ui_tv_wallpaper_black">Le fond de l’écran d’accueil du TV est maintenant noir. Il apparaîtra au prochain démarrage de l’écran d’accueil.</string>
+  <string name="ui_tv_wallpaper_restored">Le fond d’origine du TV est rétabli. Il apparaîtra au prochain démarrage de l’écran d’accueil.</string>
+  <string name="ui_tv_wallpaper_failed">Ce téléviseur n’autorise pas le changement de fond</string>
 </resources>

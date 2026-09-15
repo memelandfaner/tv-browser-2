@@ -124,4 +124,7 @@
   <string name="ui_cat_phishing">Spletno ribarjenje (Phishing)</string>
   <string name="ui_cat_adnet">Nevarno oglasno/stavno omrežje</string>
   <string name="ui_link_open_failed">Safeer Linka ni bilo mogoče odpreti.</string>
+  <string name="ui_tv_wallpaper_black">Ozadje domačega zaslona televizorja je zdaj črno. Vidno bo, ko se domači zaslon naslednjič zažene.</string>
+  <string name="ui_tv_wallpaper_restored">Prvotno ozadje televizorja je vrnjeno. Vidno bo, ko se domači zaslon naslednjič zažene.</string>
+  <string name="ui_tv_wallpaper_failed">Ta televizor ne dovoli zamenjave ozadja</string>
 </resources>

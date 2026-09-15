@@ -1524,6 +1524,27 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
             dialog.dismiss()
         }
 
+        // Ozadje domacega zaslona televizorja. Philips te nastavitve nima nikjer v sistemu,
+        // zato jo ponudimo tu - in jo znamo tudi vrniti, kakrsna je bila.
+        val cbTvOzadje = dialog.findViewById<CheckBox>(R.id.cbTvOzadje)
+        cbTvOzadje.isChecked = TvOzadje.jeCrno(this)
+        dialog.findViewById<LinearLayout>(R.id.rowMenuTvOzadje).setOnClickListener {
+            if (!TvOzadje.podprto(this)) {
+                Toast.makeText(this, UiText.get(R.string.ui_tv_wallpaper_failed), Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            val crno = !TvOzadje.jeCrno(this)
+            val uspelo = if (crno) TvOzadje.vklopiCrno(this) else TvOzadje.povrni(this)
+            cbTvOzadje.isChecked = TvOzadje.jeCrno(this)
+            val sporocilo = when {
+                !uspelo -> UiText.get(R.string.ui_tv_wallpaper_failed)
+                crno -> UiText.get(R.string.ui_tv_wallpaper_black)
+                else -> UiText.get(R.string.ui_tv_wallpaper_restored)
+            }
+            Toast.makeText(this, sporocilo, Toast.LENGTH_LONG).show()
+            dialog.dismiss()
+        }
+
         val cbSponsorBlock = dialog.findViewById<CheckBox>(R.id.cbSponsorBlock)
         cbSponsorBlock.isChecked = SponsorBlockSettings.isEnabled(this)
         dialog.findViewById<LinearLayout>(R.id.rowMenuSponsorBlock).setOnClickListener {

@@ -39,4 +39,5 @@
     <string name="toast_download_started">📥 Download started</string>
     <string name="btn_favorite">Favorites</string>
     <string name="btn_reload">Reload</string>
+    <string name="menu_tv_wallpaper">Black TV home screen</string>
 </resources>

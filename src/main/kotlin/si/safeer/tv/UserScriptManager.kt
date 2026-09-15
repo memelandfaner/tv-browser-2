@@ -1266,6 +1266,42 @@ object UserScriptManager {
                 try { console.log('SAFEER_YT_PRIJAVA ' + seznam.join(' | ')); } catch (e) {}
             }
 
+            // Neprijavljenemu gledalcu YouTube na domaci strani ne pokaze nicesar - brez prijave
+            // in privolitve ni priporocil. Vsebinske strani pa delujejo, zato enkrat na sejo
+            // skocimo na Glasbo. Kdor si nato sam izbere Domov, ostane tam.
+            var GOST_VSEBINA = 'https://www.youtube.com/tv#/browse?c=FEtopics_music';
+            var gostSkokOpravljen = false;
+            var domacaOdKdaj = 0;
+            try {
+                if (sessionStorage.getItem('safeer_yt_gost') === '1') gostSkokOpravljen = true;
+            } catch (e) {}
+
+            function jeDomaciZaslon() {
+                var h = (location.hash || '').replace('#', '');
+                return h === '' || h === '/' || h === '/index';
+            }
+
+            function jePraznaDomaca() {
+                try {
+                    if (document.querySelectorAll('img[src*="ytimg"]').length >= 3) return false;
+                    if (document.querySelectorAll('[style*="ytimg"]').length >= 3) return false;
+                } catch (e) {
+                    return false;
+                }
+                return true;
+            }
+
+            function gostNaVsebino() {
+                if (gostSkokOpravljen) return;
+                if (!jeDomaciZaslon()) { domacaOdKdaj = 0; return; }
+                if (!domacaOdKdaj) { domacaOdKdaj = Date.now(); return; }
+                if (Date.now() - domacaOdKdaj < 5000) return;
+                gostSkokOpravljen = true;
+                try { sessionStorage.setItem('safeer_yt_gost', '1'); } catch (e) {}
+                if (!jePraznaDomaca()) return;
+                try { location.replace(GOST_VSEBINA); } catch (e) {}
+            }
+
             function guestAssist() {
                 var hash = (location.hash || '').toLowerCase();
                 if (hash.indexOf('/search') !== -1 || hash.indexOf('/watch') !== -1) return;
@@ -1302,10 +1338,12 @@ object UserScriptManager {
 
             stripGlobals();
             guestAssist();
+            gostNaVsebino();
             skipVideoAd();
             hideSponsoredTiles();
             setInterval(function() {
                 guestAssist();
+                gostNaVsebino();
                 skipVideoAd();
                 hideSponsoredTiles();
                 stripGlobals();

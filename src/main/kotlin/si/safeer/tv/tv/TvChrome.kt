@@ -41,15 +41,7 @@ class TvChrome(private val host: MainActivity) {
     }
 
     fun applyUrlChrome(url: String) {
-        if (TvSite.isYoutubeTv(url)) {
-            host.hideKeyboard()
-            host.editUrl.clearFocus()
-            host.searchSuggestionsOverlay.visibility = View.GONE
-            if (host.mobileTopBar.translationY != 0f) {
-                host.mobileTopBar.animate().translationY(0f).setDuration(180).start()
-            }
-            host.activeWebView()?.requestFocus()
-        } else if (SiteProfileResolver.fromUrl(url).hideChrome(url)) {
+        if (SiteProfileResolver.fromUrl(url).hideChrome(url)) {
             host.hideKeyboard()
             host.editUrl.clearFocus()
             host.searchSuggestionsOverlay.visibility = View.GONE

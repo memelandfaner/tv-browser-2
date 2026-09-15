@@ -124,4 +124,7 @@
   <string name="ui_cat_phishing">Phishing (suplantación)</string>
   <string name="ui_cat_adnet">Red de anuncios/apuestas peligrosa</string>
   <string name="ui_link_open_failed">No se ha podido abrir Safeer Link.</string>
+  <string name="ui_tv_wallpaper_black">El fondo de la pantalla de inicio del TV ya es negro. Se verá la próxima vez que se reinicie la pantalla de inicio.</string>
+  <string name="ui_tv_wallpaper_restored">El fondo original del TV ha vuelto. Se verá la próxima vez que se reinicie la pantalla de inicio.</string>
+  <string name="ui_tv_wallpaper_failed">Este televisor no permite cambiar el fondo</string>
 </resources>

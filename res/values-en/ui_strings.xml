@@ -124,4 +124,7 @@
   <string name="ui_cat_phishing">Phishing</string>
   <string name="ui_cat_adnet">Dangerous ad/betting network</string>
   <string name="ui_link_open_failed">Safeer Link could not be opened.</string>
+  <string name="ui_tv_wallpaper_black">The TV home screen background is now black. It appears the next time the home screen restarts.</string>
+  <string name="ui_tv_wallpaper_restored">The original TV background is back. It appears the next time the home screen restarts.</string>
+  <string name="ui_tv_wallpaper_failed">This television does not allow the background to be changed</string>
 </resources>

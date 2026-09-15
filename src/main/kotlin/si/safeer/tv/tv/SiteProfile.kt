@@ -424,6 +424,9 @@ object XploreSiteProfile : SiteProfile {
 
 object YoutubeTvSiteProfile : SiteProfile {
     override fun matches(url: String) = TvSite.isYoutubeTv(url)
+    // YouTubova televizijska stran se drzi razmerja 16:9. Ce ji orodna vrstica vzame vrh
+    // zaslona, si sama doda crn pas levo in desno, zato ji damo cel zaslon; nazaj gre z Nazaj.
+    override fun hideChrome(url: String) = true
     override fun playbackMode() = PlaybackMode.InPlaceWebView
 
     override fun handleSearch(query: String, host: MainActivity): Boolean {
@@ -477,14 +480,7 @@ object YoutubeTvSiteProfile : SiteProfile {
             return false
         }
         return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> {
-                if (curUrl.contains("#/watch") || curUrl.contains("/watch?v=")) {
-                    host.btnBack.requestFocus()
-                    true
-                } else {
-                    dispatchYoutubeTvKey(host, event)
-                }
-            }
+            KeyEvent.KEYCODE_DPAD_UP -> dispatchYoutubeTvKey(host, event)
             KeyEvent.KEYCODE_DPAD_DOWN,
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
@@ -500,25 +496,14 @@ object YoutubeTvSiteProfile : SiteProfile {
         ytWv.evaluateJavascript(
             """
             (function(){
-                var href = (location.href || '').toLowerCase();
                 var h = (location.hash || '').toLowerCase();
-                var watching = h.indexOf('/watch') !== -1 || h.indexOf('/player') !== -1 ||
-                    href.indexOf('watch?v=') !== -1 ||
-                    !!document.querySelector('ytlr-watch, ytlr-watch-default, ytlr-player');
-                if (!watching) {
-                    var v = document.querySelector('video');
-                    if (v && (v.videoWidth || 0) >= 320 && Math.max(v.clientWidth || 0, v.offsetWidth || 0) >= 640) {
-                        watching = true;
-                    }
-                }
+                var domov = h === '' || h === '#' || h === '#/' || h === '#/index';
                 try {
                     document.querySelectorAll('video,audio').forEach(function(m){ try { m.pause(); } catch (eP) {} });
                 } catch (eV) {}
-                if (watching || h.indexOf('/search') !== -1) {
-                    location.replace('https://www.youtube.com/tv');
-                    return 'browse';
-                }
-                return 'exit';
+                if (domov) return 'exit';
+                location.replace('https://www.youtube.com/tv');
+                return 'browse';
             })();
             """.trimIndent()
         ) { result ->

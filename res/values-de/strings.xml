@@ -39,4 +39,5 @@
     <string name="toast_download_started">📥 Download gestartet</string>
   <string name="btn_favorite">Favoriten</string>
   <string name="btn_reload">Neu laden</string>
+    <string name="menu_tv_wallpaper">Schwarzer TV-Startbildschirm</string>
 </resources>

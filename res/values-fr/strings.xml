@@ -39,4 +39,5 @@
     <string name="toast_download_started">📥 Téléchargement démarré</string>
   <string name="btn_favorite">Favoris</string>
   <string name="btn_reload">Actualiser</string>
+    <string name="menu_tv_wallpaper">Fond noir sur l’écran d’accueil du TV</string>
 </resources>
