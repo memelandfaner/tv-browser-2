@@ -1,0 +1,43 @@
+name: Gradnja
+
+# Doslej se je ta brskalnik gradil samo na enem prenosniku. Ce bi se gradnja
+# pokvarila, tega ne bi opazil nihce do naslednje izdaje.
+#
+# Ta tek zgradi NEPODPISAN APK. Podpisni kljuc ostane doma in ga tu ni:
+# build.gradle brez spremenljivke RELEASE_KEYSTORE nastavi signingConfig na null.
+# Namen ni izdelati paketa za uporabnike, ampak dokazati, da se koda prevede.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Nepodpisan APK (brez kljuca)
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Povej, kaj je nastalo
+        run: |
+          ls -lh build/outputs/apk/release/
+          test -s build/outputs/apk/release/tv-browser-2-release-unsigned.apk \
+            || (echo "APK ni nastal" && exit 1)
+
+      - name: Shrani za pregled
+        uses: actions/upload-artifact@v4
+        with:
+          name: nepodpisan-apk
+          path: build/outputs/apk/release/*.apk
+          retention-days: 7
