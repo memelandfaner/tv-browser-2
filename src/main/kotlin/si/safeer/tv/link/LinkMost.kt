@@ -258,7 +258,7 @@ class LinkMost(
     @JavascriptInterface
     fun hubVklopi() {
         try {
-            val uspelo = si.safeer.tv.cast.HubKrmilnik.zazeni(dejavnost)
+            val uspelo = si.safeer.tv.cast.HubStoritev.vklopi(dejavnost)
             pripniPoslusalce()
             if (!uspelo) napaka("hub_ni_zagnan", "Huba ni bilo mogoce zagnati.")
             odziv("hub-tu", JSONObject(hubStanje()))
@@ -270,7 +270,7 @@ class LinkMost(
     @JavascriptInterface
     fun hubIzklopi() {
         try {
-            si.safeer.tv.cast.HubKrmilnik.ustavi(dejavnost)
+            si.safeer.tv.cast.HubStoritev.izklopi(dejavnost)
             odziv("hub-tu", JSONObject(hubStanje()))
         } catch (e: Throwable) {
             napaka("hub_ni_ustavljen", "Huba ni bilo mogoce ustaviti: ${e.message}")

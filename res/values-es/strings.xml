@@ -42,4 +42,7 @@
     <string name="menu_tv_wallpaper">Fondo negro en la pantalla de inicio del TV</string>
     <string name="menu_language">Idioma de la interfaz</string>
     <string name="menu_safeer_link">Safeer Link</string>
+    <!-- Safeer Link: obvestilo storitve, ki tece tudi brez odprtega brskalnika -->
+    <string name="hub_obvestilo_naslov">Safeer Link</string>
+    <string name="hub_obvestilo_besedilo">Tus dispositivos pueden enviar páginas, vídeos y música a este televisor.</string>
 </resources>

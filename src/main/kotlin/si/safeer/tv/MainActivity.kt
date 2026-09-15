@@ -193,7 +193,7 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
         // Safeer Hub v tem brskalniku. Ne zažene se sam od sebe: steče le, če ga je uporabnik
         // v Safeer Linku že prižgal. Takrat je televizor vozlišče za telefone v hiši tudi
         // brez računalnika.
-        try { si.safeer.tv.cast.HubKrmilnik.samodejniZagon(this) } catch (_: Exception) {}
+        try { si.safeer.tv.cast.HubStoritev.zagotovi(this) } catch (_: Exception) {}
 
         // Agent za sezname groženj (Feodo, URLhaus, Phishing Army): shranjeni seznami takoj v ozadju,
         // preverjanje novih ~12 s po zagonu. Zagona in nalaganja strani ne upočasni.
@@ -576,9 +576,8 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
 
     override fun onDestroy() {
         silenceBackgroundMedia("onDestroy")
-        // Hub tece samo, dokler tece brskalnik. Zeljo uporabnika ohranimo (zapomni = false),
-        // da se ob naslednjem zagonu spet prizge sam.
-        try { si.safeer.tv.cast.HubKrmilnik.ustavi(this, zapomni = false) } catch (_: Exception) {}
+        // Huba tu NE ustavljamo: od 2.1.89 zivi v HubStoritev, da je televizor dosegljiv
+        // tudi, ko brskalnik ni odprt. Ugasne ga uporabnik v Safeer Linku.
         if (::tabManager.isInitialized) {
             for (tab in tabManager.getAllTabs()) {
                 try { tab.webView.destroy() } catch (_: Exception) {}
