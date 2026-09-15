@@ -1,0 +1,12 @@
+# Dependabot pazi, da ne obticimo na zastarelih (in nevzdrzevanih) korakih CI.
+# Samo GitHub Actions: gradnja APK-ja ima odvisnosti pripete v build.gradle,
+# ki jih menjamo sami, ko preizkusimo na napravah.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "CI"

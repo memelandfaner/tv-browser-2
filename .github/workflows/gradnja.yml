@@ -13,18 +13,21 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   apk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Nepodpisan APK (brez kljuca)
         run: ./gradlew --no-daemon assembleRelease
@@ -36,7 +39,7 @@ jobs:
             || (echo "APK ni nastal" && exit 1)
 
       - name: Shrani za pregled
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nepodpisan-apk
           path: build/outputs/apk/release/*.apk
