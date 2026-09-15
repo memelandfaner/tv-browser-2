@@ -113,4 +113,15 @@
   <string name="ui_downloads_cannot_open">Aucune application de ce téléviseur ne peut ouvrir ce fichier. Il est enregistré dans Téléchargements.</string>
   <string name="ui_downloads_running">téléchargement</string>
   <string name="ui_downloads_failed">échec du téléchargement</string>
+  <string name="ui_ok">OK</string>
+  <string name="ui_this_page">Cette page</string>
+  <string name="ui_dont_show_dialogs">Ne plus afficher les boîtes de dialogue de cette page</string>
+  <string name="ui_leave_page">Quitter la page</string>
+  <string name="ui_stay">Rester</string>
+  <string name="ui_leave_page_msg">La page demande si vous voulez vraiment la quitter. Les saisies non enregistrées seront perdues.</string>
+  <string name="ui_cat_botnet">Serveur C2 de botnet</string>
+  <string name="ui_cat_malware">Code malveillant (malware)</string>
+  <string name="ui_cat_phishing">Hameçonnage (phishing)</string>
+  <string name="ui_cat_adnet">Réseau publicitaire/de paris dangereux</string>
+  <string name="ui_link_open_failed">Impossible d’ouvrir Safeer Link.</string>
 </resources>

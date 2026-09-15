@@ -184,13 +184,14 @@
     try {
       if (most && most.jezik) oznaka = String(most.jezik() || "");
     } catch (e) {}
-    if (!oznaka) oznaka = (navigator.language || navigator.userLanguage || "sl");
+    if (!oznaka) oznaka = (navigator.language || navigator.userLanguage || "en");
     oznaka = oznaka.toLowerCase().slice(0, 2);
     return BESEDILA[oznaka] ? oznaka : "en";
   })();
 
   function t(kljuc, nadomestki) {
     var niz = (BESEDILA[jezik] && BESEDILA[jezik][kljuc]);
+    if (niz === undefined) niz = (BESEDILA.en && BESEDILA.en[kljuc]);
     if (niz === undefined) niz = BESEDILA.sl[kljuc];
     if (niz === undefined) return "";
     if (nadomestki) {

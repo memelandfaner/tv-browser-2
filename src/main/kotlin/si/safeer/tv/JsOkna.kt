@@ -43,7 +43,7 @@ object JsOkna {
 
     private fun izvor(url: String?): String {
         val u = try { Uri.parse(url ?: "") } catch (e: Throwable) { null }
-        val gostitelj = u?.host ?: return "Ta stran"
+        val gostitelj = u?.host ?: return UiText.get(R.string.ui_this_page)
         val shema = u.scheme ?: ""
         return if (shema == "https") gostitelj else "$shema://$gostitelj"
     }
@@ -130,7 +130,7 @@ object JsOkna {
         var utisaj: CheckBox? = null
         if (stevec >= PRAG_ZA_UTISANJE) {
             val c = CheckBox(dejavnost)
-            c.text = "Ne prikazuj več oken s te strani"
+            c.text = UiText.get(R.string.ui_dont_show_dialogs)
             c.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -175,14 +175,14 @@ object JsOkna {
 
     fun alert(view: WebView?, url: String?, sporocilo: String?, rezultat: JsResult?): Boolean {
         if (rezultat == null) return false
-        return pokazi(view, url, sporocilo, null, false, "V redu", null) { _, _ ->
+        return pokazi(view, url, sporocilo, null, false, UiText.get(R.string.ui_ok), null) { _, _ ->
             rezultat.confirm()
         }
     }
 
     fun confirm(view: WebView?, url: String?, sporocilo: String?, rezultat: JsResult?): Boolean {
         if (rezultat == null) return false
-        return pokazi(view, url, sporocilo, null, false, "V redu", "Prekliči") { potrjeno, _ ->
+        return pokazi(view, url, sporocilo, null, false, UiText.get(R.string.ui_ok), UiText.get(R.string.ui_cancel)) { potrjeno, _ ->
             if (potrjeno) rezultat.confirm() else rezultat.cancel()
         }
     }
@@ -195,7 +195,7 @@ object JsOkna {
         rezultat: JsPromptResult?
     ): Boolean {
         if (rezultat == null) return false
-        return pokazi(view, url, sporocilo, privzeto, true, "V redu", "Prekliči") { potrjeno, besedilo ->
+        return pokazi(view, url, sporocilo, privzeto, true, UiText.get(R.string.ui_ok), UiText.get(R.string.ui_cancel)) { potrjeno, besedilo ->
             if (potrjeno) rezultat.confirm(besedilo ?: "") else rezultat.cancel()
         }
     }
@@ -208,11 +208,11 @@ object JsOkna {
     ): Boolean {
         if (rezultat == null) return false
         val besedilo = if (sporocilo.isNullOrBlank()) {
-            "Stran sprašuje, ali jo res želiš zapustiti. Neshranjeni vnosi bodo izgubljeni."
+            UiText.get(R.string.ui_leave_page_msg)
         } else {
             sporocilo
         }
-        return pokazi(view, url, besedilo, null, false, "Zapusti stran", "Ostani") { potrjeno, _ ->
+        return pokazi(view, url, besedilo, null, false, UiText.get(R.string.ui_leave_page), UiText.get(R.string.ui_stay)) { potrjeno, _ ->
             if (potrjeno) rezultat.confirm() else rezultat.cancel()
         }
     }

@@ -456,10 +456,34 @@ object UserScriptManager {
 
     private const val YOUTUBE_FREEDOM_MOBILE_JS = """
         (function initYouTubeFreedomAgent() {
+            // Samo na YouTubu. Prej se je pomocnik zagnal na vsaki strani in tam po nepotrebnem
+            // odpiral povezave do Googlovih streznikov ter vrtel nadzorno zanko.
+            var gost = (location.hostname || '').toLowerCase();
+            var jeYt = gost === 'youtube.com' || gost.indexOf('.youtube.com') !== -1 ||
+                       gost === 'youtu.be' || gost.indexOf('.youtube-nocookie.com') !== -1;
+            if (!jeYt) return;
             if ((location.href || '').indexOf('youtube.com/tv') !== -1) return;
-            if ((location.hostname || '').indexOf('xploretv') !== -1) return;
             if (window._safeer_yt_agent_installed) return;
             window._safeer_yt_agent_installed = true;
+
+            // Ali se zdaj predvaja oglas? Brez te funkcije je nadzorna zanka padla ze v prvem obratu.
+            function playerHasAd() {
+                try {
+                    var predvajalnik = document.querySelector('#movie_player, .html5-video-player');
+                    if (predvajalnik && predvajalnik.classList &&
+                        (predvajalnik.classList.contains('ad-showing') ||
+                         predvajalnik.classList.contains('ad-interrupting'))) {
+                        return true;
+                    }
+                    return !!document.querySelector(
+                        '.ytp-ad-player-overlay, .ytp-ad-preview-text, .ytp-ad-duration-remaining, ' +
+                        '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, ytm-ad-slot-renderer, ' +
+                        '.video-ads .ad-showing'
+                    );
+                } catch (e) {
+                    return false;
+                }
+            }
 
             // 🧠 Safeer YouTube Instant Song Accelerator & Track Transition Agent
             var ytAgent = {
@@ -1132,6 +1156,7 @@ object UserScriptManager {
             };
 
             var guestDone = false;
+            var guestDump = 0;
             var lastSkip = 0;
 
             function skipVideoAd() {
@@ -1196,25 +1221,73 @@ object UserScriptManager {
                 }
             }
 
+            // Leanback (youtube.com/tv) ni navadna spletna stran: gumbi niso <button>, ampak
+            // lastni elementi, ki poslusajo tipke. Zato iscemo po vseh elementih in poleg klika
+            // posljemo se Enter, sicer se gumb "Glej kot gost" ne odzove.
+            var IZBIRNIK_GUMBOV = 'button, a, [role="button"], [tabindex], ytlr-button, ' +
+                'ytlr-tv-button-renderer, ytlr-button-renderer, .ytlrButtonHost, .ytlr-button';
+
+            function klikniNaTvNacin(el) {
+                var uspeh = false;
+                try { if (typeof el.focus === 'function') el.focus(); } catch (e) {}
+                try {
+                    var opis = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+                                 bubbles: true, cancelable: true };
+                    el.dispatchEvent(new KeyboardEvent('keydown', opis));
+                    el.dispatchEvent(new KeyboardEvent('keyup', opis));
+                    uspeh = true;
+                } catch (e) {}
+                if (clickEl(el)) uspeh = true;
+                return uspeh;
+            }
+
+            var GOST_VZORCI = ['glej kot gost', 'glejte kot gost', 'ogled kot gost',
+                'nadaljuj kot gost', 'nadaljujte kot gost', 'uporabi kot gost',
+                'watch as guest', 'continue as guest', 'use as guest', 'browse as guest',
+                'als gast', 'como invitado', 'invite', 'come ospite'];
+
+            function jePrijavniZaslon() {
+                var b = ((document.body && document.body.innerText) || '').toLowerCase();
+                return b.indexOf('dodajanje racuna') !== -1 || b.indexOf('dodajanje ra') !== -1 ||
+                       b.indexOf('add account') !== -1 ||
+                       b.indexOf('prijava s telefonom') !== -1 || b.indexOf('sign in with') !== -1 ||
+                       b.indexOf('yt.be/activate') !== -1;
+            }
+
+            function popisiGumbe() {
+                if (guestDump >= 2 || !jePrijavniZaslon()) return;
+                guestDump++;
+                var nodes = document.querySelectorAll(IZBIRNIK_GUMBOV);
+                var seznam = [];
+                for (var i = 0; i < nodes.length && seznam.length < 40; i++) {
+                    var t = compactText(nodes[i]);
+                    if (t) seznam.push(nodes[i].tagName.toLowerCase() + '=' + t);
+                }
+                try { console.log('SAFEER_YT_PRIJAVA ' + seznam.join(' | ')); } catch (e) {}
+            }
+
             function guestAssist() {
                 var hash = (location.hash || '').toLowerCase();
                 if (hash.indexOf('/search') !== -1 || hash.indexOf('/watch') !== -1) return;
                 if (guestDone) return;
-                var nodes = document.querySelectorAll('button, [role="button"]');
-                var i, el, t;
+                popisiGumbe();
+                var nodes = document.querySelectorAll(IZBIRNIK_GUMBOV);
+                var i, j, el, t;
                 for (i = 0; i < nodes.length; i++) {
                     el = nodes[i];
                     t = compactText(el);
-                    if (t.indexOf('glejte kot gost') !== -1 || t.indexOf('watch as guest') !== -1 ||
-                        t.indexOf('continue as guest') !== -1) {
-                        if (clickEl(el)) { guestDone = true; return; }
+                    if (!t) continue;
+                    for (j = 0; j < GOST_VZORCI.length; j++) {
+                        if (t.indexOf(GOST_VZORCI[j]) !== -1) {
+                            if (klikniNaTvNacin(el)) { guestDone = true; return; }
+                        }
                     }
                 }
                 for (i = 0; i < nodes.length; i++) {
                     el = nodes[i];
                     t = compactText(el);
                     if (t === 'začnite' || t === 'zacnite' || t === 'get started') {
-                        clickEl(el);
+                        klikniNaTvNacin(el);
                         return;
                     }
                 }
@@ -1578,8 +1651,11 @@ object UserScriptManager {
         webView.evaluateJavascript(GPC_AND_DNT_JS, null)
         if (!bank) webView.evaluateJavascript(ANTI_POPUNDER_SHIELD_JS, null)
         webView.evaluateJavascript(BACKGROUND_PLAYBACK_JS, null)
-        webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
-        webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
+        // YouTubovi pomocniki pripadajo YouTubu; drugod so bili samo dodatno delo za televizor.
+        if (isYouTubeUrl(target)) {
+            webView.evaluateJavascript(YOUTUBE_FREEDOM_MOBILE_JS, null)
+            webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
+        }
         if (isYouTubeUrl(target) && SponsorBlockSettings.isEnabled(webView.context)) {
             webView.evaluateJavascript(com.safeer.threatfeed.SponsorBlock.RUNTIME_JS, null)
         }

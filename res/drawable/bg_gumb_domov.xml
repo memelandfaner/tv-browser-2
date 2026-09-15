@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Ozadje gumba Domov: ista obroba in fokus kot pri drugih ikonah v orodni vrstici,
+    cez njo pa se enobarvna hiska. Tako je gumb del crno-zelene podobe brskalnika.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/bg_mobile_icon_button" />
+    <item
+        android:drawable="@drawable/ic_domov"
+        android:gravity="center"
+        android:width="20dp"
+        android:height="20dp" />
+</layer-list>

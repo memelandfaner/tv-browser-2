@@ -113,4 +113,15 @@
   <string name="ui_downloads_cannot_open">Te datoteke na televizorju ne zna odpreti noben program. Shranjena je v mapi Prenosi.</string>
   <string name="ui_downloads_running">se prenaša</string>
   <string name="ui_downloads_failed">prenos ni uspel</string>
+  <string name="ui_ok">V redu</string>
+  <string name="ui_this_page">Ta stran</string>
+  <string name="ui_dont_show_dialogs">Ne prikazuj več oken s te strani</string>
+  <string name="ui_leave_page">Zapusti stran</string>
+  <string name="ui_stay">Ostani</string>
+  <string name="ui_leave_page_msg">Stran sprašuje, ali jo res želiš zapustiti. Neshranjeni vnosi bodo izgubljeni.</string>
+  <string name="ui_cat_botnet">Botnet C2 strežnik</string>
+  <string name="ui_cat_malware">Zlonamerna koda (Malware)</string>
+  <string name="ui_cat_phishing">Spletno ribarjenje (Phishing)</string>
+  <string name="ui_cat_adnet">Nevarno oglasno/stavno omrežje</string>
+  <string name="ui_link_open_failed">Safeer Linka ni bilo mogoče odpreti.</string>
 </resources>

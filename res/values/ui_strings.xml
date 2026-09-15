@@ -113,4 +113,15 @@
   <string name="ui_downloads_cannot_open">No app on this television can open this file. It is saved in the Downloads folder.</string>
   <string name="ui_downloads_running">downloading</string>
   <string name="ui_downloads_failed">download failed</string>
+  <string name="ui_ok">OK</string>
+  <string name="ui_this_page">This page</string>
+  <string name="ui_dont_show_dialogs">Don’t show more dialogs from this page</string>
+  <string name="ui_leave_page">Leave page</string>
+  <string name="ui_stay">Stay</string>
+  <string name="ui_leave_page_msg">The page asks whether you really want to leave it. Unsaved entries will be lost.</string>
+  <string name="ui_cat_botnet">Botnet C2 server</string>
+  <string name="ui_cat_malware">Malicious code (malware)</string>
+  <string name="ui_cat_phishing">Phishing</string>
+  <string name="ui_cat_adnet">Dangerous ad/betting network</string>
+  <string name="ui_link_open_failed">Safeer Link could not be opened.</string>
 </resources>

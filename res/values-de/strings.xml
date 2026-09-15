@@ -37,4 +37,6 @@
     <string name="toast_bookmark_removed">🗑️ Aus Lesezeichen entfernt</string>
     <string name="toast_link_copied">📋 Link in Zwischenablage kopiert</string>
     <string name="toast_download_started">📥 Download gestartet</string>
+  <string name="btn_favorite">Favoriten</string>
+  <string name="btn_reload">Neu laden</string>
 </resources>

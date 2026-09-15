@@ -37,4 +37,6 @@
     <string name="toast_bookmark_removed">🗑️ Eliminado de marcadores</string>
     <string name="toast_link_copied">📋 Enlace copiado al portapapeles</string>
     <string name="toast_download_started">📥 Descarga iniciada</string>
+  <string name="btn_favorite">Favoritos</string>
+  <string name="btn_reload">Recargar</string>
 </resources>

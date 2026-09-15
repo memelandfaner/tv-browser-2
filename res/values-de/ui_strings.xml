@@ -113,4 +113,15 @@
   <string name="ui_downloads_cannot_open">Keine App auf diesem Fernseher kann diese Datei öffnen. Sie liegt im Ordner Downloads.</string>
   <string name="ui_downloads_running">wird geladen</string>
   <string name="ui_downloads_failed">Download fehlgeschlagen</string>
+  <string name="ui_ok">OK</string>
+  <string name="ui_this_page">Diese Seite</string>
+  <string name="ui_dont_show_dialogs">Keine weiteren Dialoge dieser Seite anzeigen</string>
+  <string name="ui_leave_page">Seite verlassen</string>
+  <string name="ui_stay">Bleiben</string>
+  <string name="ui_leave_page_msg">Die Seite fragt, ob Sie sie wirklich verlassen möchten. Nicht gespeicherte Eingaben gehen verloren.</string>
+  <string name="ui_cat_botnet">Botnet-C2-Server</string>
+  <string name="ui_cat_malware">Schadsoftware (Malware)</string>
+  <string name="ui_cat_phishing">Phishing</string>
+  <string name="ui_cat_adnet">Gefährliches Werbe-/Wettnetzwerk</string>
+  <string name="ui_link_open_failed">Safeer Link konnte nicht geöffnet werden.</string>
 </resources>

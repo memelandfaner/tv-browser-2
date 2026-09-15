@@ -1411,7 +1411,7 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
             linkOkno = okno
             okno.show()
         } catch (e: Exception) {
-            Toast.makeText(this, "Safeer Linka ni bilo mogoče odpreti.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, UiText.get(R.string.ui_link_open_failed), Toast.LENGTH_SHORT).show()
             android.util.Log.w("SafeerLink", "Zaslon se ni odprl: " + e.message)
         }
     }

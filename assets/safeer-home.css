@@ -1,6 +1,6 @@
 
-html,body{background:#101814;color:#eef5ed;font-family:Roboto,"Noto Sans",sans-serif;height:auto;min-height:100%}
-body{overflow:auto;background-image:radial-gradient(ellipse at 50% 0,rgba(155,212,120,.07),transparent 70%)}
+html,body{background:#000;color:#eef5ed;font-family:Roboto,"Noto Sans",sans-serif;height:auto;min-height:100%}
+body{overflow:auto;background-color:#000;background-image:none}
 .stage{width:calc(100% - 72px);max-width:1500px;height:auto;padding:24px 0 28px}
 .safeer-brand{display:flex;align-items:center;gap:16px;margin-bottom:24px}.safeer-brand img{flex-shrink:0;border-radius:15px}.safeer-brand h1{font-size:27px;font-weight:650;letter-spacing:-.7px}.safeer-brand p{font-size:15px;color:#b4c5b9;margin-top:4px}.edition{margin-left:auto;color:#adc1b2;font-size:14px;border:1px solid #3b5142;border-radius:30px;padding:8px 16px}
 .search-card{display:none}.section-title{font-size:16px;text-transform:none;letter-spacing:0;color:#d1dfd5}.section-head{margin:0 0 12px}.edit-chip{font-size:14px;padding:7px 16px;background:#1c2a22;border:1px solid #405747}

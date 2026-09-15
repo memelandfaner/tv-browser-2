@@ -113,4 +113,15 @@
   <string name="ui_downloads_cannot_open">Nessuna app di questo televisore può aprire questo file. È salvato nella cartella Download.</string>
   <string name="ui_downloads_running">in download</string>
   <string name="ui_downloads_failed">download non riuscito</string>
+  <string name="ui_ok">OK</string>
+  <string name="ui_this_page">Questa pagina</string>
+  <string name="ui_dont_show_dialogs">Non mostrare altre finestre di questa pagina</string>
+  <string name="ui_leave_page">Esci dalla pagina</string>
+  <string name="ui_stay">Resta</string>
+  <string name="ui_leave_page_msg">La pagina chiede se vuoi davvero uscire. I dati non salvati andranno persi.</string>
+  <string name="ui_cat_botnet">Server C2 di botnet</string>
+  <string name="ui_cat_malware">Codice dannoso (malware)</string>
+  <string name="ui_cat_phishing">Phishing</string>
+  <string name="ui_cat_adnet">Rete pubblicitaria/di scommesse pericolosa</string>
+  <string name="ui_link_open_failed">Impossibile aprire Safeer Link.</string>
 </resources>

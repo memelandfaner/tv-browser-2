@@ -240,6 +240,28 @@ object ThreatBlockEngine {
     /**
      * Vstavi novo zaznano grožnjo v bazo.
      */
+    /**
+     * Kategorija grožnje v jeziku televizorja. V seznamih je zapisana po slovensko (tako pride
+     * tudi iz podpisanega vira), na zaslonu pa jo mora prebrati tudi nekdo, ki slovensko ne zna.
+     * Ce prevoda ni, ostane izvirni zapis - raje nekoliko tuja beseda kot prazno polje.
+     */
+    fun kategorijaVJeziku(kategorija: String?): String {
+        val izvirna = kategorija?.trim() ?: ""
+        val c = izvirna.lowercase()
+        val prevod = when {
+            c.isEmpty() -> UiText.get(R.string.ui_security_threat)
+            c.contains("botnet") || c.contains("c2") -> UiText.get(R.string.ui_cat_botnet)
+            c.contains("malware") || c.contains("zlonamerna") -> UiText.get(R.string.ui_cat_malware)
+            c.contains("phishing") || c.contains("ribarjenje") -> UiText.get(R.string.ui_cat_phishing)
+            c.contains("oglasno") || c.contains("stavno") -> UiText.get(R.string.ui_cat_adnet)
+            else -> ""
+        }
+        if (prevod.isNotBlank()) return prevod
+        if (izvirna.isNotBlank()) return izvirna
+        val zasilno = UiText.get(R.string.ui_security_threat)
+        return if (zasilno.isNotBlank()) zasilno else "Security threat"
+    }
+
     fun addThreat(domain: String, category: String, sourceFeed: String) {
         threatTrie.insert(domain, category, sourceFeed)
     }
@@ -335,7 +357,7 @@ object ThreatBlockEngine {
             "<a class=\"btn btn-primary\" style=\"background:#16a34a\" href=\"https://$safeDomain/\">${htmlEscape(UiText.get(R.string.ui_fake_bank_open_real, officialDomain))}</a>"
         } else ""
         val domain = htmlEscape(match.matchedDomain)
-        val category = htmlEscape(if (isFakeBank) UiText.get(R.string.ui_fake_bank_type) else match.category ?: UiText.get(R.string.ui_security_threat))
+        val category = htmlEscape(if (isFakeBank) UiText.get(R.string.ui_fake_bank_type) else kategorijaVJeziku(match.category))
         val source = htmlEscape(match.sourceFeed ?: UiText.get(R.string.ui_security_shield))
         val bypassActionHtml = if (isCriticalThreat(match.category)) {
             "<div class=\"footer-text\" style=\"color:#ff8888;font-size:13px\">🔒 ${htmlEscape(UiText.get(R.string.ui_zero_bypass))}</div>"
@@ -502,7 +524,7 @@ object ThreatBlockEngine {
     fun handleThreatIntercept(url: String, isMainFrame: Boolean): WebResourceResponse? {
         val match = checkThreat(url) ?: return null
         recordBlock(match)
-        onThreatBlocked?.invoke(match.matchedDomain, match.category ?: "Grožnja", match.sourceFeed ?: "Safeer Shield", isMainFrame)
+        onThreatBlocked?.invoke(match.matchedDomain, kategorijaVJeziku(match.category), match.sourceFeed ?: "Safeer Shield", isMainFrame)
 
         return if (isMainFrame) {
             val html = createSecurityInterstitialHtml(url, match)
