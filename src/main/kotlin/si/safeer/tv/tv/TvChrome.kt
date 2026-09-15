@@ -35,11 +35,19 @@ class TvChrome(private val host: MainActivity) {
      * Prekrivna vrstica (YouTube): lezi cez stran, zato jo pospravimo, kadar ni v rabi -
      * drugace bi zakrivala YouTubovo iskalno polje.
      */
-    private val pospraviVrstico = Runnable {
-        if (TvSite.isYoutubeTv(host.activeUrl()) && !host.isChromeFocused()) {
-            premakniVrstico(false)
+    private inner class PospraviVrstico : Runnable {
+        override fun run() {
+            if (!TvSite.isYoutubeTv(host.activeUrl())) return
+            if (host.isChromeFocused()) {
+                // Uporabnik je v vrstici; poskusimo znova, ko jo zapusti.
+                host.mobileTopBar.postDelayed(this, 2000L)
+            } else {
+                premakniVrstico(false)
+            }
         }
     }
+
+    private val pospraviVrstico = PospraviVrstico()
 
     private fun premakniVrstico(pokazi: Boolean) {
         val vrstica = host.mobileTopBar
@@ -52,6 +60,14 @@ class TvChrome(private val host: MainActivity) {
         val cilj = if (pokazi) 0f else -(visina.toFloat() + 4f)
         if (vrstica.translationY != cilj) {
             vrstica.animate().translationY(cilj).setDuration(180).start()
+        }
+        // Stran pod vrstico ne sme ostati prerezana: odmaknemo jo navzdol, a brez spreminjanja
+        // velikosti okna - tako YouTube obdrzi 16:9 in si ne doda crnega pasu ob straneh.
+        val pogled = host.activeWebView()
+        if (pogled != null && TvSite.isYoutubeTv(host.activeUrl())) {
+            val gostota = host.resources.displayMetrics.density
+            val odmik = if (pokazi && gostota > 0f) (visina / gostota).toInt() else 0
+            UserScriptManager.youtubeOdmik(pogled, odmik)
         }
     }
 

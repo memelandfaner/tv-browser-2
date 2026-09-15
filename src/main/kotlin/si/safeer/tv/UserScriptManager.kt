@@ -1760,6 +1760,24 @@ object UserScriptManager {
         }
     }
 
+    /**
+     * Odmakne YouTubovo stran navzdol, kadar cez njo lezi orodna vrstica, da ta ne prekriva
+     * njegove zgornje vrstice. Premik je samo izris (transform), ne sprememba velikosti okna -
+     * sicer bi stran izgubila razmerje 16:9 in si dodala crn pas levo in desno. 0 = brez odmika.
+     */
+    fun youtubeOdmik(webView: WebView, pikslovCss: Int) {
+        if (pikslovCss <= 0) {
+            removeCss(webView, "safeer-yt-odmik")
+            return
+        }
+        injectCss(
+            webView,
+            "body{transform:translateY(${pikslovCss}px)!important;transform-origin:0 0!important;}",
+            "safeer-yt-odmik",
+            replace = true
+        )
+    }
+
     fun injectDarkModeToggle(webView: WebView, enable: Boolean) {
         if (enable) {
             injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style", replace = true)

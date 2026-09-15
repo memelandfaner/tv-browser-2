@@ -451,9 +451,13 @@ object YoutubeTvSiteProfile : SiteProfile {
         return true
     }
 
-    /** Ali je fokus v strani ze pri njenem vrhu (YouTubova zgornja vrstica). */
+    /** Ali stran navzgor nima vec kam - takrat gre tipka gor v orodno vrstico. */
     @Volatile
     private var naVrhuStrani = false
+
+    /** Podpis elementa, ki je imel fokus po prejsnji smerni tipki. */
+    @Volatile
+    private var zadnjiFokus = ""
 
     fun dispatchYoutubeTvKey(host: MainActivity, event: KeyEvent): Boolean {
         val webView = host.activeWebView() ?: return host.superDispatchKey(event)
@@ -461,6 +465,10 @@ object YoutubeTvSiteProfile : SiteProfile {
             host.hideKeyboard()
             host.editUrl.clearFocus()
             webView.requestFocus()
+        }
+        // Tipka gre v stran - uporabnik ni vec v orodni vrstici, zato jo pospravimo.
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            host.chrome.prekrivnaVrstica(false)
         }
         val obdelano = webView.dispatchKeyEvent(event)
         if (event.action == KeyEvent.ACTION_DOWN) preveriVrh(webView)
@@ -475,10 +483,16 @@ object YoutubeTvSiteProfile : SiteProfile {
     private fun preveriVrh(webView: android.webkit.WebView) {
         try {
             webView.evaluateJavascript(
-                "(function(){try{var e=document.activeElement;if(!e||!e.getBoundingClientRect)return '0';" +
-                    "var r=e.getBoundingClientRect();return (r.top<70)?'1':'0';}catch(x){return '0';}})();"
+                "(function(){try{var e=document.activeElement;if(!e||!e.getBoundingClientRect)return 'x';" +
+                    "var r=e.getBoundingClientRect();" +
+                    "return (e.tagName||'?')+'|'+Math.round(r.top)+'|'+Math.round(r.left)+'|'+Math.round(r.width);" +
+                    "}catch(x){return 'x';}})();"
             ) { odgovor ->
-                naVrhuStrani = (odgovor ?: "").contains("1")
+                val podpis = (odgovor ?: "").trim().trim('"')
+                val vrh = podpis.split("|").getOrNull(1)?.toFloatOrNull() ?: 9999f
+                // Bodisi je fokus ze cisto pri vrhu strani, bodisi se sploh ni premaknil.
+                naVrhuStrani = vrh < 70f || (podpis.isNotEmpty() && podpis != "x" && podpis == zadnjiFokus)
+                zadnjiFokus = podpis
             }
         } catch (_: Exception) {
             naVrhuStrani = false
