@@ -451,6 +451,12 @@ object YoutubeTvSiteProfile : SiteProfile {
         return true
     }
 
+    /** Cas zadnjega samostojnega pritiska tipke gor (za kretnjo "dvakrat hitro gor"). */
+    @Volatile
+    private var zadnjiPritiskGor = 0L
+
+    private const val DVOJNI_PRITISK_MS = 700L
+
     fun dispatchYoutubeTvKey(host: MainActivity, event: KeyEvent): Boolean {
         val webView = host.activeWebView() ?: return host.superDispatchKey(event)
         if (event.action == KeyEvent.ACTION_DOWN && !webView.hasFocus()) {
@@ -477,12 +483,24 @@ object YoutubeTvSiteProfile : SiteProfile {
         ) {
             return false
         }
+        if (keyCode != KeyEvent.KEYCODE_DPAD_UP) zadnjiPritiskGor = 0L
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> {
                 if (curUrl.contains("#/watch") || curUrl.contains("/watch?v=")) {
                     host.btnBack.requestFocus()
                     true
+                } else if (event.repeatCount == 0 &&
+                    android.os.SystemClock.uptimeMillis() - zadnjiPritiskGor < DVOJNI_PRITISK_MS
+                ) {
+                    // Dvakrat hitro gor: leanback vsako smerno tipko obdela sam, zato je to
+                    // edina zanesljiva pot iz strani v orodno vrstico brskalnika.
+                    zadnjiPritiskGor = 0L
+                    host.btnBack.requestFocus()
+                    true
                 } else {
+                    if (event.repeatCount == 0) {
+                        zadnjiPritiskGor = android.os.SystemClock.uptimeMillis()
+                    }
                     dispatchYoutubeTvKey(host, event)
                 }
             }
