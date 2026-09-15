@@ -11,7 +11,14 @@ import android.widget.Toast
 
 class TvChrome(private val host: MainActivity) {
 
+    /** Ali je stran trenutno zatemnjena (fokus je v vrstici). */
+    private var zatemnjeno = false
+
+
     private fun applyPageInset(url: String) {
+        // Nova stran nima naseg sloga: ce tega ne pozabimo, se ob vrnitvi na YouTube
+        // zatemnitev ne bi vec vklopila in spet bi bili vidni dve oznaki.
+        zatemnjeno = false
         val kiosk = SiteProfileResolver.fromUrl(url).hideChrome(url)
         // YouTubova televizijska stran se drzi razmerja 16:9. Ce ji vrstica vzame vrh zaslona,
         // si sama doda crn pas levo in desno. Zato tam vrstica lezi cez stran in ji ne jemlje
@@ -73,9 +80,6 @@ class TvChrome(private val host: MainActivity) {
             UserScriptManager.youtubeOdmik(pogled, odmik)
         }
     }
-
-    /** Ali je stran trenutno zatemnjena (fokus je v vrstici). */
-    private var zatemnjeno = false
 
     private fun osveziZatemnitev() {
         val pogled = host.activeWebView() ?: return
