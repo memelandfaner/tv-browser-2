@@ -503,8 +503,11 @@ class ChromiumEngineView @JvmOverloads constructor(
             ): Boolean {
                 if (resultMsg == null) return false
                 val curUrl = view?.url?.lowercase() ?: ""
+                // Uporabnikov klik NI vec razlog za novo okno: strani s filmi porabijo prav
+                // prvi klik na predvajalnik in z njim odprejo oglas. Ostanejo samo prijave,
+                // kjer je novo okno del postopka.
                 val isAuth = curUrl.contains("google") || curUrl.contains("youtube") ||
-                    curUrl.contains("oauth") || curUrl.contains("signin") || isUserGesture
+                    curUrl.contains("oauth") || curUrl.contains("signin")
                 if (isAuth) {
                     val transport = resultMsg.obj as? WebView.WebViewTransport ?: return false
                     transport.webView = this@ChromiumEngineView

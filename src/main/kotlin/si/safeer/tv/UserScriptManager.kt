@@ -280,9 +280,20 @@ object UserScriptManager {
 
             // 🚫 1. Popolna nevtralizacija window.open popunderjev
             try {
+                var praznoOkno = {
+                    closed: true,
+                    close: function() {},
+                    focus: function() {},
+                    blur: function() {},
+                    postMessage: function() {},
+                    document: { write: function() {}, writeln: function() {}, close: function() {} },
+                    location: { href: '', replace: function() {}, assign: function() {} }
+                };
                 window.open = function(url, target, features) {
                     console.log('[Safeer AdBlock] Preprečen window.open:', url);
-                    return null;
+                    // Neskodljiv priklopek namesto null: nekateri predvajalniki ob null vrzejo
+                    // napako in se ustavijo, klik pa mora pognati film.
+                    return praznoOkno;
                 };
             } catch(e) {}
 
