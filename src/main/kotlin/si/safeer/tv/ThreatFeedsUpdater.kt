@@ -71,6 +71,8 @@ object ThreatFeedsUpdater {
         val listAgent = ThreatListAgent(File(context.applicationContext.filesDir, "threat-lists"), SOURCES) { lists ->
             ruleCount = ThreatBlockEngine.rebuildFromLists(lists.filter { !it.source.raw })
             filterRuleCount = AdBlockEngine.installFilterLists(lists.filter { it.source.raw })
+            android.util.Log.i("SafeerSecurity", "Seznami v uporabi: ${lists.joinToString { "${it.source.name} (${it.entries.size})" }}" +
+                "; pravila EasyList: $filterRuleCount; pravila za skrivanje: ${AdBlockEngine.cosmeticRuleCount}")
         }
         agent = listAgent
         listAgent.start()
@@ -87,6 +89,6 @@ object ThreatFeedsUpdater {
         val lists = agent?.lists.orEmpty()
         if (lists.isEmpty()) return UiText.get(R.string.ui_lists_first_download)
         return UiText.get(R.string.ui_lists_status, lists.filter { !it.source.raw }.sumOf { it.entries.size }, lists.size, SOURCES.size) +
-            " · EasyList: $filterRuleCount"
+            " · EasyList: $filterRuleCount (+${AdBlockEngine.cosmeticRuleCount})"
     }
 }

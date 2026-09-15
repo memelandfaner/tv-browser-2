@@ -1677,7 +1677,9 @@ object UserScriptManager {
             return
         }
         if (!home && !news24 && !hydra) {
-            if (!bank) injectCss(webView, CosmeticFilterEngine.buildCosmeticCss(), "safeer-cosmetic-filter")
+            if (!bank) injectCss(webView, CosmeticFilterEngine.buildCosmeticCss(
+            try { webView.url } catch (_: Exception) { null }
+        ), "safeer-cosmetic-filter")
             if (isDarkMode) {
                 injectCss(webView, DARK_MODE_AMOLED_CSS, "safeer-dark-mode-style")
             } else if (finished) {

@@ -42,6 +42,26 @@ object AdBlockEngine {
     @Volatile
     private var filterSet: FilterSet = FilterSet.EMPTY
     val filterRuleCount: Int get() = filterSet.size
+    /** Stevilo kozmeticnih pravil (skrivanje elementov po domenah) iz istih seznamov. */
+    val cosmeticRuleCount: Int get() = filterSet.cosmetic.size
+
+    /**
+     * Selektorji iz seznamov, ki jih je treba na tej strani skriti. Prazen seznam, kadar
+     * seznami niso naloženi, za to domeno ni pravil ali je stran na beli listi.
+     */
+    fun cosmeticSelectors(pageUrl: String?): List<String> {
+        if (!isEnabled) return emptyList()
+        val set = filterSet
+        if (set.cosmetic.size == 0) return emptyList()
+        val url = pageUrl?.takeIf { it.startsWith("http", ignoreCase = true) } ?: return emptyList()
+        val host = try { FilterListEngine.hostOf(url.lowercase()) } catch (e: RuntimeException) { "" }
+        if (host.isEmpty() || whitelistTrie.matches(host)) return emptyList()
+        val selectors = try { set.cosmetic.selectorsFor(host) } catch (e: RuntimeException) { emptyList() }
+        if (selectors.isNotEmpty()) {
+            android.util.Log.d("SafeerAdBlock", "skrivanje po seznamih: ${selectors.size} selektorjev za $host")
+        }
+        return selectors
+    }
     private val pageAllowances = object : LinkedHashMap<String, Boolean>(16, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Boolean>?): Boolean = size > 32
     }

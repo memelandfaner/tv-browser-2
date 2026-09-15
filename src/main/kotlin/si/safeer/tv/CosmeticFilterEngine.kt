@@ -68,9 +68,16 @@ object CosmeticFilterEngine {
     /**
      * Zgradi strnjen CSS niz za injiciranje v spletno stran.
      */
-    fun buildCosmeticCss(): String {
+    fun buildCosmeticCss(pageUrl: String? = null): String {
         if (!isEnabled) return ""
-        val selectors = GENERIC_ELEMENT_HIDING_RULES.joinToString(", ")
+        // Pravila iz seznamov (EasyList in drugi), vezana na to domeno. Doslej smo jih
+        // prenesli in zavrgli; zaradi njih so na tujih straneh ostajale prazne luknje.
+        val listRules = try {
+            AdBlockEngine.cosmeticSelectors(pageUrl)
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val selectors = (GENERIC_ELEMENT_HIDING_RULES + listRules).distinct().joinToString(", ")
         return """
             $selectors {
                 display: none !important;

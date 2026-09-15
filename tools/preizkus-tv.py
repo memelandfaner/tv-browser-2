@@ -45,9 +45,29 @@ class Naprava:
         time.sleep(pavza)
 
     def zaslon(self) -> Image.Image:
+        # Naprava lahko zaspi sredi preizkusa (lasten casovnik): tedaj bi bili vsi
+        # posnetki crni in preizkus bi padel po krivem.
+        if self.zaslon_spi():
+            self.adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+            time.sleep(3)
         p = subprocess.run(["adb", "-s", self.naslov, "exec-out", "screencap", "-p"],
                            capture_output=True, timeout=60)
         return Image.open(io.BytesIO(p.stdout))
+
+    def zaslon_spi(self) -> bool:
+        r = self.adb("shell", "dumpsys", "power", timeout=30)
+        return "mWakefulness=Asleep" in r.stdout or "mWakefulness=Dozing" in r.stdout
+
+    def prebudi(self):
+        """Vrne True, ce je bil zaslon prej ugasnjen (in ga je treba na koncu vrniti)."""
+        if not self.zaslon_spi():
+            return False
+        self.adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+        time.sleep(3)
+        return True
+
+    def uspavaj(self):
+        self.adb("shell", "input", "keyevent", "KEYCODE_SLEEP")
 
     def odpri(self, url):
         self.adb("shell", "am", "force-stop", PAKET)
@@ -106,6 +126,10 @@ def main() -> int:
         print("Televizorja %s ni; nic nisem preizkusil." % naslov)
         return 0
 
+    spal = n.prebudi()
+    if spal:
+        print("Zaslon je spal; prebudil sem ga in ga bom na koncu spet ugasnil.")
+
     print("Preizkusam na %s\n" % naslov)
     padli = 0
     for ime, preizkus in (("sivi plakat pred videom", preizkus_plakat),
@@ -117,6 +141,9 @@ def main() -> int:
         print("  %-26s %s" % (ime, "V REDU" if v_redu else "PADLO"))
         print("      %s" % pojasnilo)
         padli += 0 if v_redu else 1
+
+    if spal:
+        n.uspavaj()
 
     print()
     if padli:

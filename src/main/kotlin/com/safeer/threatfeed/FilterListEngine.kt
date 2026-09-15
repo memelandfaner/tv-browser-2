@@ -3,8 +3,10 @@
  *
  * Network rules in the Adblock Plus / uBlock Origin syntax used by EasyList: ||host^ anchors, |start and
  * end| anchors, * wildcards, ^ separators, /regex/ patterns, @@ exceptions and the options third-party,
- * domain=, the resource types, document, important. Cosmetic rules (##) and rules with options this
- * engine does not implement (redirect, csp, removeparam, rewrite ...) are skipped, never guessed.
+ * domain=, the resource types, document, important. Rules with options this engine does not implement
+ * (redirect, csp, removeparam, rewrite ...) are skipped, never guessed.
+ *
+ * Element-hiding rules (domain##selector) are kept too, indexed by domain: see CosmeticSet.
  *
  * Matching is indexed so that one request costs a few hash lookups: ||host rules by host name (walking the
  * request host's parent domains), all other rules by their longest alphanumeric token. Compiled sets are
@@ -100,6 +102,52 @@ class NetworkFilter internal constructor(
 
 class FilterDecision(val block: Boolean, val filter: NetworkFilter?)
 
+/**
+ * Element-hiding rules (`domain##selector`) from the same lists, indexed by domain.
+ *
+ * Only domain-scoped rules are kept. Generic rules (`##selector`, tens of thousands of them) would have to
+ * be injected into every page; the browser carries its own short hand-written generic list instead.
+ * Procedural selectors (`:has-text`, `:-abp-`, `:style`, `:remove`, `:upward`, `:xpath`) are skipped, never
+ * guessed: a WebView cannot apply them as CSS.
+ */
+class CosmeticSet internal constructor(
+    private val byDomain: Map<String, List<String>>,
+    private val exceptionsByDomain: Map<String, List<String>>,
+    val size: Int,
+) {
+    companion object {
+        val EMPTY = CosmeticSet(emptyMap(), emptyMap(), 0)
+        /** Upper bound per page, so one pathological domain cannot make a page's stylesheet huge. */
+        const val MAX_SELECTORS_PER_PAGE = 1500
+    }
+
+    private fun gather(host: String, source: Map<String, List<String>>): List<String> {
+        if (source.isEmpty() || host.isEmpty()) return emptyList()
+        val out = ArrayList<String>()
+        var h = host
+        while (h.isNotEmpty()) {
+            source[h]?.let { out.addAll(it) }
+            val dot = h.indexOf('.')
+            h = if (dot < 0) "" else h.substring(dot + 1)
+        }
+        return out
+    }
+
+    /** Selectors to hide on [host], with that host's `#@#` exceptions removed. */
+    fun selectorsFor(host: String): List<String> {
+        val hidden = gather(host, byDomain)
+        if (hidden.isEmpty()) return emptyList()
+        val allowed = gather(host, exceptionsByDomain).toHashSet()
+        val out = LinkedHashSet<String>()
+        for (selector in hidden) {
+            if (selector in allowed) continue
+            out.add(selector)
+            if (out.size >= MAX_SELECTORS_PER_PAGE) break
+        }
+        return out.toList()
+    }
+}
+
 /** An immutable, indexed set of network rules. */
 class FilterSet internal constructor(
     private val hostBlocks: Map<String, List<NetworkFilter>>,
@@ -110,6 +158,8 @@ class FilterSet internal constructor(
     private val untokenizedExceptions: List<NetworkFilter>,
     val size: Int,
     val skipped: Int,
+    /** Element-hiding rules from the same lists (see CosmeticSet). */
+    val cosmetic: CosmeticSet = CosmeticSet.EMPTY,
 ) {
     companion object {
         val EMPTY = FilterSet(emptyMap(), emptyMap(), emptyMap(), emptyMap(), emptyList(), emptyList(), 0, 0)
@@ -296,6 +346,34 @@ object FilterListEngine {
         return best
     }
 
+    /** Selector syntaxes a WebView cannot apply as plain CSS. */
+    private val proceduralMarkers = listOf(
+        ":-abp-", ":has-text(", ":matches-css", ":matches-attr", ":matches-path", ":matches-property",
+        ":min-text-length", ":style(", ":remove(", ":upward(", ":xpath(", ":watch-attr(", ":others(",
+    )
+
+    /** One parsed element-hiding rule, or null when the line is not one (or cannot be applied). */
+    internal fun parseCosmetic(rawLine: String): Triple<List<String>, String, Boolean>? {
+        val line = rawLine.trim()
+        if (line.isEmpty() || line.startsWith("!") || line.startsWith("[")) return null
+        // Extended syntaxes we do not implement; skipped, never guessed.
+        if (line.contains("#?#") || line.contains("#$#") || line.contains("#%#") || line.contains("#@$#")) return null
+        val exception = line.contains("#@#")
+        val marker = if (exception) "#@#" else "##"
+        val at = line.indexOf(marker)
+        if (at < 0) return null
+        val selector = line.substring(at + marker.length).trim()
+        if (selector.isEmpty()) return null
+        if (proceduralMarkers.any { selector.contains(it, ignoreCase = true) }) return null
+        // A stray "#" in a network rule (a fragment) never produces "##" at a domain boundary, but be strict:
+        if (selector.startsWith("+js(") || selector.startsWith("script:")) return null
+        val domainPart = line.substring(0, at)
+        if (domainPart.isEmpty()) return null // generic rule: handled by the browser's own short list
+        val domains = domainPart.split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+        if (domains.isEmpty()) return null
+        return Triple(domains, selector, exception)
+    }
+
     /** Compiles rule lines into an indexed set. */
     fun compile(lines: Iterable<String>): FilterSet {
         val hostBlocks = HashMap<String, MutableList<NetworkFilter>>()
@@ -307,9 +385,28 @@ object FilterListEngine {
         var size = 0
         var skipped = 0
         val budget = intArrayOf(MAX_REGEX_RULES)
+        val cosmeticByDomain = HashMap<String, MutableList<String>>()
+        val cosmeticExceptions = HashMap<String, MutableList<String>>()
+        // En in isti selektor (".ad-slot") se pojavi pri stotinah domen: hranimo ga enkrat.
+        val selectorPool = HashMap<String, String>()
+        var cosmeticSize = 0
         for (line in lines) {
             val trimmed = line.trim()
             if (trimmed.isEmpty() || trimmed.startsWith("!") || trimmed.startsWith("[")) continue
+            val cosmetic = parseCosmetic(trimmed)
+            if (cosmetic != null) {
+                val (domains, rawSelector, isException) = cosmetic
+                val selector = selectorPool.getOrPut(rawSelector) { rawSelector }
+                for (domain in domains) {
+                    val negated = domain.startsWith("~")
+                    val clean = domain.removePrefix("~")
+                    if (clean.isEmpty()) continue
+                    val target = if (isException || negated) cosmeticExceptions else cosmeticByDomain
+                    target.getOrPut(clean) { ArrayList(1) }.add(selector)
+                }
+                cosmeticSize++
+                continue
+            }
             val filter = parse(trimmed, budget)
             if (filter == null) { skipped++; continue }
             size++
@@ -319,6 +416,9 @@ object FilterListEngine {
                 else -> (if (filter.exception) restExceptions else restBlocks).add(filter)
             }
         }
-        return FilterSet(hostBlocks, hostExceptions, tokenBlocks, tokenExceptions, restBlocks, restExceptions, size, skipped)
+        val cosmetic = if (cosmeticSize == 0) CosmeticSet.EMPTY
+                       else CosmeticSet(cosmeticByDomain, cosmeticExceptions, cosmeticSize)
+        return FilterSet(hostBlocks, hostExceptions, tokenBlocks, tokenExceptions, restBlocks, restExceptions,
+                         size, skipped, cosmetic)
     }
 }

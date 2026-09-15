@@ -36,3 +36,15 @@ jobs:
 
       - name: Zaznavalnika morata prepoznati oba hrosca
         run: python3 -m unittest discover -s tests -p 'test_zaznaj.py' -v
+
+      - name: Kotlin 1.9.24 (ista razlicica kot doma, pripeta kontrolna vsota)
+        run: |
+          curl -fsSL -o /tmp/kotlinc.zip \
+            https://github.com/JetBrains/kotlin/releases/download/v1.9.24/kotlin-compiler-1.9.24.zip
+          echo "eb7b68e01029fa67bc8d060ee54c12018f2c60ddc438cf21db14517229aa693b  /tmp/kotlinc.zip" | sha256sum -c -
+          unzip -q /tmp/kotlinc.zip -d /tmp
+
+      - name: Pravila blokiranja in skrivanja (motor brez Androida)
+        env:
+          KOTLINC: /tmp/kotlinc/bin/kotlinc
+        run: bash tools/preveri-motor.sh
