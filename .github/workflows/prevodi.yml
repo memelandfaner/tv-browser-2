@@ -1,0 +1,23 @@
+name: Prevodi
+
+# Prva samodejna preverba za ta repozitorij. Tece brez Android SDK: samo prebere
+# vire in primerja kljuce, zato je gotova v nekaj sekundah in nic ne stane.
+# Lovi tocno tisto vrsto napake, ki smo jo doslej iskali rocno -- jezik, ki
+# zaostaja za privzetim, in zato uporabniku pokaze prazno polje ali slovenscino.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  prevodi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Vsak jezik mora imeti vse kljuce
+        run: python3 tools/preveri-prevode.py .

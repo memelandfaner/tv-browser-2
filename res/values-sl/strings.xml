@@ -41,4 +41,5 @@
     <string name="toast_download_started">📥 Prenos se je začel</string>
     <string name="menu_tv_wallpaper">Črno ozadje domačega zaslona TV</string>
     <string name="menu_language">Jezik vmesnika</string>
+    <string name="menu_safeer_link">Safeer Link</string>
 </resources>

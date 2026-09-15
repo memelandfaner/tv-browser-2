@@ -41,4 +41,5 @@
   <string name="btn_reload">Actualiser</string>
     <string name="menu_tv_wallpaper">Fond noir sur l’écran d’accueil du TV</string>
     <string name="menu_language">Langue de l\'interface</string>
+    <string name="menu_safeer_link">Safeer Link</string>
 </resources>

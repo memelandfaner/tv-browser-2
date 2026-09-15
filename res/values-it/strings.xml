@@ -41,4 +41,5 @@
   <string name="btn_reload">Ricarica</string>
     <string name="menu_tv_wallpaper">Sfondo nero nella schermata iniziale della TV</string>
     <string name="menu_language">Lingua dell\'interfaccia</string>
+    <string name="menu_safeer_link">Safeer Link</string>
 </resources>
