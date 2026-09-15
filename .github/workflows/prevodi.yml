@@ -1,9 +1,14 @@
-name: Prevodi
+name: Preverbe
 
-# Prva samodejna preverba za ta repozitorij. Tece brez Android SDK: samo prebere
-# vire in primerja kljuce, zato je gotova v nekaj sekundah in nic ne stane.
-# Lovi tocno tisto vrsto napake, ki smo jo doslej iskali rocno -- jezik, ki
-# zaostaja za privzetim, in zato uporabniku pokaze prazno polje ali slovenscino.
+# Prve samodejne preverbe za ta repozitorij. Tecejo brez Android SDK, zato so
+# gotove v nekaj sekundah in nic ne stanejo.
+#
+#  1. prevodi  -- jezik, ki zaostaja za privzetim, bi uporabniku pokazal prazno
+#                 polje ali slovenscino. To smo doslej iskali rocno.
+#  2. zaznavalnika -- sivi plakat pred videom in dvojna oznaka fokusa sta bila
+#                 popravljena; ta preverba pazi, da zaznavalnika, s katerima ju
+#                 merimo na televizorju, se vedno prepoznata pravi posnetek
+#                 zaslona pred popravkom. Ce kdo zaznavalnik omehca, pade.
 
 on:
   push:
@@ -12,12 +17,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  prevodi:
+  preverbe:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Vsak jezik mora imeti vse kljuce
         run: python3 tools/preveri-prevode.py .
+
+      - name: Pillow za branje posnetkov zaslona
+        run: python3 -m pip install --quiet Pillow
+
+      - name: Zaznavalnika morata prepoznati oba hrosca
+        run: python3 -m unittest discover -s tests -p 'test_zaznaj.py' -v

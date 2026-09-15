@@ -29,3 +29,10 @@ yt_*/
 *.webm
 !res/**/*.png
 !docs/**/*.png
+
+# Preizkusi, ki so del izdelka (ne zacasne skripte):
+# zaznavalnika obeh popravkov in pravi posnetki zaslona, na katerih ju merimo.
+!tests/test_zaznaj.py
+!tests/vzorci/
+!tests/vzorci/*.png
+__pycache__/
