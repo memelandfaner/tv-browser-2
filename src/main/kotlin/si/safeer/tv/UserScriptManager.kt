@@ -1305,8 +1305,8 @@ object UserScriptManager {
             function guestAssist() {
                 var hash = (location.hash || '').toLowerCase();
                 if (hash.indexOf('/search') !== -1 || hash.indexOf('/watch') !== -1) return;
-                if (guestDone) return;
                 popisiGumbe();
+                if (guestDone) return;
                 var nodes = document.querySelectorAll(IZBIRNIK_GUMBOV);
                 var i, j, el, t;
                 for (i = 0; i < nodes.length; i++) {

@@ -49,6 +49,9 @@ class TvChrome(private val host: MainActivity) {
 
     private val pospraviVrstico = PospraviVrstico()
 
+    /** Ali je bila prejsnja stran ze YouTube - takrat vrstice ne kazemo znova. */
+    private var prisliSmoNaYoutube = false
+
     private fun premakniVrstico(pokazi: Boolean) {
         val vrstica = host.mobileTopBar
         vrstica.visibility = View.VISIBLE
@@ -89,6 +92,7 @@ class TvChrome(private val host: MainActivity) {
         if (hidden || stayKiosk) {
             host.mobileTopBar.visibility = View.GONE
         } else if (!host.playback.isActive()) {
+            prisliSmoNaYoutube = false
             host.mobileTopBar.visibility = View.VISIBLE
             host.mobileTopBar.translationY = 0f
         }
@@ -103,8 +107,14 @@ class TvChrome(private val host: MainActivity) {
             host.editUrl.clearFocus()
             host.searchSuggestionsOverlay.visibility = View.GONE
             host.activeWebView()?.requestFocus()
-            prekrivnaVrsticaZaKratko()
+            // Premik med YouTubovimi stranmi spremeni naslov; vrstice ob tem ne kazemo
+            // znova, sicer bi med brskanjem utripala in stran bi poskakovala.
+            // Vrstica je tu stalno vidna, stran pa stalno odmaknjena - tako je vedno
+            // pred ocmi in nicesar ne prekriva.
+            prekrivnaVrstica(true)
+            prisliSmoNaYoutube = true
         } else if (SiteProfileResolver.fromUrl(url).hideChrome(url)) {
+            prisliSmoNaYoutube = false
             host.hideKeyboard()
             host.editUrl.clearFocus()
             host.searchSuggestionsOverlay.visibility = View.GONE

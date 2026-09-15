@@ -451,14 +451,6 @@ object YoutubeTvSiteProfile : SiteProfile {
         return true
     }
 
-    /** Ali stran navzgor nima vec kam - takrat gre tipka gor v orodno vrstico. */
-    @Volatile
-    private var naVrhuStrani = false
-
-    /** Podpis elementa, ki je imel fokus po prejsnji smerni tipki. */
-    @Volatile
-    private var zadnjiFokus = ""
-
     fun dispatchYoutubeTvKey(host: MainActivity, event: KeyEvent): Boolean {
         val webView = host.activeWebView() ?: return host.superDispatchKey(event)
         if (event.action == KeyEvent.ACTION_DOWN && !webView.hasFocus()) {
@@ -466,38 +458,9 @@ object YoutubeTvSiteProfile : SiteProfile {
             host.editUrl.clearFocus()
             webView.requestFocus()
         }
-        // Tipka gre v stran - uporabnik ni vec v orodni vrstici, zato jo pospravimo.
-        if (event.action == KeyEvent.ACTION_DOWN) {
-            host.chrome.prekrivnaVrstica(false)
-        }
-        val obdelano = webView.dispatchKeyEvent(event)
-        if (event.action == KeyEvent.ACTION_DOWN) preveriVrh(webView)
-        return obdelano
+        return webView.dispatchKeyEvent(event)
     }
 
-    /**
-     * Po vsaki smerni tipki vprasamo stran, kje je njen fokus. Odgovor pride z zamikom enega
-     * pritiska, kar je ravno prav: ko fokus prispe v YouTubovo zgornjo vrstico, gre naslednja
-     * tipka gor v naso orodno vrstico.
-     */
-    private fun preveriVrh(webView: android.webkit.WebView) {
-        try {
-            webView.evaluateJavascript(
-                "(function(){try{var e=document.activeElement;if(!e||!e.getBoundingClientRect)return 'x';" +
-                    "var r=e.getBoundingClientRect();" +
-                    "return (e.tagName||'?')+'|'+Math.round(r.top)+'|'+Math.round(r.left)+'|'+Math.round(r.width);" +
-                    "}catch(x){return 'x';}})();"
-            ) { odgovor ->
-                val podpis = (odgovor ?: "").trim().trim('"')
-                val vrh = podpis.split("|").getOrNull(1)?.toFloatOrNull() ?: 9999f
-                // Bodisi je fokus ze cisto pri vrhu strani, bodisi se sploh ni premaknil.
-                naVrhuStrani = vrh < 70f || (podpis.isNotEmpty() && podpis != "x" && podpis == zadnjiFokus)
-                zadnjiFokus = podpis
-            }
-        } catch (_: Exception) {
-            naVrhuStrani = false
-        }
-    }
 
     override fun handleKey(event: KeyEvent, host: MainActivity): Boolean {
         val keyCode = event.keyCode
@@ -505,8 +468,6 @@ object YoutubeTvSiteProfile : SiteProfile {
         if (host.isChromeFocused() && event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
             host.hideKeyboard()
             host.editUrl.clearFocus()
-            naVrhuStrani = false
-            host.chrome.prekrivnaVrstica(false)
             host.activeWebView()?.requestFocus()
             return true
         }
@@ -518,11 +479,7 @@ object YoutubeTvSiteProfile : SiteProfile {
         }
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP -> {
-                val gledamo = curUrl.contains("#/watch") || curUrl.contains("/watch?v=")
-                if (gledamo || naVrhuStrani) {
-                    // Stran navzgor nima vec kam - tipka gre v orodno vrstico.
-                    naVrhuStrani = false
-                    host.chrome.prekrivnaVrstica(true)
+                if (curUrl.contains("#/watch") || curUrl.contains("/watch?v=")) {
                     host.btnBack.requestFocus()
                     true
                 } else {
