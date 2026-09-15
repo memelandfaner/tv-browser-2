@@ -26,8 +26,12 @@ object UiText {
             }
         }
 
+    /**
+     * Kontekst za nize. Klicatelj poda kontekst, izpeljan iz aplikacijskega
+     * (glej [JezikVmesnika.vKontekstu]), da nizi sledijo izbranemu jeziku.
+     */
     fun init(context: Context) {
-        appContext = context.applicationContext
+        appContext = context
     }
 
     fun get(@StringRes resId: Int): String {

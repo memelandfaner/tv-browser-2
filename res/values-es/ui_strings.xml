@@ -136,4 +136,5 @@
     <string name="ui_card_lure">Tarjeta de pago</string>
     <string name="ui_cast_ready">Listo para reproducir desde el teléfono y el ordenador</string>
     <string name="ui_link_sync_unavailable">La sincronización de marcadores todavía no está disponible en el televisor.</string>
+    <string name="ui_lang_auto">Automático (idioma del dispositivo)</string>
 </resources>

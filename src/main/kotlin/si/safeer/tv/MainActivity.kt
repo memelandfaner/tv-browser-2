@@ -139,9 +139,17 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
         }
     }
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        // Isti APK nosi vse prevode; privzeto odloca jezik televizorja, uporabnik pa
+        // lahko v meniju izbere svojega.
+        super.attachBaseContext(JezikVmesnika.vKontekstu(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        UiText.init(this)
+        // Aplikacijski kontekst v izbranem jeziku: nizi in glava Accept-Language
+        // tako sledijo izbiri uporabnika, ne da bi zadrzali Activity v pomnilniku.
+        UiText.init(JezikVmesnika.vKontekstu(applicationContext))
         setContentView(R.layout.activity_main)
 
         window.statusBarColor = Color.parseColor("#06090F")
@@ -1543,6 +1551,26 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
 
         // Ozadje domacega zaslona televizorja. Philips te nastavitve nima nikjer v sistemu,
         // zato jo ponudimo tu - in jo znamo tudi vrniti, kakrsna je bila.
+        val txtJezik = dialog.findViewById<android.widget.TextView>(R.id.txtJezik)
+        txtJezik.text = JezikVmesnika.imeIzbire(this)
+        dialog.findViewById<LinearLayout>(R.id.rowMenuJezik).setOnClickListener {
+            val oznake = listOf(JezikVmesnika.SAMODEJNO) + JezikVmesnika.JEZIKI.map { it.first }
+            val imena = (listOf(UiText.get(R.string.ui_lang_auto).ifBlank { "Automatic" }) +
+                JezikVmesnika.JEZIKI.map { it.second }).toTypedArray()
+            val trenutni = oznake.indexOf(JezikVmesnika.izbrani(this))
+            android.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.menu_language))
+                .setSingleChoiceItems(imena, trenutni) { d, izbrano ->
+                    d.dismiss()
+                    dialog.dismiss()
+                    if (oznake[izbrano] != JezikVmesnika.izbrani(this)) {
+                        JezikVmesnika.nastavi(this, oznake[izbrano])
+                        recreate()
+                    }
+                }
+                .show()
+        }
+
         val cbTvOzadje = dialog.findViewById<CheckBox>(R.id.cbTvOzadje)
         cbTvOzadje.isChecked = TvOzadje.jeCrno(this)
         dialog.findViewById<LinearLayout>(R.id.rowMenuTvOzadje).setOnClickListener {

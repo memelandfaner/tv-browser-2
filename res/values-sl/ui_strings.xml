@@ -136,4 +136,5 @@
     <string name="ui_card_lure">Plačilna kartica</string>
     <string name="ui_cast_ready">Pripravljen na predvajanje iz telefona in računalnika</string>
     <string name="ui_link_sync_unavailable">Sinhronizacija zaznamkov na televizorju še ni na voljo.</string>
+    <string name="ui_lang_auto">Samodejno (jezik naprave)</string>
 </resources>

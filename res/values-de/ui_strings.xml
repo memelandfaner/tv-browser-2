@@ -136,4 +136,5 @@
     <string name="ui_card_lure">Zahlungskarte</string>
     <string name="ui_cast_ready">Bereit für die Wiedergabe von Telefon und Computer</string>
     <string name="ui_link_sync_unavailable">Die Lesezeichen-Synchronisierung ist auf dem Fernseher noch nicht verfügbar.</string>
+    <string name="ui_lang_auto">Automatisch (Gerätesprache)</string>
 </resources>

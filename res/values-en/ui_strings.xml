@@ -136,4 +136,5 @@
     <string name="ui_card_lure">Payment card</string>
     <string name="ui_cast_ready">Ready to play from your phone and computer</string>
     <string name="ui_link_sync_unavailable">Bookmark sync is not available on the television yet.</string>
+    <string name="ui_lang_auto">Automatic (device language)</string>
 </resources>

@@ -40,4 +40,5 @@
   <string name="btn_favorite">Favoriten</string>
   <string name="btn_reload">Neu laden</string>
     <string name="menu_tv_wallpaper">Schwarzer TV-Startbildschirm</string>
+    <string name="menu_language">Sprache der Oberfläche</string>
 </resources>

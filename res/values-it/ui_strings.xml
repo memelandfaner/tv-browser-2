@@ -136,4 +136,5 @@
     <string name="ui_card_lure">Carta di pagamento</string>
     <string name="ui_cast_ready">Pronto per la riproduzione da telefono e computer</string>
     <string name="ui_link_sync_unavailable">La sincronizzazione dei preferiti non è ancora disponibile sul televisore.</string>
+    <string name="ui_lang_auto">Automatico (lingua del dispositivo)</string>
 </resources>
