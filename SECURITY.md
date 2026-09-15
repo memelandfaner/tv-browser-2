@@ -15,6 +15,10 @@ If that option is not available to you, open a public issue that says only that 
 have a security report and asks for a private channel. Do not include details,
 proof-of-concept code, or affected versions in the public issue.
 
+You can also write to **varnost@safeer.si** (or security@safeer.si, which reaches the
+same mailbox). Keep the first email free of details as well: say that you have a
+security report and we will reply with a private channel.
+
 Helpful things to include in the private report:
 
 - what an attacker can do, and what they need in order to do it
