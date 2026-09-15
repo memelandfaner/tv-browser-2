@@ -129,4 +129,11 @@
   <string name="ui_tv_wallpaper_failed">Ce téléviseur n’autorise pas le changement de fond</string>
   <string name="ui_history_clear_item">🧹 Effacer tout l’historique</string>
   <string name="ui_history_clear_confirm">Effacer tout l’historique de navigation ?</string>
+    <string name="ui_cat_fake_shop">Faux magasins et arnaques</string>
+    <string name="ui_sb_sponsor">Sponsor ignoré</string>
+    <string name="ui_sb_selfpromo">Autopromotion ignorée</string>
+    <string name="ui_sb_interaction">Invitation ignorée</string>
+    <string name="ui_card_lure">Carte de paiement</string>
+    <string name="ui_cast_ready">Prêt à lire depuis le téléphone et l\'ordinateur</string>
+    <string name="ui_link_sync_unavailable">La synchronisation des favoris n\'est pas encore disponible sur le téléviseur.</string>
 </resources>

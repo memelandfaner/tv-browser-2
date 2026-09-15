@@ -129,4 +129,11 @@
   <string name="ui_tv_wallpaper_failed">Questo televisore non consente di cambiare lo sfondo</string>
   <string name="ui_history_clear_item">🧹 Cancella tutta la cronologia</string>
   <string name="ui_history_clear_confirm">Cancellare tutta la cronologia di navigazione?</string>
+    <string name="ui_cat_fake_shop">Negozi falsi e truffe</string>
+    <string name="ui_sb_sponsor">Sponsor saltato</string>
+    <string name="ui_sb_selfpromo">Autopromozione saltata</string>
+    <string name="ui_sb_interaction">Richiesta saltata</string>
+    <string name="ui_card_lure">Carta di pagamento</string>
+    <string name="ui_cast_ready">Pronto per la riproduzione da telefono e computer</string>
+    <string name="ui_link_sync_unavailable">La sincronizzazione dei preferiti non è ancora disponibile sul televisore.</string>
 </resources>

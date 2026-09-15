@@ -254,6 +254,8 @@ object ThreatBlockEngine {
             c.contains("malware") || c.contains("zlonamerna") -> UiText.get(R.string.ui_cat_malware)
             c.contains("phishing") || c.contains("ribarjenje") -> UiText.get(R.string.ui_cat_phishing)
             c.contains("oglasno") || c.contains("stavno") -> UiText.get(R.string.ui_cat_adnet)
+            c.contains("lažn") || c.contains("prevar") || c.contains("fake") ||
+                c.contains("scam") -> UiText.get(R.string.ui_cat_fake_shop)
             else -> ""
         }
         if (prevod.isNotBlank()) return prevod

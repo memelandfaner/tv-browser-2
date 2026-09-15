@@ -135,6 +135,12 @@ object SponsorBlock {
         return "window.__safeerSb && window.__safeerSb.set(\"$videoId\", $list);"
     }
 
+    /** JS, ki predvajalniku poda oznake v jeziku naprave; poklicati pred [RUNTIME_JS]. */
+    fun labelScript(sponsor: String, selfpromo: String, interaction: String): String =
+        "window.__safeerSbLabels={sponsor:" + org.json.JSONObject.quote(sponsor) +
+            ",selfpromo:" + org.json.JSONObject.quote(selfpromo) +
+            ",interaction:" + org.json.JSONObject.quote(interaction) + "};"
+
     /**
      * Page runtime: watches the address for the current video, asks the app for its segments through
      * SafeerBridge.sponsorSegments(id) and jumps over every segment while the video plays. Idempotent.
@@ -142,7 +148,8 @@ object SponsorBlock {
     const val RUNTIME_JS: String = """
 (function () {
   if (window.__safeerSb) return;
-  var LABEL = { sponsor: "Sponzor preskočen", selfpromo: "Samopromocija preskočena", interaction: "Poziv preskočen" };
+  var LABEL = window.__safeerSbLabels ||
+    { sponsor: "Sponsor skipped", selfpromo: "Self-promotion skipped", interaction: "Prompt skipped" };
   var state = { id: null, segments: [], done: {}, video: null, asked: 0, answered: false };
   var toast = null, toastTimer = null;
   function showToast(text) {

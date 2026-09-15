@@ -453,7 +453,7 @@ class CastReceiverService : Service() {
         }
         return builder
             .setContentTitle("Safeer Cast Receiver")
-            .setContentText("Pripravljen na predvajanje iz telefona in računalnika")
+            .setContentText(getString(si.safeer.tv.R.string.ui_cast_ready))
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)
             .build()

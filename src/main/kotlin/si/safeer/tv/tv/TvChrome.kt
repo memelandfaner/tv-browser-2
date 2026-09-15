@@ -74,6 +74,35 @@ class TvChrome(private val host: MainActivity) {
         }
     }
 
+    /** Ali je stran trenutno zatemnjena (fokus je v vrstici). */
+    private var zatemnjeno = false
+
+    private fun osveziZatemnitev() {
+        val pogled = host.activeWebView() ?: return
+        val url = host.activeUrl()
+        val naVideu = url.contains("#/watch") || url.contains("/watch?v=")
+        // Poleg orodne vrstice imajo fokus lahko tudi hitri portali in predlogi iskanja;
+        // v vseh teh primerih uporabnik ni vec v strani in YouTubova oznaka ne sme goljufati.
+        val nasFokus = host.isChromeFocused() ||
+            host.portalChipsContainer.hasFocus() ||
+            host.suggestionsListContainer.hasFocus() ||
+            host.searchSuggestionsOverlay.hasFocus()
+        val zeli = TvSite.isYoutubeTv(url) && nasFokus && !naVideu
+        if (zeli == zatemnjeno) return
+        zatemnjeno = zeli
+        UserScriptManager.zatemniStran(pogled, zeli)
+    }
+
+    /**
+     * Fokus se lahko premakne tudi mimo nasih tipkovnih poti (npr. ko ga vzame WebView),
+     * zato poslusamo vse premike fokusa v oknu.
+     */
+    fun poveziFokus() {
+        host.window.decorView.viewTreeObserver.addOnGlobalFocusChangeListener { _, _ ->
+            host.mobileTopBar.post { osveziZatemnitev() }
+        }
+    }
+
     /** Pokazi ali pospravi prekrivno vrstico takoj. */
     fun prekrivnaVrstica(pokazi: Boolean) {
         host.mobileTopBar.removeCallbacks(pospraviVrstico)

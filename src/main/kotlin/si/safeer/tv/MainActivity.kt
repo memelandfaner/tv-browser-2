@@ -169,6 +169,7 @@ class MainActivity : android.app.Activity(), si.safeer.tv.cast.CastReceiverServi
             }
         }
         chrome = TvChrome(this)
+        chrome.poveziFokus()
         channelPad = ChannelDigitPad(this)
         keyRouter = TvKeyRouter(this)
         setupTabManager()

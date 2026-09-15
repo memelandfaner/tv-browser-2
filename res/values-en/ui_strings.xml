@@ -129,4 +129,11 @@
   <string name="ui_tv_wallpaper_failed">This television does not allow the background to be changed</string>
   <string name="ui_history_clear_item">🧹 Clear all history</string>
   <string name="ui_history_clear_confirm">Clear the whole browsing history?</string>
+    <string name="ui_cat_fake_shop">Fake shops and scams</string>
+    <string name="ui_sb_sponsor">Sponsor skipped</string>
+    <string name="ui_sb_selfpromo">Self-promotion skipped</string>
+    <string name="ui_sb_interaction">Prompt skipped</string>
+    <string name="ui_card_lure">Payment card</string>
+    <string name="ui_cast_ready">Ready to play from your phone and computer</string>
+    <string name="ui_link_sync_unavailable">Bookmark sync is not available on the television yet.</string>
 </resources>

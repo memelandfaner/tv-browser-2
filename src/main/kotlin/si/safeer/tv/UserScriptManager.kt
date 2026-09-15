@@ -647,7 +647,10 @@ object UserScriptManager {
                             '.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, ' +
                             '.ytp-ad-overlay-close-button, button.ytp-ad-skip-button-text, ' +
                             '.ytp-ad-skip-button-slot button, [id^="skip-button"], ' +
-                            'button[aria-label*="Preskoči"], button[aria-label*="Skip"]'
+                            'button[aria-label*="Preskoči"], button[aria-label*="Skip"], ' +
+                            'button[aria-label*="berspringen"], button[aria-label*="Saltar"], ' +
+                            'button[aria-label*="Omitir"], button[aria-label*="Ignorer"], ' +
+                            'button[aria-label*="Passer"], button[aria-label*="Salta"]'
                         );
                         if (skipBtn) skipBtn.click();
 
@@ -694,7 +697,9 @@ object UserScriptManager {
                             'ytm-engagement-panel-section-list-renderer button[aria-label*="Zapri"], ' +
                             'ytm-engagement-panel-section-list-renderer button[aria-label*="Close"], ' +
                             'ytm-bottom-sheet-renderer button.bottom-sheet-layout-close-button, ' +
-                            'button[aria-label*="Zapri ploščo"], button[aria-label*="Close panel"], ' +
+                            'button[aria-label*="Zapri"], button[aria-label*="Close panel"], ' +
+                            'button[aria-label*="Schlie"], button[aria-label*="Cerrar"], ' +
+                            'button[aria-label*="Fermer"], button[aria-label*="Chiudi"], ' +
                             '.bottom-sheet-layout-close-button, .header-close-button, .panel-header-close-button'
                         );
                         for (var pcb = 0; pcb < playlistCloseBtns.length; pcb++) {
@@ -1695,6 +1700,14 @@ object UserScriptManager {
             webView.evaluateJavascript(YOUTUBE_TV_LEANBACK_JS, null)
         }
         if (isYouTubeUrl(target) && SponsorBlockSettings.isEnabled(webView.context)) {
+            webView.evaluateJavascript(
+                com.safeer.threatfeed.SponsorBlock.labelScript(
+                    UiText.get(R.string.ui_sb_sponsor).ifBlank { "Sponsor skipped" },
+                    UiText.get(R.string.ui_sb_selfpromo).ifBlank { "Self-promotion skipped" },
+                    UiText.get(R.string.ui_sb_interaction).ifBlank { "Prompt skipped" }
+                ),
+                null
+            )
             webView.evaluateJavascript(com.safeer.threatfeed.SponsorBlock.RUNTIME_JS, null)
         }
         webView.evaluateJavascript(siteAgentJs(webView), null)
@@ -1765,6 +1778,29 @@ object UserScriptManager {
      * njegove zgornje vrstice. Premik je samo izris (transform), ne sprememba velikosti okna -
      * sicer bi stran izgubila razmerje 16:9 in si dodala crn pas levo in desno. 0 = brez odmika.
      */
+    /**
+     * Kadar je fokus v nasi orodni vrstici, stran zatemnimo. YouTube svojo izbiro (belo
+     * tablico) rise sam in je ob izgubi fokusa ne pospravi, zato bi bili sicer vidni dve
+     * oznaki hkrati in uporabnik ne bi vedel, kaj bo tipka premaknila.
+     */
+    fun zatemniStran(webView: WebView, zatemni: Boolean) {
+        val motnost = if (zatemni) "0.62" else "0"
+        val js = """
+            (function () {
+              var d = document.getElementById('safeer-zatemnitev');
+              if (!d) {
+                d = document.createElement('div');
+                d.id = 'safeer-zatemnitev';
+                d.setAttribute('style', 'position:fixed;left:0;top:0;right:0;bottom:0;background:#000;' +
+                  'z-index:2147483000;pointer-events:none;opacity:0;transition:opacity .15s');
+                (document.documentElement || document.body).appendChild(d);
+              }
+              d.style.opacity = '$motnost';
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(js, null)
+    }
+
     fun youtubeOdmik(webView: WebView, pikslovCss: Int) {
         if (pikslovCss <= 0) {
             removeCss(webView, "safeer-yt-odmik")

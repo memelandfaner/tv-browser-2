@@ -158,7 +158,7 @@ object BankGuard {
         if (signals.card) {
             for (pattern in lurePatterns) {
                 val found = pattern.find(pageText) ?: continue
-                return BankVerdict("card", "Plačilna kartica", "", "lure", found.value)
+                return BankVerdict("card", "Payment card", "", "lure", found.value)
             }
         }
         return null

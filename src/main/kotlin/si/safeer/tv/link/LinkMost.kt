@@ -74,7 +74,10 @@ class LinkMost(
     /** Na televizorju sinhronizacije zaznamkov (se) ni; povemo naravnost. */
     @JavascriptInterface
     fun nastaviSinhronizacijo(vklopljena: Boolean) {
-        napaka("Sinhronizacija zaznamkov na televizorju še ni na voljo.")
+        napaka(
+            si.safeer.tv.UiText.get(si.safeer.tv.R.string.ui_link_sync_unavailable)
+                .ifBlank { "Bookmark sync is not available on the television yet." }
+        )
     }
 
 

@@ -252,7 +252,7 @@
     var currentEngine = 'google';
     var DEFAULT_TILES = [
         { title: 'Xplore TV', url: 'https://www.xploretv.si/livetv' },
-        { title: 'YouTube', url: 'https://www.youtube.com/tv' },
+        { title: 'YouTube Music', url: 'https://www.youtube.com/tv#/browse?c=FEtopics_music' },
         { title: '24ur', url: 'https://www.24ur.com' },
         { title: 'RTV SLO', url: 'https://www.rtvslo.si' },
         { title: 'Google', url: 'https://www.google.com' },
@@ -266,10 +266,26 @@
             if (window.SafeerBridge && typeof window.SafeerBridge.getHomeTiles === 'function') {
                 var raw = window.SafeerBridge.getHomeTiles();
                 var parsed = JSON.parse(raw);
-                if (parsed && parsed.length) return parsed;
+                if (parsed && parsed.length) return popraviBliznjice(parsed);
             }
         } catch (e) {}
-        return DEFAULT_TILES.slice();
+        return popraviBliznjice(DEFAULT_TILES.slice());
+    }
+
+    /* Ze shranjena bliznjica YouTube naj odpre glasbeni zavihek, ne domace strani. */
+    var YT_STARE = [
+        'https://www.youtube.com/tv', 'https://www.youtube.com/tv/',
+        'http://www.youtube.com/tv', 'https://youtube.com/tv', 'https://m.youtube.com/tv'
+    ];
+    function popraviBliznjice(tiles) {
+        for (var i = 0; i < tiles.length; i++) {
+            var u = String((tiles[i] && tiles[i].url) || '');
+            if (YT_STARE.indexOf(u) !== -1) {
+                tiles[i].url = 'https://www.youtube.com/tv#/browse?c=FEtopics_music';
+                tiles[i].title = 'YouTube Music';
+            }
+        }
+        return tiles;
     }
 
     function letterMark(title) {
