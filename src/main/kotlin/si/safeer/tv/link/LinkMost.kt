@@ -59,7 +59,14 @@ class LinkMost(
         }
     }
 
-    private fun napaka(sporocilo: String) = odziv("napaka", sporocilo)
+    /**
+     * Napaka za stran. [koda] je stabilna oznaka, ki jo stran prevede v jezik naprave;
+     * [sporocilo] ostane zraven kot rezerva in za diagnostiko, ce kode ne pozna.
+     */
+    private fun napaka(koda: String, sporocilo: String) = odziv(
+        "napaka",
+        JSONObject().put("koda", koda).put("sporocilo", sporocilo)
+    )
 
     // ------------------------------------------------------------------
 
@@ -75,6 +82,7 @@ class LinkMost(
     @JavascriptInterface
     fun nastaviSinhronizacijo(vklopljena: Boolean) {
         napaka(
+            "sync_tv_ni_na_voljo",
             si.safeer.tv.UiText.get(si.safeer.tv.R.string.ui_link_sync_unavailable)
                 .ifBlank { "Bookmark sync is not available on the television yet." }
         )
@@ -141,7 +149,7 @@ class LinkMost(
                 })
             }
         } catch (e: Throwable) {
-            napaka("Iskanja ni bilo mogoce zagnati: ${e.message}")
+            napaka("iskanje_ni_steklo", "Iskanja ni bilo mogoce zagnati: ${e.message}")
         }
     }
 
@@ -149,7 +157,7 @@ class LinkMost(
     fun seznani() {
         val naslov = hubUrl()
         if (naslov.isBlank()) {
-            napaka("Hub ni znan. Najprej ga poisci.")
+            napaka("hub_ni_znan", "Hub ni znan. Najprej ga poisci.")
             return
         }
         try {
@@ -170,7 +178,7 @@ class LinkMost(
                 }
             )
         } catch (e: Throwable) {
-            napaka("Seznanitve ni bilo mogoce zaceti: ${e.message}")
+            napaka("seznanitev_ni_stekla", "Seznanitve ni bilo mogoce zaceti: ${e.message}")
         }
     }
 
@@ -200,17 +208,17 @@ class LinkMost(
 
     @JavascriptInterface
     fun posljiTrenutno(idNaprave: String) {
-        napaka("Televizor je zaslon in ne posilja.")
+        napaka("tv_je_zaslon", "Televizor je zaslon in ne posilja.")
     }
 
     @JavascriptInterface
     fun poslji(idNaprave: String, url: String, naslov: String) {
-        napaka("Televizor je zaslon in ne posilja.")
+        napaka("tv_je_zaslon", "Televizor je zaslon in ne posilja.")
     }
 
     @JavascriptInterface
     fun nadzor(idNaprave: String, ukaz: String, vrednost: Double) {
-        napaka("Televizor je zaslon in ne upravlja drugih zaslonov.")
+        napaka("tv_ne_upravlja", "Televizor je zaslon in ne upravlja drugih zaslonov.")
     }
 
     @JavascriptInterface
@@ -252,10 +260,10 @@ class LinkMost(
         try {
             val uspelo = si.safeer.tv.cast.HubKrmilnik.zazeni(dejavnost)
             pripniPoslusalce()
-            if (!uspelo) napaka("Huba ni bilo mogoce zagnati.")
+            if (!uspelo) napaka("hub_ni_zagnan", "Huba ni bilo mogoce zagnati.")
             odziv("hub-tu", JSONObject(hubStanje()))
         } catch (e: Throwable) {
-            napaka("Huba ni bilo mogoce zagnati: ${e.message}")
+            napaka("hub_ni_zagnan", "Huba ni bilo mogoce zagnati: ${e.message}")
         }
     }
 
@@ -265,7 +273,7 @@ class LinkMost(
             si.safeer.tv.cast.HubKrmilnik.ustavi(dejavnost)
             odziv("hub-tu", JSONObject(hubStanje()))
         } catch (e: Throwable) {
-            napaka("Huba ni bilo mogoce ustaviti: ${e.message}")
+            napaka("hub_ni_ustavljen", "Huba ni bilo mogoce ustaviti: ${e.message}")
         }
     }
 
@@ -293,11 +301,11 @@ class LinkMost(
     fun hubPotrdi(idPrijave: String) {
         val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik
         if (u == null) {
-            napaka("Hub ne tece.")
+            napaka("hub_ne_tece", "Hub ne tece.")
             return
         }
         if (!u.potrdiPrijavo(idPrijave)) {
-            napaka("Prijave ni vec ali pa je poteklo.")
+            napaka("prijava_potekla", "Prijave ni vec ali pa je poteklo.")
         }
         odziv("hub-prijave", org.json.JSONArray(hubPrijave()))
     }
@@ -330,7 +338,7 @@ class LinkMost(
     fun hubPreklici(idNaprave: String) {
         val u = si.safeer.tv.cast.HubKrmilnik.usmerjevalnik
         if (u == null) {
-            napaka("Hub ne tece.")
+            napaka("hub_ne_tece", "Hub ne tece.")
             return
         }
         u.prekliciNapravo(idNaprave)

@@ -1783,19 +1783,33 @@ object UserScriptManager {
      * tablico) rise sam in je ob izgubi fokusa ne pospravi, zato bi bili sicer vidni dve
      * oznaki hkrati in uporabnik ne bi vedel, kaj bo tipka premaknila.
      */
+    /**
+     * Kadar je fokus v nasi orodni vrstici, mora stran nehati kazati svojo izbiro.
+     * YouTube za TV oznaci izbrani gumb z razredom 'zylon-focus' in ga ob izgubi
+     * fokusa ne pospravi, zato bi bili sicer vidni dve oznaki hkrati in uporabnik
+     * ne bi vedel, kaj bo premaknila smerna tipka. Stran hkrati zatemnimo, da je
+     * na prvi pogled jasno, kje je zdaj tipkovnica.
+     */
     fun zatemniStran(webView: WebView, zatemni: Boolean) {
-        val motnost = if (zatemni) "0.62" else "0"
+        val slog = if (zatemni) {
+            "html{filter:brightness(.45) saturate(.55)!important;}" +
+                ".zylon-focus,.zylon-focus *{background:transparent!important;" +
+                "background-color:transparent!important;box-shadow:none!important;" +
+                "outline:0!important;border-color:transparent!important;" +
+                // Tablica je svetla in ima temno besedilo; brez tablice bi besedilo izginilo.
+                "color:#e8eef5!important;fill:#e8eef5!important;}"
+        } else {
+            ""
+        }
         val js = """
             (function () {
-              var d = document.getElementById('safeer-zatemnitev');
-              if (!d) {
-                d = document.createElement('div');
-                d.id = 'safeer-zatemnitev';
-                d.setAttribute('style', 'position:fixed;left:0;top:0;right:0;bottom:0;background:#000;' +
-                  'z-index:2147483000;pointer-events:none;opacity:0;transition:opacity .15s');
-                (document.documentElement || document.body).appendChild(d);
+              var s = document.getElementById('safeer-brez-oznake');
+              if (!s) {
+                s = document.createElement('style');
+                s.id = 'safeer-brez-oznake';
+                (document.head || document.documentElement).appendChild(s);
               }
-              d.style.opacity = '$motnost';
+              s.textContent = ${org.json.JSONObject.quote(slog)};
             })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)

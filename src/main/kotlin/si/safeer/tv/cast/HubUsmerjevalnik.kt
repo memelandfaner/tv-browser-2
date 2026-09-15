@@ -361,12 +361,12 @@ class HubUsmerjevalnik(
      */
     fun odgovorNa(od: Odjemalec, surovo: String): String? {
         val sporocilo = JsonLahki.objekt(surovo)
-            ?: return potrditev("unknown", "error", "Neveljavno sporočilo.")
+            ?: return potrditev("unknown", "error", "Neveljavno sporočilo.", koda = "neveljavno_sporocilo")
         val tip = sporocilo.niz("type")
         val id = sporocilo.nizAli("id", "unknown")
         val prostor = prostorOd(tip)
 
-        if (tip.isNullOrEmpty()) return potrditev(id, "error", "Sporočilu manjka polje 'type'.")
+        if (tip.isNullOrEmpty()) return potrditev(id, "error", "Sporočilu manjka polje 'type'.", koda = "manjka_type")
 
         if (tip == "cast.register") return registriraj(od, sporocilo, id)
 
@@ -385,9 +385,9 @@ class HubUsmerjevalnik(
             val cilj = sporocilo.niz("target")
             val prejemnik = synchronized(kljucnica) {
                 naprave[cilj]?.takeIf { it.vloga == "receiver" }?.povezava
-            } ?: return potrditev(id, "rejected", "Ciljna naprava '${cilj ?: ""}' ni povezana ali ne obstaja.")
+            } ?: return potrditev(id, "rejected", "Ciljna naprava '${cilj ?: ""}' ni povezana ali ne obstaja.", koda = "naprava_ni_povezana")
             return if (posljiVarno(prejemnik, surovo)) potrditev(id, "accepted")
-            else potrditev(id, "error", "Napaka pri posredovanju prejemniku.")
+            else potrditev(id, "error", "Napaka pri posredovanju prejemniku.", koda = "posredovanje_ni_uspelo")
         }
 
         if (tip == "cast.status") {
@@ -402,13 +402,13 @@ class HubUsmerjevalnik(
         if (tip == "cast.ack") return null
 
         // Kar ni na seznamu, se ne posreduje nikamor. Dovoljenja se ne smejo siriti po nesreci.
-        return potrditev(id, "error", "Neznan tip sporočila: '$tip'", prostor)
+        return potrditev(id, "error", "Neznan tip sporočila: '$tip'", prostor, koda = "neznan_tip")
     }
 
     private fun registriraj(od: Odjemalec, sporocilo: JsonLahki.Pogled, id: String): String {
         val tovor = sporocilo.objekt("payload")
         val deviceId = tovor?.niz("device_id")
-        if (deviceId.isNullOrBlank()) return potrditev(id, "rejected", "Manjka device_id.")
+        if (deviceId.isNullOrBlank()) return potrditev(id, "rejected", "Manjka device_id.", koda = "manjka_device_id")
 
         val vloga = tovor.niz("role") ?: "receiver"
         val zmoznosti = tovor.nizi("capabilities").ifEmpty { listOf("url", "control") }
@@ -417,7 +417,7 @@ class HubUsmerjevalnik(
             if (!naprave.containsKey(deviceId) && naprave.size >= NAJVEC_NAPRAV) {
                 pocistiRegister()
                 if (naprave.size >= NAJVEC_NAPRAV) {
-                    return potrditev(id, "rejected", "Preveč naprav; odklopite katero od prejšnjih.")
+                    return potrditev(id, "rejected", "Preveč naprav; odklopite katero od prejšnjih.", koda = "prevec_naprav")
                 }
             }
             val naprava = naprave.getOrPut(deviceId) {
@@ -481,9 +481,9 @@ class HubUsmerjevalnik(
         val cilj = sporocilo.niz("target")
         if (!cilj.isNullOrEmpty() && cilj != VSEM) {
             val povezava = synchronized(kljucnica) { naprave[cilj]?.povezava }
-                ?: return potrditev(id, "rejected", "Naprava '$cilj' ni povezana ali ne obstaja.", "sync")
+                ?: return potrditev(id, "rejected", "Naprava '$cilj' ni povezana ali ne obstaja.", "sync", "naprava_ni_povezana")
             return if (posljiVarno(povezava, surovo)) potrditev(id, "accepted", null, "sync")
-            else potrditev(id, "error", "Napaka pri posredovanju.", "sync")
+            else potrditev(id, "error", "Napaka pri posredovanju.", "sync", "posredovanje_ni_uspelo")
         }
 
         val prejemniki = synchronized(kljucnica) {
@@ -493,12 +493,12 @@ class HubUsmerjevalnik(
             }.mapNotNull { it.povezava }
         }
         if (prejemniki.isEmpty()) {
-            return potrditev(id, "rejected", "Nobena druga naprava ne sinhronizira.", "sync")
+            return potrditev(id, "rejected", "Nobena druga naprava ne sinhronizira.", "sync", "nobena_ne_sinhronizira")
         }
         var dostavljeno = 0
         for (povezava in prejemniki) if (posljiVarno(povezava, surovo)) dostavljeno++
         return if (dostavljeno > 0) potrditev(id, "accepted", null, "sync")
-        else potrditev(id, "error", "Nobene naprave ni bilo mogoče doseči.", "sync")
+        else potrditev(id, "error", "Nobene naprave ni bilo mogoče doseči.", "sync", "nobene_ni_doseglo")
     }
 
     /**
@@ -564,11 +564,14 @@ class HubUsmerjevalnik(
         refId: String,
         stanje: String,
         napaka: String? = null,
-        prostor: String = "cast"
+        prostor: String = "cast",
+        koda: String? = null
     ): String = ovojnica("$prostor.ack")
         .niz("ref_id", refId)
         .niz("status", stanje)
         .niz("error", napaka)
+        // Stabilna oznaka: odjemalec jo prevede v svoj jezik, besedilo je le rezerva.
+        .niz("error_code", koda)
         .toString()
 
     private fun prostorOd(tip: String?): String {
@@ -588,13 +591,13 @@ class HubUsmerjevalnik(
         val krajevni = jeKrajevni(zahteva.odjemalec)
 
         if (pot == "/cast/pair/start" && zahteva.metoda == "POST") {
-            if (!krajevni) return HubStreznik.Odgovor(403, napakaJson("Seznanjanje je mogoče samo v krajevnem omrežju."))
+            if (!krajevni) return HubStreznik.Odgovor(403, napakaJson("Seznanjanje je mogoče samo v krajevnem omrežju.", "samo_krajevno"))
             val telo = JsonLahki.objekt(zahteva.telo)
             val deviceId = (telo?.niz("device_id") ?: "").trim().take(NAJVEC_IMENA)
             val ime = (telo?.niz("name") ?: "").trim().take(NAJVEC_IMENA)
-            if (deviceId.isEmpty()) return HubStreznik.Odgovor(400, napakaJson("Manjka device_id."))
+            if (deviceId.isEmpty()) return HubStreznik.Odgovor(400, napakaJson("Manjka device_id.", "manjka_device_id"))
             val prijava = zacniSeznanitev(deviceId, ime, zahteva.odjemalec)
-                ?: return HubStreznik.Odgovor(429, napakaJson("Preveč čakajočih prijav; poskusite čez nekaj minut."))
+                ?: return HubStreznik.Odgovor(429, napakaJson("Preveč čakajočih prijav; poskusite čez nekaj minut.", "prevec_prijav"))
             return HubStreznik.Odgovor(
                 200,
                 JsonLahki.Zapis()
@@ -606,7 +609,7 @@ class HubUsmerjevalnik(
         }
 
         if (pot == "/cast/pair/claim" && zahteva.metoda == "POST") {
-            if (!krajevni) return HubStreznik.Odgovor(403, napakaJson("Samo v krajevnem omrežju."))
+            if (!krajevni) return HubStreznik.Odgovor(403, napakaJson("Samo v krajevnem omrežju.", "samo_krajevno"))
             val telo = JsonLahki.objekt(zahteva.telo)
             val zeton = prevzemiZeton(telo?.niz("pair_id") ?: "")
                 ?: return HubStreznik.Odgovor(200, JsonLahki.Zapis().logicno("approved", false).toString())
@@ -617,9 +620,9 @@ class HubUsmerjevalnik(
         }
 
         if (pot == "/cast/ticket" && zahteva.metoda == "POST") {
-            if (!krajevni) return HubStreznik.Odgovor(403, napakaJson("Samo v krajevnem omrežju."))
+            if (!krajevni) return HubStreznik.Odgovor(403, napakaJson("Samo v krajevnem omrežju.", "samo_krajevno"))
             if (!jeVeljavenZeton(zahteva.glave["x-safeer-token"])) {
-                return HubStreznik.Odgovor(401, napakaJson("Naprava ni seznanjena."))
+                return HubStreznik.Odgovor(401, napakaJson("Naprava ni seznanjena.", "naprava_ni_seznanjena"))
             }
             return HubStreznik.Odgovor(
                 200,
@@ -632,14 +635,14 @@ class HubUsmerjevalnik(
 
         if (pot == "/cast/devices" && zahteva.metoda == "GET") {
             if (!krajevni || !jeVeljavenZeton(zahteva.glave["x-safeer-token"])) {
-                return HubStreznik.Odgovor(401, napakaJson("Naprava ni seznanjena."))
+                return HubStreznik.Odgovor(401, napakaJson("Naprava ni seznanjena.", "naprava_ni_seznanjena"))
             }
             return HubStreznik.Odgovor(200, povezaniPrejemniki())
         }
 
         if (pot == "/cast/health" && zahteva.metoda == "GET") {
             if (!krajevni || !jeVeljavenZeton(zahteva.glave["x-safeer-token"])) {
-                return HubStreznik.Odgovor(401, napakaJson("Naprava ni seznanjena."))
+                return HubStreznik.Odgovor(401, napakaJson("Naprava ni seznanjena.", "naprava_ni_seznanjena"))
             }
             val stanje = synchronized(kljucnica) {
                 JsonLahki.Zapis()
@@ -661,7 +664,7 @@ class HubUsmerjevalnik(
         // Znana pot z napacnim glagolom ni "ni te poti": naprava, ki isce Hub, prav po tem
         // loci Safeer Hub od poljubnega streznika na istih vratih.
         if (pot in ZNANE_POTI) {
-            return HubStreznik.Odgovor(405, napakaJson("Ta način za to pot ni dovoljen."))
+            return HubStreznik.Odgovor(405, napakaJson("Ta način za to pot ni dovoljen.", "metoda_ni_dovoljena"))
         }
         return null
     }
@@ -677,8 +680,8 @@ class HubUsmerjevalnik(
         return null
     }
 
-    private fun napakaJson(sporocilo: String): String =
-        JsonLahki.Zapis().niz("detail", sporocilo).toString()
+    private fun napakaJson(sporocilo: String, koda: String = ""): String =
+        JsonLahki.Zapis().niz("detail", sporocilo).niz("code", koda).toString()
 
     companion object {
         const val RAZLICICA_PROTOKOLA = "0.2"

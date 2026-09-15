@@ -28,6 +28,25 @@
 
   var BESEDILA = {
     sl: {
+      napHubNiZnan: "Huba še ne poznam. Najprej ga poišči.",
+      napIskanje: "Iskanja ni bilo mogoče zagnati.",
+      napSeznanitev: "Seznanitve ni bilo mogoče začeti.",
+      napPovezava: "Povezava ni uspela. Preveri, ali je Hub prižgan.",
+      napStranNiPrimerna: "Te strani ni mogoče poslati.",
+      napSamoHttp: "Poslati je mogoče samo naslove http in https.",
+      napPosiljanje: "Pošiljanje ni uspelo. Poskusi znova.",
+      napUkaz: "Ukaz ni uspel.",
+      napZaznamki: "Zaznamkov ni bilo mogoče poslati.",
+      napSyncStart: "Sinhronizacije ni bilo mogoče začeti.",
+      napSyncNastavi: "Sinhronizacije ni bilo mogoče nastaviti.",
+      napZdruzevanje: "Združevanja zaznamkov ni bilo mogoče končati.",
+      napHubNeTece: "Hub ne teče.",
+      napHubNiZagnan: "Huba ni bilo mogoče zagnati.",
+      napHubNiUstavljen: "Huba ni bilo mogoče ustaviti.",
+      napPrijavaPotekla: "Prijave ni več ali pa je potekla.",
+      napTvJeZaslon: "Televizor je zaslon in ne pošilja.",
+      napTvNeUpravlja: "Televizor ne upravlja drugih zaslonov.",
+      napSyncTvNiNaVoljo: "Sinhronizacija zaznamkov na televizorju še ni na voljo.",
       preverjam: "Preverjam …",
       zapri: "Zapri",
       povezano: "Povezano z domačim Safeer Linkom",
@@ -103,6 +122,25 @@
       preverjamNaslov: "Povezujem se na nov naslov …"
     },
     en: {
+      napHubNiZnan: "The hub is not known yet. Find it first.",
+      napIskanje: "The search could not be started.",
+      napSeznanitev: "Pairing could not be started.",
+      napPovezava: "The connection failed. Check that the hub is on.",
+      napStranNiPrimerna: "This page cannot be sent.",
+      napSamoHttp: "Only http and https addresses can be sent.",
+      napPosiljanje: "Sending failed. Try again.",
+      napUkaz: "The command failed.",
+      napZaznamki: "The bookmarks could not be sent.",
+      napSyncStart: "Sync could not be started.",
+      napSyncNastavi: "Sync could not be set up.",
+      napZdruzevanje: "Merging the bookmarks could not be finished.",
+      napHubNeTece: "The hub is not running.",
+      napHubNiZagnan: "The hub could not be started.",
+      napHubNiUstavljen: "The hub could not be stopped.",
+      napPrijavaPotekla: "The request is gone or has expired.",
+      napTvJeZaslon: "The television is a screen; it does not send.",
+      napTvNeUpravlja: "The television does not control other screens.",
+      napSyncTvNiNaVoljo: "Bookmark sync is not available on the television yet.",
       preverjam: "Checking …",
       zapri: "Close",
       povezano: "Connected to your home Safeer Link",
@@ -177,6 +215,32 @@
       daPovezi: "Yes, connect",
       preverjamNaslov: "Connecting to the new address …"
     }
+  };
+
+  /**
+   * Stabilne kode napak iz mostu. Most poslje kodo in besedilo; stran pokaze prevod
+   * kode, besedilo pa uporabi le, ce kode ne pozna (starejsi most, nova koda).
+   */
+  var NAPAKE = {
+    hub_ni_znan: "napHubNiZnan",
+    iskanje_ni_steklo: "napIskanje",
+    seznanitev_ni_stekla: "napSeznanitev",
+    povezava_ni_uspela: "napPovezava",
+    stran_ni_primerna: "napStranNiPrimerna",
+    samo_http: "napSamoHttp",
+    posiljanje_ni_uspelo: "napPosiljanje",
+    ukaz_ni_uspel: "napUkaz",
+    zaznamki_niso_poslani: "napZaznamki",
+    sync_ni_stekla: "napSyncStart",
+    sync_ni_nastavljena: "napSyncNastavi",
+    zdruzevanje_ni_koncano: "napZdruzevanje",
+    hub_ne_tece: "napHubNeTece",
+    hub_ni_zagnan: "napHubNiZagnan",
+    hub_ni_ustavljen: "napHubNiUstavljen",
+    prijava_potekla: "napPrijavaPotekla",
+    tv_je_zaslon: "napTvJeZaslon",
+    tv_ne_upravlja: "napTvNeUpravlja",
+    sync_tv_ni_na_voljo: "napSyncTvNiNaVoljo"
   };
 
   var jezik = (function () {
@@ -825,7 +889,7 @@
       } else if (vrsta === "napaka") {
         // Tehnicnega besedila uporabniku ne kazemo: povemo, kaj to pomeni zanj.
         stanje.tezava = true;
-        var sporocilo = clovesko(String(podatki));
+        var sporocilo = izNapake(podatki);
         besedilo("opombaNaprave", sporocilo);
         besedilo("opombaIskanje", sporocilo);
         besedilo("opombaCast", sporocilo);
@@ -837,6 +901,19 @@
   };
 
   /** Iz tehnicne napake naredi poved, ki uporabniku pove, kaj naj naredi. */
+  /** Napaka pride kot besedilo ali kot {koda, sporocilo}; koda ima prednost. */
+  function izNapake(podatki) {
+    if (podatki && typeof podatki === "object") {
+      var kljuc = NAPAKE[String(podatki.koda || "")];
+      if (kljuc) {
+        var niz = t(kljuc);
+        if (niz) return niz;
+      }
+      return clovesko(String(podatki.sporocilo || ""));
+    }
+    return clovesko(String(podatki));
+  }
+
   function clovesko(sporocilo) {
     var m = (sporocilo || "").toLowerCase();
     if (m.indexOf("unauthorized") >= 0 || m.indexOf("401") >= 0 ||
