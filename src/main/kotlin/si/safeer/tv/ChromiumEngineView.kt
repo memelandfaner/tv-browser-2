@@ -449,8 +449,21 @@ class ChromiumEngineView @JvmOverloads constructor(
         }
     }
 
+    /** Prosojna slika 1x1 namesto privzetega plakata za video. */
+    private val prazenPlakat: android.graphics.Bitmap by lazy {
+        android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888).also {
+            it.eraseColor(android.graphics.Color.TRANSPARENT)
+        }
+    }
+
     private fun setupClients() {
         webChromeClient = object : WebChromeClient() {
+            // WebView pred zacetkom predvajanja sam narise svoj privzeti plakat:
+            // siva ploskev z ogromnim gumbom za predvajanje cez cel zaslon. Na YouTubu
+            // se pokaze ob vsakem prehodu na naslednji video v mesanici. Vrnemo prazno
+            // (prosojno) sliko, da ostane vidno ozadje strani.
+            override fun getDefaultVideoPoster(): android.graphics.Bitmap? = prazenPlakat
+
             // Okna JavaScripta: privzeti WebChromeClient jih tiho preklice, zato jih
             // narisemo sami -- sicer prijave in potrditve na straneh ne delujejo.
             override fun onJsAlert(
